@@ -8,6 +8,17 @@ use std::collections::BTreeMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 
+/// A formal behavioral invariant declared in the architecture contract.
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq, JsonSchema)]
+pub struct InvariantDeclaration {
+    pub id: String,
+    #[serde(default)]
+    pub component: String,
+    pub contract: String,
+    #[serde(default)]
+    pub enforcement: String,
+}
+
 /// TOML frontmatter extracted from .planning/ARCHITECTURE.md.
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, JsonSchema)]
 pub struct ArchitectureContract {
@@ -21,6 +32,8 @@ pub struct ArchitectureContract {
     pub enforce: Vec<String>,
     #[serde(default)]
     pub guard_settings: BTreeMap<String, serde_json::Value>,
+    #[serde(default)]
+    pub invariants: Vec<InvariantDeclaration>,
 }
 
 /// Validation verdict returned by `validate_architecture`.

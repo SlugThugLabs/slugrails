@@ -13,6 +13,36 @@ library = ["types", "error", "util"]
 types = []
 error = []
 util = ["types", "error"]
+
+[[invariants]]
+id = "INV-AUTH-01"
+component = "storage"
+contract = "Modifications to ARCHITECTURE.md without valid token hash MUST be rejected."
+enforcement = "SHA-256 baseline verification"
+
+[[invariants]]
+id = "INV-EXEC-01"
+component = "guards"
+contract = "Enforced guards must run black-box without plaintext assertion leakage to prevent agent test tampering."
+enforcement = "Compiled blackbox verification"
+
+[[invariants]]
+id = "INV-DRY-01"
+component = "library"
+contract = "New guards registered via create_guard_test must persist to ~/.slugthug/codeguards/tests/ and be globally reusable."
+enforcement = "Catalog indexing test"
+
+[[invariants]]
+id = "INV-SAFE-01"
+component = "all"
+contract = "Zero unsafe blocks across the entire codebase."
+enforcement = "#![forbid(unsafe_code)]"
+
+[[invariants]]
+id = "INV-WIN-01"
+component = "util"
+contract = "Home directory and binary resolution must support Windows USERPROFILE and .exe extensions seamlessly."
+enforcement = "Cross-platform path test"
 +++
 
 # CodeGuards Architecture & Workflow Integration
@@ -114,3 +144,28 @@ When a project has unique semantic or business invariants that standard guards d
   * **Planning:** Agent + User use MCP authoring tools (`validate_architecture`, `create_guard_test`).
   * **Coding:** Agent writes normal code in `src/`. Zero CodeGuards MCP overhead.
   * **Enforcement:** Git pre-commit hook runs `codeguards-mcp check --diff`.
+
+---
+
+## 5. Tamper-Proof Invariant Enforcement & Black-Box Test Runner
+
+AI agents naturally follow the path of least resistance: when a test fails, an agent's reflex is often to weaken, delete, or comment out the test assertion in the repository.
+
+To enforce real engineering rigor:
+1. **Black-Box Guard Execution:**
+   - Invariant guard tests live outside the editable target repository (in `~/.slugthug/codeguards/tests/` or compiled runners).
+   - In-repo tests (invoked by `cargo test`) execute the compiled guard engine as a black-box check.
+   - The agent receives actionable diagnostic failure reasons (`[CODEGUARD-BLOCKED] <guard_id>: <reason>`), but **cannot edit, relax, or tamper with the test logic**.
+2. **Anti-Drift Authorization:**
+   - Changes to `.planning/ARCHITECTURE.md` are cryptographically verified against baseline hashes.
+   - Unauthorized modifications to threshold values or layers are blocked at commit time.
+
+---
+
+## 6. Cross-Platform Parity (Windows & Unix)
+
+CodeGuards is built for first-class operation across Linux, macOS, and Windows:
+* **Central Directory Resolution:** `get_slugthug_home()` resolves `SLUGTHUG_HOME` -> `HOME` -> `USERPROFILE` with zero hardcoded Unix root assumptions.
+* **Binary Execution:** Platform-aware executable naming (`codeguards-mcp.exe` on Windows, `codeguards-mcp` on Unix) ensures install and connect CLI hooks work on all systems.
+* **Path Canonicalization:** Safe path validation properly handles Windows drive letters, UNC paths, and extended-length prefixes (`\\?\`).
+

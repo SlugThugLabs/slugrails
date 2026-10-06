@@ -102,10 +102,23 @@ pub fn get_slugthug_home() -> PathBuf {
         PathBuf::from(dir)
     } else if let Ok(home) = std::env::var("HOME") {
         PathBuf::from(home).join(".slugthug")
+    } else if let Ok(profile) = std::env::var("USERPROFILE") {
+        PathBuf::from(profile).join(".slugthug")
     } else {
         PathBuf::from("/root/.slugthug")
     }
 }
+
+/// Returns the executable binary name for the current platform.
+#[must_use]
+pub fn get_binary_name() -> &'static str {
+    if cfg!(windows) {
+        "codeguards-mcp.exe"
+    } else {
+        "codeguards-mcp"
+    }
+}
+
 
 /// Returns the central test library directory: ~/.slugthug/codeguards/tests/
 #[must_use]

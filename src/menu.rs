@@ -136,7 +136,7 @@ fn install_step() {
     println!();
     let source = running_binary();
     let bin_dir = get_slugthug_home().join("bin");
-    let target = bin_dir.join("codeguards-mcp");
+    let target = bin_dir.join(crate::util::get_binary_name());
 
     if let Err(e) = std::fs::create_dir_all(&bin_dir) {
         eprintln!("Failed to create {}: {e}", bin_dir.display());
@@ -182,7 +182,7 @@ fn connect_step() {
         }
     };
 
-    let bin_path = get_slugthug_home().join("bin").join("codeguards-mcp");
+    let bin_path = get_slugthug_home().join("bin").join(crate::util::get_binary_name());
     let exec_path = if bin_path.exists() {
         bin_path
     } else {
@@ -223,7 +223,7 @@ fn connect_step() {
 
 fn other_client_step() {
     println!();
-    let bin_path = get_slugthug_home().join("bin").join("codeguards-mcp");
+    let bin_path = get_slugthug_home().join("bin").join(crate::util::get_binary_name());
     let exec_path = if bin_path.exists() {
         bin_path
     } else {
