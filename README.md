@@ -118,3 +118,18 @@ The file adds the verified header:
 cargo build --release
 cp target/release/codeguards-mcp /root/.slugthug/bin/codeguards-mcp
 ```
+
+---
+
+## License & Fair Source Terms
+
+CodeGuards is licensed under the **Functional Source License, Version 1.1, Apache 2.0 Change License (`FSL-1.1-Apache-2.0`)**.
+
+### What does this mean?
+
+- **100% Free for Developers & Internal Teams:** You are free to use CodeGuards internally to develop, analyze, audit, test, and maintain your own software—including commercial products and services. You own 100% of the code and products you build with it.
+- **Protection Against Commercial Resale & AI Bundling:** Third parties and AI platforms may not offer the functionality of CodeGuards as a competing commercial product or service, nor bundle or embed it into a paid commercial offering without an agreement from SlugThug Labs.
+- **Automatic Apache 2.0 Conversion:** Every release automatically converts to the fully permissive **Apache License 2.0** two years after its release date.
+
+For commercial embedding, platform partnerships, or enterprise licensing, contact: `admin@slugthuglabs.dev`.
+
