@@ -27,16 +27,16 @@ pub fn check_function_limits(
     contract: &ArchitectureContract,
     violations: &mut Vec<Violation>,
 ) {
-    let max_lines = usize::try_from(
-        contract
-            .guard_settings
-            .get("function_limits")
-            .and_then(|v| v.get("max_lines"))
-            .and_then(serde_json::Value::as_u64)
-            .unwrap_or(80),
-    )
-    .ok()
-    .unwrap_or(usize::MAX);
+    let max_lines = contract
+        .guard_settings
+        .get("function_limits")
+        .or_else(|| contract.guard_settings.get("complexity/function-limits"))
+        .or_else(|| contract.guard_settings.get(&ctx.guard.id))
+        .and_then(|v| v.get("max_lines"))
+        .or_else(|| ctx.guard.default_params.get("max_lines"))
+        .and_then(serde_json::Value::as_u64)
+        .and_then(|u| usize::try_from(u).ok())
+        .unwrap_or(50);
 
     for span in function_spans(ctx.content) {
         let length = span.end_line.saturating_sub(span.start_line) + 1;

@@ -27,16 +27,16 @@ pub fn check_deep_nesting(
     contract: &ArchitectureContract,
     violations: &mut Vec<Violation>,
 ) {
-    let max_depth = usize::try_from(
-        contract
-            .guard_settings
-            .get("deep_nesting")
-            .and_then(|v| v.get("max_depth"))
-            .and_then(serde_json::Value::as_u64)
-            .unwrap_or(4),
-    )
-    .ok()
-    .unwrap_or(4);
+    let max_depth = contract
+        .guard_settings
+        .get("deep_nesting")
+        .or_else(|| contract.guard_settings.get("complexity/deep-nesting"))
+        .or_else(|| contract.guard_settings.get(&ctx.guard.id))
+        .and_then(|v| v.get("max_depth"))
+        .or_else(|| ctx.guard.default_params.get("max_depth"))
+        .and_then(serde_json::Value::as_u64)
+        .and_then(|u| usize::try_from(u).ok())
+        .unwrap_or(4);
 
     for site in nesting_depth(ctx.content) {
         if site.max_depth > max_depth && !ctx.is_test_line(site.line) {

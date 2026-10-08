@@ -25,7 +25,23 @@ pub fn ensure_test_library_seeded() -> Result<GuardCatalog> {
         source: e,
     })?;
 
+    let catalog_file = tests_root.join("catalog.json");
     let builtins = get_builtin_guard_tests();
+
+    // Fast Table of Contents verification:
+    // If catalog.json already has all built-in tests on disk, do not rebuild!
+    if catalog_file.exists()
+        && let Ok(content) = fs::read_to_string(&catalog_file)
+        && let Ok(catalog) = serde_json::from_str::<GuardCatalog>(&content)
+    {
+        let all_exist = builtins.iter().all(|b| {
+            catalog.tests.get(&b.id).is_some_and(|e| e.file_path.exists())
+        });
+        if all_exist {
+            return Ok(catalog);
+        }
+    }
+
     let mut definitions = Vec::new();
 
     for def in builtins {
@@ -34,24 +50,18 @@ pub fn ensure_test_library_seeded() -> Result<GuardCatalog> {
         let file_name_final = format!("{slug_name}.guard.json");
 
         let target_dir = tests_root.join(category_dir);
-        fs::create_dir_all(&target_dir).map_err(|e| CodeGuardsError::Io {
-            path: target_dir.clone(),
-            source: e,
-        })?;
+        let _ = fs::create_dir_all(&target_dir);
 
         let test_file = target_dir.join(file_name_final);
         if !test_file.exists() {
             let json_str = serde_json::to_string_pretty(&def)?;
-            fs::write(&test_file, json_str).map_err(|e| CodeGuardsError::Io {
-                path: test_file.clone(),
-                source: e,
-            })?;
+            let _ = fs::write(&test_file, json_str);
         }
 
         definitions.push((def, test_file));
     }
 
-    // Load any user/custom tests from disk
+    // Load any user/custom tests from disk and update Table of Contents
     load_all_tests_and_save_catalog(&tests_root)
 }
 

@@ -30,16 +30,16 @@ pub fn check_source_limits(
     if ctx.is_test {
         return;
     }
-    let max_lines = usize::try_from(
-        contract
-            .guard_settings
-            .get("source_limits")
-            .and_then(|v| v.get("max_lines"))
-            .and_then(serde_json::Value::as_u64)
-            .unwrap_or(400),
-    )
-    .ok()
-    .unwrap_or(usize::MAX);
+    let max_lines = contract
+        .guard_settings
+        .get("source_limits")
+        .or_else(|| contract.guard_settings.get("complexity/source-limits"))
+        .or_else(|| contract.guard_settings.get(&ctx.guard.id))
+        .and_then(|v| v.get("max_lines"))
+        .or_else(|| ctx.guard.default_params.get("max_lines"))
+        .and_then(serde_json::Value::as_u64)
+        .and_then(|u| usize::try_from(u).ok())
+        .unwrap_or(200);
 
     let code_lines = count_code_lines(ctx.content);
     if code_lines > max_lines

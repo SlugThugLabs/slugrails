@@ -24,6 +24,10 @@ pub struct GuardCatalogEntry {
     pub summary: String,
     pub tags: Vec<String>,
     pub aliases: Vec<String>,
+    #[serde(default)]
+    pub engine: String,
+    #[serde(default)]
+    pub default_params: BTreeMap<String, serde_json::Value>,
     pub file_path: PathBuf,
 }
 
@@ -42,6 +46,8 @@ impl GuardCatalog {
                 summary: def.summary.clone(),
                 tags: def.tags.clone(),
                 aliases: def.aliases.clone(),
+                engine: def.engine.clone(),
+                default_params: def.default_params.clone(),
                 file_path: path.clone(),
             };
 

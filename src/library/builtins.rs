@@ -150,6 +150,14 @@ pub fn get_builtin_guard_tests() -> Vec<GuardTestDefinition> {
             "Remove unsafe block or add crate-level #![forbid(unsafe_code)] directive.",
         ),
         guard(
+            "languages/rust/no-panic", "no_panic", "languages/rust",
+            "Prohibits panic!() macro invocations in production Rust source code",
+            &["rust", "panic", "safety"],
+            &["no_panic", "forbid_panic"],
+            "rust_no_panic", &[],
+            "Replace panic!() with structured Result error propagation.",
+        ),
+        guard(
             "languages/rust/runtime-leak", "runtime_leak", "languages/rust",
             "Prevents async runtime crates (tokio, wasmtime, rayon) from leaking into pure domain/contracts",
             &["rust", "tokio", "leak", "architecture"],
