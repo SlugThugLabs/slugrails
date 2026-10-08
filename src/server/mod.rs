@@ -1,34 +1,33 @@
-//! MCP Server implementation for Authoring and Governance tools.
+//! MCP Server implementation for SlugRails and SlugPlan governance tools.
 
+mod handlers;
 mod types;
 
 pub use types::{
-    AddExceptionRequest, CreateGuardTestRequest, ListGuardTestsRequest, ValidateArchitectureRequest,
+    AddExceptionRequest, CheckProjectRequest, CreateGuardTestRequest, ListGuardTestsRequest,
+    ProbeArchitectureRequest, ValidateArchitectureRequest,
 };
 
-use crate::contract::validate_architecture;
 use crate::library::catalog::GuardCatalog;
-use crate::library::create_custom_guard_test;
-use crate::storage::ProjectExceptions;
-use crate::types::GuardTestDefinition;
 use rmcp::handler::server::ServerHandler;
 use rmcp::handler::server::wrapper::Parameters;
 use rmcp::model::{Implementation, ProtocolVersion, ServerCapabilities, ServerInfo};
 use rmcp::{ErrorData, Json, tool, tool_handler, tool_router};
 use std::collections::BTreeMap;
-use std::path::Path;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
-const INSTRUCTIONS: &str = "CodeGuards architecture governance and modular test authoring tools.";
+const INSTRUCTIONS: &str = "SlugRails architectural guardrails, anti-drift gates, and slugplan authoring tools.";
 
 #[derive(Clone)]
-pub struct CodeGuardsMcpServer {
+pub struct SlugRailsMcpServer {
     pub catalog: Arc<Mutex<GuardCatalog>>,
     tool_router: rmcp::handler::server::tool::ToolRouter<Self>,
 }
 
-impl CodeGuardsMcpServer {
+pub type CodeGuardsMcpServer = SlugRailsMcpServer;
+
+impl SlugRailsMcpServer {
     #[must_use]
     pub fn new(catalog: GuardCatalog) -> Self {
         Self {
@@ -39,35 +38,39 @@ impl CodeGuardsMcpServer {
 }
 
 #[tool_router]
-impl CodeGuardsMcpServer {
+impl SlugRailsMcpServer {
     #[tool(
-        description = "Validates .planning/ARCHITECTURE.md against disk reality and the guard-tests catalog."
+        description = "Validates .planning/ARCHITECTURE.md contract against disk reality and guard catalog."
     )]
     async fn validate_architecture(
         &self,
         request: Parameters<ValidateArchitectureRequest>,
     ) -> Result<Json<crate::contract::ValidationResult>, ErrorData> {
-        let path_str = request.0.project_path.as_deref().unwrap_or(".");
-        if path_str.len() > 1024 {
-            return Err(ErrorData::invalid_params("Project path too long", None));
-        }
-        let project_root = match crate::util::validate_safe_path(Path::new(path_str)) {
-            Ok(p) => p,
-            Err(e) => return Err(ErrorData::invalid_params(format!("Unsafe path: {e}"), None)),
-        };
-        let catalog_guard = self.catalog.lock().await;
-
-        match validate_architecture(&project_root, &catalog_guard) {
-            Ok(res) => Ok(Json(res)),
-            Err(e) => Err(ErrorData::internal_error(
-                format!("Validation error: {e}"),
-                None,
-            )),
-        }
+        handlers::handle_validate_architecture(&self.catalog, request.0).await
     }
 
     #[tool(
-        description = "Lists all modular guard tests available in ~/.slugthug/codeguards/tests/."
+        description = "Checks project source files against all active architectural guardrails and anti-drift rules."
+    )]
+    async fn check_project(
+        &self,
+        request: Parameters<CheckProjectRequest>,
+    ) -> Result<Json<crate::types::GuardReport>, ErrorData> {
+        handlers::handle_check_project(&self.catalog, request.0).await
+    }
+
+    #[tool(
+        description = "SlugPlan architectural probe: interviews intent and produces recommended layers and guard contracts."
+    )]
+    async fn slugplan_probe(
+        &self,
+        request: Parameters<ProbeArchitectureRequest>,
+    ) -> Result<Json<serde_json::Value>, ErrorData> {
+        handlers::handle_probe(request.0).await
+    }
+
+    #[tool(
+        description = "Lists all modular guard tests available in ~/.slugthuglabs/slugrails/tests/."
     )]
     async fn list_guard_tests(
         &self,
@@ -87,100 +90,35 @@ impl CodeGuardsMcpServer {
     }
 
     #[tool(
-        description = "Creates a new modular guard test definition in ~/.slugthug/codeguards/tests/ with duplicate prevention."
+        description = "Creates a new modular guard test definition in ~/.slugthuglabs/slugrails/tests/."
     )]
     async fn create_guard_test(
         &self,
         request: Parameters<CreateGuardTestRequest>,
     ) -> Result<Json<String>, ErrorData> {
-        let req = request.0;
-        if req.name.len() > 128 || req.category.len() > 256 || req.summary.len() > 512 {
-            return Err(ErrorData::invalid_params("Request fields too large", None));
-        }
-        if req.tags.len() > 20 || req.aliases.len() > 10 {
-            return Err(ErrorData::invalid_params("Too many tags or aliases", None));
-        }
-        let def = GuardTestDefinition {
-            id: format!("{}/{}", req.category, req.name),
-            name: req.name,
-            category: req.category,
-            version: "1.0.0".to_string(),
-            summary: req.summary,
-            tags: req.tags,
-            aliases: req.aliases,
-            engine: req.engine,
-            default_params: BTreeMap::new(),
-            remediation: req.remediation,
-        };
-
-        let tests_root = crate::util::get_tests_dir();
-        match create_custom_guard_test(&tests_root, &def, req.force) {
-            Ok(path) => {
-                if let Ok(new_cat) = crate::library::ensure_test_library_seeded() {
-                    let mut cat_lock = self.catalog.lock().await;
-                    *cat_lock = new_cat;
-                }
-                Ok(Json(format!(
-                    "Successfully created guard test at {}",
-                    path.display()
-                )))
-            }
-            Err(e) => Err(ErrorData::internal_error(
-                format!("Failed to create guard test: {e}"),
-                None,
-            )),
-        }
+        handlers::handle_create_guard_test(&self.catalog, request.0).await
     }
 
     #[tool(
-        description = "Authorizes a user-approved exception token for a specific file and guard violation."
+        description = "Authorizes a user-approved exception token in .planning/slugrails/exceptions.json."
     )]
     async fn add_exception(
         &self,
         request: Parameters<AddExceptionRequest>,
     ) -> Result<Json<crate::types::ExceptionEntry>, ErrorData> {
-        let req = request.0;
-        if req.project_path.len() > 1024
-            || req.file.len() > 1024
-            || req.guard_id.len() > 256
-            || req.reason.len() > 1024
-        {
-            return Err(ErrorData::invalid_params("Request fields too large", None));
-        }
-        let project_path = match crate::util::validate_safe_path(Path::new(&req.project_path)) {
-            Ok(p) => p,
-            Err(e) => {
-                return Err(ErrorData::invalid_params(
-                    format!("Unsafe project path: {e}"),
-                    None,
-                ));
-            }
-        };
-        let mut exceptions = ProjectExceptions::load(&project_path).unwrap_or_default();
-
-        match exceptions.add_exception(Path::new(&req.file), &req.guard_id, &req.reason) {
-            Ok(entry) => Ok(Json(entry)),
-            Err(e) => Err(ErrorData::internal_error(
-                format!("Exception creation failed: {e}"),
-                None,
-            )),
-        }
+        handlers::handle_add_exception(request.0)
     }
 }
 
-// The `tool_handler` attribute expands `list_tools`/`call_tool` into trait methods
-// whose bodies are `std::future::ready(..)`. The `async` is prescribed by the
-// `ServerHandler` trait signature, so removing it is impossible; the lint only
-// sees the macro's expansion, where no `.await` is needed.
 #[allow(clippy::unused_async_trait_impl)]
 #[tool_handler(router = self.tool_router)]
-impl ServerHandler for CodeGuardsMcpServer {
+impl ServerHandler for SlugRailsMcpServer {
     fn get_info(&self) -> ServerInfo {
         ServerInfo::new(ServerCapabilities::builder().enable_tools().build())
             .with_protocol_version(ProtocolVersion::LATEST)
             .with_instructions(INSTRUCTIONS)
             .with_server_info(Implementation::new(
-                "codeguards-mcp",
+                "slugrails-mcp",
                 env!("CARGO_PKG_VERSION"),
             ))
     }

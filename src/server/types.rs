@@ -49,3 +49,20 @@ pub struct AddExceptionRequest {
     /// Specific architectural justification
     pub reason: String,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+pub struct CheckProjectRequest {
+    /// Absolute path to the target project directory (default: current dir)
+    pub project_path: Option<String>,
+    /// Check all source files instead of only git modified files (default: false)
+    #[serde(default)]
+    pub check_all: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+pub struct ProbeArchitectureRequest {
+    /// High-level description of the system or component being planned
+    pub description: String,
+    /// Primary target programming language (e.g. 'rust', 'typescript', 'python')
+    pub language: Option<String>,
+}

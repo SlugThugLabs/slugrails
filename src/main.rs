@@ -21,7 +21,7 @@ async fn main() -> ExitCode {
         "validate" => run_validate(args),
         "serve" => run_serve(args).await,
         "--version" | "-v" | "-V" => {
-            println!("codeguards-mcp {} (Rust 2024 Edition)", env!("CARGO_PKG_VERSION"));
+            println!("slugrails {} (Rust 2024 Edition)", env!("CARGO_PKG_VERSION"));
             ExitCode::SUCCESS
         }
         "--help" | "-h" | "help" => {
@@ -29,7 +29,7 @@ async fn main() -> ExitCode {
             ExitCode::SUCCESS
         }
         other => {
-            eprintln!("Unknown command: {other}. Use 'codeguards-mcp --help' for usage.");
+            eprintln!("Unknown command: {other}. Use 'slugrails --help' for usage.");
             ExitCode::from(2)
         }
     }
@@ -48,18 +48,18 @@ async fn run_menu_cli() -> ExitCode {
 
 fn print_help() {
     println!(
-        "CodeGuards MCP v{} (Rust 2024)\n\
-         Continuous Code Governance & Architectural Enforcement\n\n\
+        "SlugRails MCP v{} (Rust 2024)\n\
+         Architectural Guardrails & Code Governance for AI Coding Agents\n\n\
          USAGE:\n\
-           codeguards-mcp menu                          Launch interactive setup & management menu\n\
-           codeguards-mcp init [--root <path>]          Scaffold starter ARCHITECTURE.md contract\n\
-           codeguards-mcp check [--all] [--root <path>]  Run guard checks on modified files (or all)\n\
-           codeguards-mcp hook [install|uninstall]      Manage git pre-commit hook\n\
-           codeguards-mcp validate [--root <path>]      Validate .planning/ARCHITECTURE.md against tests\n\
-           codeguards-mcp exception add <file> <guard> --reason=\"...\"\n\
-           codeguards-mcp exception list\n\
-           codeguards-mcp exception revoke <token>\n\
-           codeguards-mcp serve [--port <port>]         Start MCP server (stdio default)",
+           slugrails menu                          Launch interactive setup & management menu\n\
+           slugrails init [--root <path>]          Scaffold starter ARCHITECTURE.md with slugplan\n\
+           slugrails check [--all] [--root <path>]  Run rail checks on modified files (or all)\n\
+           slugrails hook [install|uninstall]      Manage git pre-commit hook\n\
+           slugrails validate [--root <path>]      Validate .planning/ARCHITECTURE.md against tests\n\
+           slugrails exception add <file> <guard> --reason=\"...\"\n\
+           slugrails exception list\n\
+           slugrails exception revoke <token>\n\
+           slugrails serve [--port <port>]         Start MCP server (stdio default)",
         env!("CARGO_PKG_VERSION")
     );
 }

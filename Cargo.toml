@@ -1,12 +1,12 @@
 [package]
-name = "codeguards-mcp"
+name = "slugrails-mcp"
 version = "0.2.0"
 edition = "2024"
 publish = false
 license = "FSL-1.1-Apache-2.0"
-repository = "https://github.com/SlugThugLabs/CodeGuards-mcp"
-description = "Continuous code governance and architectural enforcement MCP server for AI coding agents."
-default-run = "codeguards-mcp"
+repository = "https://github.com/SlugThugLabs/slugrails-mcp"
+description = "Architectural guardrails and code governance MCP server for AI coding agents."
+default-run = "slugrails"
 
 [lints.rust]
 unsafe_code = "forbid"
@@ -23,7 +23,11 @@ missing_panics_doc = "warn"
 module_name_repetitions = "allow"  # Allow in test modules
 
 [[bin]]
-name = "codeguards-mcp"
+name = "slugrails"
+path = "src/main.rs"
+
+[[bin]]
+name = "slugrails-mcp"
 path = "src/main.rs"
 
 [[bench]]

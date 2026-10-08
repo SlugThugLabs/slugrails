@@ -128,7 +128,7 @@ pub fn load_architecture(project_root: &Path) -> Result<ArchitectureContract> {
     if !arch_file.exists() {
         return Err(CodeGuardsError::Contract(ContractError::MissingContract {
             path: arch_file,
-            hint: "Run 'codeguards-mcp init' to automatically scaffold one for this project."
+            hint: "Run 'slugrails init' to automatically scaffold one for this project."
                 .to_string(),
         }));
     }

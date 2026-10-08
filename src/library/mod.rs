@@ -1,4 +1,4 @@
-//! Loader, seeder, and creator for ~/.slugthug/codeguards/tests/.
+//! Loader, seeder, and creator for ~/.slugthuglabs/slugrails/tests/.
 
 pub mod builtins;
 pub mod catalog;

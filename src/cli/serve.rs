@@ -17,21 +17,21 @@ pub async fn run_serve(_args: impl Iterator<Item = String>) -> ExitCode {
     };
 
     let handler = CodeGuardsMcpServer::new(catalog);
-    tracing::info!("Starting CodeGuards stdio MCP server");
+    tracing::info!("Starting SlugRails stdio MCP server");
 
     match handler.serve(stdio()).await {
         Ok(service) => match service.waiting().await {
             Ok(_) => {
-                tracing::info!("CodeGuards stdio MCP server terminated gracefully");
+                tracing::info!("SlugRails stdio MCP server terminated gracefully");
                 ExitCode::SUCCESS
             }
             Err(e) => {
-                eprintln!("[CODEGUARD-ERROR] Service error: {e}");
+                eprintln!("[SLUGRAILS-ERROR] Service error: {e}");
                 ExitCode::from(1)
             }
         },
         Err(e) => {
-            eprintln!("[CODEGUARD-ERROR] Server start error: {e}");
+            eprintln!("[SLUGRAILS-ERROR] Server start error: {e}");
             ExitCode::from(1)
         }
     }

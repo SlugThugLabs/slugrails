@@ -1,28 +1,36 @@
-# CodeGuards (`codeguards-mcp`)
+# SlugRails (`slugrails-mcp`)
 
-> Continuous code governance and architectural enforcement for AI agents and developers.
+> Architectural guardrails, anti-drift enforcement, and integrated SlugPlan for AI coding agents.
 
-CodeGuards enforces architectural boundaries declared in `.planning/ARCHITECTURE.md` using modular, reusable tests stored outside target repositories in `~/.slugthug/codeguards/tests/`.
+SlugRails keeps autonomous AI coding agents on structural rails by enforcing architectural boundaries declared in `.planning/ARCHITECTURE.md`. It provides integrated planning via **SlugPlan**, real-time bouncer checking via **SlugRails**, and pairs seamlessly with **SlugAudit** for retrospective codebase evidence.
+
+### Two-Tier Storage Architecture:
+- **Global Hub:** `~/.slugthuglabs/slugrails/tests/` (reusable guard templates and secret keys)
+- **Local Project Hub:**
+  - `<project>/.planning/ARCHITECTURE.md` (the core architectural contract)
+  - `<project>/.planning/slugplan/` (intent declarations and project milestones)
+  - `<project>/.planning/slugrails/` (exceptions and anti-drift tokens)
+  - `<project>/.planning/slugaudit/` (evidence database when auditing)
 
 ---
 
-## AI Agent Integration (Hermes, Claude Code, OpenCode, Codex)
+## AI Agent Integration (Hermes, Claude Code, Cursor, Antigravity)
 
-CodeGuards is built to be driven directly by AI agents through MCP tools and CLI execution.
+SlugRails is built to be driven directly by AI agents through MCP tools and CLI execution.
 
 ### Registering the MCP Server
 
 ```bash
 # Hermes Agent
-hermes mcp add codeguards --command "codeguards-mcp serve"
+hermes mcp add slugrails --command "slugrails serve"
 ```
 
-For clients configuring via `mcp.json` (OpenCode, Claude Code, Cursor):
+For clients configuring via `mcp.json` (Cursor, Claude Desktop, Antigravity, OpenCode):
 ```json
 {
   "mcpServers": {
-    "codeguards": {
-      "command": "codeguards-mcp",
+    "slugrails": {
+      "command": "slugrails",
       "args": ["serve"]
     }
   }
@@ -72,21 +80,21 @@ During normal coding, the agent runs standard implementation tasks. Verification
 
 ```bash
 # Check modified / staged files in active git diff (<5ms)
-codeguards-mcp check
+slugrails check
 
 # Run full project scan across all files
-codeguards-mcp check --all
+slugrails check --all
 
 # Validate architecture contract
-codeguards-mcp validate
+slugrails validate
 ```
 
 ### Git Hook Integration
 Install automated pre-commit enforcement gate with one command:
 ```bash
-codeguards-mcp hook install
+slugrails hook install
 ```
-*(To uninstall: `codeguards-mcp hook uninstall`)*
+*(To uninstall: `slugrails hook uninstall`)*
 
 ---
 
@@ -96,13 +104,13 @@ When a file genuinely requires an exemption (e.g. file size limit for generated 
 
 ```bash
 # User grants exception
-codeguards-mcp exception add src/server/transport.rs complexity/source-limits --reason="Combined transport scaffolding"
+slugrails exception add src/server/transport.rs complexity/source-limits --reason="Combined transport scaffolding"
 
 # List active exceptions
-codeguards-mcp exception list
+slugrails exception list
 
 # Revoke an exception
-codeguards-mcp exception revoke <token>
+slugrails exception revoke <token>
 ```
 
 The file adds the verified header:

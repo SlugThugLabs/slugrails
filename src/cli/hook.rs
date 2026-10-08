@@ -5,22 +5,26 @@ use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
 const HOOK_SCRIPT: &str = r#"#!/usr/bin/env sh
-# CodeGuards MCP Pre-Commit Enforcement Gate
-if command -v codeguards-mcp >/dev/null 2>&1; then
+# SlugRails Pre-Commit Enforcement Gate
+if command -v slugrails >/dev/null 2>&1; then
+    slugrails check
+elif command -v slugrails-mcp >/dev/null 2>&1; then
+    slugrails-mcp check
+elif command -v codeguards-mcp >/dev/null 2>&1; then
     codeguards-mcp check
 else
-    echo "Warning: codeguards-mcp not found in PATH; skipping architectural check."
+    echo "Warning: slugrails not found in PATH; skipping architectural check."
 fi
 "#;
 
-/// Entry point for `codeguards-mcp hook` subcommand.
+/// Entry point for `slugrails hook` subcommand.
 pub fn run_hook<I: Iterator<Item = String>>(mut args: I) -> ExitCode {
     let sub = args.next().unwrap_or_else(|| "install".to_string());
     match sub.as_str() {
         "install" => install_hook(Path::new(".")),
         "uninstall" => uninstall_hook(Path::new(".")),
         _ => {
-            eprintln!("Usage: codeguards-mcp hook [install|uninstall]");
+            eprintln!("Usage: slugrails hook [install|uninstall]");
             ExitCode::from(2)
         }
     }

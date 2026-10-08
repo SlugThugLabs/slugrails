@@ -78,12 +78,29 @@ pub fn initialize_project(project_root: &Path) -> Result<String> {
         source: e,
     })?;
 
-    // Seed test library in ~/.slugthug/codeguards/tests/
+    // Create .planning/slugrails/ and .planning/slugplan/ directories
+    let rails_dir = crate::util::get_project_storage_dir(project_root);
+    let _ = fs::create_dir_all(&rails_dir);
+
+    let plan_dir_sub = crate::util::get_project_plan_dir(project_root);
+    let _ = fs::create_dir_all(&plan_dir_sub);
+    let intent_file = plan_dir_sub.join("intent.json");
+    if !intent_file.exists() {
+        let default_intent = serde_json::json!({
+            "status": "initialized",
+            "modules": modules,
+            "managed_by": "slugrails"
+        });
+        let _ = fs::write(&intent_file, serde_json::to_string_pretty(&default_intent).unwrap_or_default());
+    }
+
+    // Seed test library in ~/.slugthuglabs/slugrails/tests/
     let _ = crate::library::ensure_test_library_seeded();
 
     Ok(format!(
         "Initialized architecture contract at {}.\n\
-         Run 'codeguards-mcp check' to verify your codebase against it.",
+         Scaffolded .planning/slugrails/ and .planning/slugplan/\n\
+         Run 'slugrails check' to verify your codebase against it.",
         arch_file.display()
     ))
 }

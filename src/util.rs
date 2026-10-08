@@ -52,11 +52,11 @@ pub fn hash_project_path(project_path: &Path) -> String {
     hash.to_hex()[..12].to_string()
 }
 
-/// Retrieves or initializes a local private HMAC salt secret in ~/.slugthug/.secret.key
+/// Retrieves or initializes a local private HMAC salt secret in ~/.slugthuglabs/slugrails/.secret.key
 /// ensuring AI agents cannot compute exception tokens in memory without access.
 #[must_use]
 pub fn get_or_init_secret_salt() -> [u8; 32] {
-    let home = get_slugthug_home();
+    let home = get_slugrails_home();
     let key_path = home.join(".secret.key");
 
     if let Ok(bytes) = fs::read(&key_path)
@@ -71,7 +71,7 @@ pub fn get_or_init_secret_salt() -> [u8; 32] {
     let random_key = uuid::Uuid::new_v4();
     let mut hasher = blake3::Hasher::new();
     hasher.update(random_key.as_bytes());
-    hasher.update(b"codeguards-salt-key");
+    hasher.update(b"slugrails-salt-key");
     let key_bytes = *hasher.finalize().as_bytes();
 
     let _ = fs::write(&key_path, key_bytes);
@@ -90,51 +90,56 @@ pub fn compute_exception_token(file: &Path, guard_id: &str, reason: &str) -> Str
     hasher.update(reason.as_bytes());
     hasher.update(timestamp.as_bytes());
     let hash = hasher.finalize();
-    format!("cg_tok_{}", &hash.to_hex()[..16])
+    format!("sr_tok_{}", &hash.to_hex()[..16])
 }
 
-/// Returns the central ~/.slugthug directory.
+/// Returns the central ~/.slugthuglabs directory.
 #[must_use]
 pub fn get_slugthug_home() -> PathBuf {
-    if let Ok(dir) = std::env::var("SLUGTHUG_HOME") {
+    if let Ok(dir) = std::env::var("SLUGTHUGLABS_HOME") {
+        PathBuf::from(dir)
+    } else if let Ok(dir) = std::env::var("SLUGTHUG_HOME") {
         PathBuf::from(dir)
     } else if let Ok(home) = std::env::var("HOME") {
-        PathBuf::from(home).join(".slugthug")
+        PathBuf::from(home).join(".slugthuglabs")
     } else if let Ok(profile) = std::env::var("USERPROFILE") {
-        PathBuf::from(profile).join(".slugthug")
+        PathBuf::from(profile).join(".slugthuglabs")
     } else {
-        PathBuf::from("/root/.slugthug")
+        PathBuf::from("/root/.slugthuglabs")
     }
+}
+
+/// Returns the global ~/.slugthuglabs/slugrails directory.
+#[must_use]
+pub fn get_slugrails_home() -> PathBuf {
+    get_slugthug_home().join("slugrails")
 }
 
 /// Returns the executable binary name for the current platform.
 #[must_use]
 pub fn get_binary_name() -> &'static str {
     if cfg!(windows) {
-        "codeguards-mcp.exe"
+        "slugrails.exe"
     } else {
-        "codeguards-mcp"
+        "slugrails"
     }
 }
 
-
-/// Returns the central test library directory: ~/.slugthug/codeguards/tests/
+/// Returns the central test library directory: ~/.slugthuglabs/slugrails/tests/
 #[must_use]
 pub fn get_tests_dir() -> PathBuf {
-    get_slugthug_home().join("codeguards").join("tests")
+    get_slugrails_home().join("tests")
 }
 
-/// Returns the project-specific storage directory: ~/.slugthug/codeguards/projects/<`project_id`>/
+/// Returns the project-specific storage directory: <project>/.planning/slugrails/
 #[must_use]
 pub fn get_project_storage_dir(project_path: &Path) -> PathBuf {
-    let hash = hash_project_path(project_path);
-    let name = project_path
-        .file_name()
-        .and_then(|n| n.to_str())
-        .unwrap_or("unknown");
-    let folder_name = format!("{name}-{hash}");
-    get_slugthug_home()
-        .join("codeguards")
-        .join("projects")
-        .join(folder_name)
+    project_path.join(".planning").join("slugrails")
 }
+
+/// Returns the project-specific plan directory: <project>/.planning/slugplan/
+#[must_use]
+pub fn get_project_plan_dir(project_path: &Path) -> PathBuf {
+    project_path.join(".planning").join("slugplan")
+}
+
