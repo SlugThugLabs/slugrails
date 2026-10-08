@@ -158,7 +158,7 @@ pub fn find_action_markers(source: &str) -> Vec<MarkerSite> {
 /// skips test files entirely — a guard-level decision.
 #[must_use]
 pub fn find_swallowed_errors(source: &str) -> Vec<MarkerSite> {
-    let patterns: [(&'static LazyRegex, MarkerKind); 7] = [
+    let patterns: [(&'static LazyRegex, MarkerKind); 8] = [
         (&RE_LET_UNDERSCORE, MarkerKind::DiscardedResult),
         (&RE_EMPTY_ERR_ARM, MarkerKind::EmptyMatchArm),
         (&RE_EMPTY_ARM, MarkerKind::EmptyMatchArm),
@@ -166,6 +166,7 @@ pub fn find_swallowed_errors(source: &str) -> Vec<MarkerSite> {
         (&RE_BARE_EXCEPT, MarkerKind::EmptyCatch),
         (&RE_TYPED_EXCEPT, MarkerKind::EmptyCatch),
         (&RE_EMPTY_CATCH, MarkerKind::EmptyCatch),
+        (&RE_EMPTY_PROMISE_CATCH, MarkerKind::EmptyCatch),
     ];
     let code = CodeView::build(source);
     let raw_lines: Vec<&str> = source.lines().collect();
@@ -179,17 +180,6 @@ pub fn find_swallowed_errors(source: &str) -> Vec<MarkerSite> {
             sites.push(MarkerSite {
                 line,
                 kind,
-                text: found.as_str().trim().to_string(),
-                context: raw_line(&raw_lines, line),
-            });
-        }
-    }
-    if let Some(pattern) = re(&RE_EMPTY_PROMISE_CATCH) {
-        for found in pattern.find_iter(&code.text) {
-            let line = code.line_at(found.start());
-            sites.push(MarkerSite {
-                line,
-                kind: MarkerKind::EmptyCatch,
                 text: found.as_str().trim().to_string(),
                 context: raw_line(&raw_lines, line),
             });
