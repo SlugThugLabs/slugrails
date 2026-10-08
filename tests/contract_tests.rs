@@ -1,4 +1,7 @@
-use codeguards_mcp::contract::{load_architecture, parse_frontmatter, validate_architecture};
+use codeguards_mcp::contract::{
+    ArchitectureContract, load_architecture, parse_frontmatter, validate_architecture,
+    validate_contract,
+};
 use codeguards_mcp::error::CodeGuardsError;
 use codeguards_mcp::library::catalog::GuardCatalog;
 use std::fs;
@@ -110,4 +113,22 @@ fn validate_declared_module_warning_when_absent() {
         "expected missing-module warning, got {:?}",
         result.warnings
     );
+}
+
+#[test]
+fn test_validate_contract_pure_in_memory() {
+    let mut contract = ArchitectureContract::default();
+    contract.modules = vec!["core".to_string(), "ghost".to_string()];
+    contract.enforce = vec!["complexity/source-limits".to_string(), "unknown/rule".to_string()];
+
+    let catalog = GuardCatalog::default();
+    let existing_modules = vec!["core".to_string()];
+
+    let result = validate_contract(&contract, &existing_modules, &catalog);
+    assert!(!result.is_valid);
+    assert_eq!(result.missing_guards, vec!["unknown/rule"]);
+    assert_eq!(result.ready_guards, vec!["complexity/source-limits"]);
+    assert_eq!(result.errors.len(), 1);
+    assert_eq!(result.warnings.len(), 1);
+    assert!(result.warnings[0].contains("ghost"));
 }

@@ -51,9 +51,8 @@ pub struct ValidationResult {
 ///
 /// # Errors
 ///
-/// Returns [`CodeGuardsError::Contract`] if frontmatter fences are unbalanced\
-/// (unclosed `+++` or no closing `+++`), or [`CodeGuardsError::TomlParse`] if\
-/// the TOML content is malformed.
+/// Returns [`CodeGuardsError::Contract`] if frontmatter fences are unbalanced,
+/// or [`CodeGuardsError::TomlParse`] if the TOML content is malformed.
 pub fn parse_frontmatter(content: &str) -> Result<(ArchitectureContract, &str)> {
     let trimmed = content.trim_start();
     if !trimmed.starts_with("+++") {
@@ -79,12 +78,53 @@ pub fn parse_frontmatter(content: &str) -> Result<(ArchitectureContract, &str)> 
     Ok((contract, body))
 }
 
+/// Pure in-memory validation of an architecture contract against a known module list and catalog.
+#[must_use]
+pub fn validate_contract(
+    contract: &ArchitectureContract,
+    existing_modules: &[String],
+    catalog: &GuardCatalog,
+) -> ValidationResult {
+    let mut errors = Vec::new();
+    let mut warnings = Vec::new();
+    let mut ready_guards = Vec::new();
+    let mut missing_guards = Vec::new();
+
+    for module in &contract.modules {
+        if !existing_modules.contains(module) {
+            warnings.push(format!(
+                "Declared module '{module}' does not exist on disk under src/"
+            ));
+        }
+    }
+
+    for enforce_item in &contract.enforce {
+        if let Some(entry) = catalog.resolve(enforce_item) {
+            ready_guards.push(entry.id.clone());
+        } else {
+            missing_guards.push(enforce_item.clone());
+            errors.push(format!(
+                "Required guard test '{enforce_item}' is not found in ~/.slugthug/codeguards/tests/. Use create_guard_test to generate it."
+            ));
+        }
+    }
+
+    let is_valid = errors.is_empty();
+    ValidationResult {
+        is_valid,
+        contract: Some(contract.clone()),
+        ready_guards,
+        missing_guards,
+        errors,
+        warnings,
+    }
+}
+
 /// Loads and parses .planning/ARCHITECTURE.md from a project directory.
 ///
 /// # Errors
 ///
-/// Returns [`CodeGuardsError::Contract`] if the ARCHITECTURE.md file is missing,\
-/// or [`CodeGuardsError::Io`] if the file cannot be read from disk.
+/// Returns [`CodeGuardsError::Contract`] if missing, or [`CodeGuardsError::Io`] if unreadable.
 pub fn load_architecture(project_root: &Path) -> Result<ArchitectureContract> {
     let arch_file = project_root.join(".planning").join("ARCHITECTURE.md");
     if !arch_file.exists() {
@@ -107,69 +147,36 @@ pub fn load_architecture(project_root: &Path) -> Result<ArchitectureContract> {
 ///
 /// # Errors
 ///
-/// Returns [`CodeGuardsError::Contract`] if the ARCHITECTURE.md file is missing or malformed,\
-/// or [`CodeGuardsError::Io`] if the file cannot be read from disk.
+/// Returns [`CodeGuardsError::Contract`] if ARCHITECTURE.md is missing or malformed.
 pub fn validate_architecture(
     project_root: &Path,
     catalog: &GuardCatalog,
 ) -> Result<ValidationResult> {
-    let mut errors = Vec::new();
-    let mut warnings = Vec::new();
-    let mut ready_guards = Vec::new();
-    let mut missing_guards = Vec::new();
-
     let contract = match load_architecture(project_root) {
         Ok(c) => c,
         Err(e) => {
-            errors.push(format!("Failed to load ARCHITECTURE.md: {e}"));
             return Ok(ValidationResult {
                 is_valid: false,
                 contract: None,
-                ready_guards,
-                missing_guards,
-                errors,
-                warnings,
+                ready_guards: Vec::new(),
+                missing_guards: Vec::new(),
+                errors: vec![format!("Failed to load ARCHITECTURE.md: {e}")],
+                warnings: Vec::new(),
             });
         }
     };
 
-    // 1. Verify declared modules exist under src/
+    let mut existing_modules = Vec::new();
     let src_dir = project_root.join("src");
     if src_dir.is_dir() {
         for module in &contract.modules {
             let rs_file = src_dir.join(format!("{module}.rs"));
             let mod_dir = src_dir.join(module);
-            if !rs_file.exists() && !mod_dir.exists() {
-                warnings.push(format!(
-                    "Declared module '{module}' does not exist on disk under src/ ({} or {})",
-                    rs_file.display(),
-                    mod_dir.display()
-                ));
+            if rs_file.exists() || mod_dir.exists() {
+                existing_modules.push(module.clone());
             }
         }
     }
 
-    // 2. Cross-check enforce items against catalog
-    for enforce_item in &contract.enforce {
-        if let Some(entry) = catalog.resolve(enforce_item) {
-            ready_guards.push(entry.id.clone());
-        } else {
-            missing_guards.push(enforce_item.clone());
-            errors.push(format!(
-                "Required guard test '{enforce_item}' is not found in ~/.slugthug/codeguards/tests/. Use create_guard_test to generate it."
-            ));
-        }
-    }
-
-    let is_valid = errors.is_empty();
-
-    Ok(ValidationResult {
-        is_valid,
-        contract: Some(contract),
-        ready_guards,
-        missing_guards,
-        errors,
-        warnings,
-    })
+    Ok(validate_contract(&contract, &existing_modules, catalog))
 }
-

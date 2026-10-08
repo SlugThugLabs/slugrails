@@ -37,4 +37,18 @@ mod tests {
         assert!(exceptions.revoke(&entry.token).unwrap());
         assert!(!exceptions.is_exception_valid(file, "complexity/source-limits", &entry.token));
     }
+
+    #[test]
+    fn test_exception_pure_in_memory() {
+        let mut exceptions = ProjectExceptions::default();
+        let file = Path::new("src/domain.rs");
+        let entry = exceptions.insert_exception(file, "languages/rust/no-unwrap", "domain invariant");
+
+        assert_eq!(entry.token.len(), 5);
+        assert_eq!(exceptions.exceptions.len(), 1);
+        assert!(exceptions.is_exception_valid(file, "languages/rust/no-unwrap", &entry.token));
+
+        assert!(exceptions.remove_exception(&entry.token));
+        assert!(!exceptions.is_exception_valid(file, "languages/rust/no-unwrap", &entry.token));
+    }
 }

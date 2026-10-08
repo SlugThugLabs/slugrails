@@ -17,7 +17,7 @@ pub mod util;
 pub use analyzer::{collect_git_diff_files, collect_source_files, count_code_lines};
 pub use contract::{
     ArchitectureContract, ValidationResult, load_architecture, parse_frontmatter,
-    validate_architecture,
+    validate_architecture, validate_contract,
 };
 pub use error::{CodeGuardsError, Result};
 pub use guards::run_guard_checks;

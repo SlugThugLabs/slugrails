@@ -42,7 +42,6 @@ impl ProjectExceptions {
         match serde_json::from_str::<Self>(&content) {
             Ok(registry) => Ok(registry),
             Err(_) => {
-                // Auto-recover from corrupt file: backup and start clean
                 let backup_name = format!("exceptions.json.corrupt.{}", Utc::now().timestamp());
                 let _ = fs::rename(&file_path, storage_dir.join(backup_name));
                 Ok(Self {
@@ -79,7 +78,6 @@ impl ProjectExceptions {
             source: e,
         })?;
 
-        // On Windows and Unix, replace file atomically
         #[cfg(windows)]
         let _ = fs::remove_file(&file_path);
 
@@ -91,20 +89,14 @@ impl ProjectExceptions {
         Ok(file_path)
     }
 
-    /// Adds a user-authorized exception and returns the generated token.
-    ///
-    /// # Errors
-    ///
-    /// Returns [`CodeGuardsError::Io`] if the exceptions file cannot be written to disk.
-    pub fn add_exception(
+    /// Pure in-memory insertion of an authorized exception token without disk I/O.
+    pub fn insert_exception(
         &mut self,
         file: &Path,
         guard_id: &str,
         reason: &str,
-    ) -> Result<ExceptionEntry> {
+    ) -> ExceptionEntry {
         let token = compute_exception_token(file, guard_id, reason);
-
-        // Deduplicate existing entry for this token
         self.exceptions.retain(|e| e.token != token);
 
         let entry = ExceptionEntry {
@@ -116,25 +108,42 @@ impl ProjectExceptions {
         };
 
         self.exceptions.push(entry.clone());
-        self.save()?;
+        entry
+    }
 
+    /// Adds a user-authorized exception and persists it to disk.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`CodeGuardsError::Io`] if the exceptions file cannot be written to disk.
+    pub fn add_exception(
+        &mut self,
+        file: &Path,
+        guard_id: &str,
+        reason: &str,
+    ) -> Result<ExceptionEntry> {
+        let entry = self.insert_exception(file, guard_id, reason);
+        self.save()?;
         Ok(entry)
     }
 
-    /// Revokes an exception by token.
+    /// Pure in-memory removal of an exception token without disk I/O.
+    pub fn remove_exception(&mut self, token: &str) -> bool {
+        let before_len = self.exceptions.len();
+        self.exceptions.retain(|e| e.token != token);
+        self.exceptions.len() < before_len
+    }
+
+    /// Revokes an exception by token and persists the change to disk.
     ///
     /// # Errors
     ///
     /// Returns [`CodeGuardsError::Io`] if the exceptions file cannot be written to disk.
     pub fn revoke(&mut self, token: &str) -> Result<bool> {
-        let before_len = self.exceptions.len();
-        self.exceptions.retain(|e| e.token != token);
-        let removed = self.exceptions.len() < before_len;
-
+        let removed = self.remove_exception(token);
         if removed {
             self.save()?;
         }
-
         Ok(removed)
     }
 
@@ -161,11 +170,7 @@ impl ProjectExceptions {
 /// Checks if a token is older than 30 days.
 fn is_token_expired(granted_at: &str) -> bool {
     match DateTime::parse_from_rfc3339(granted_at) {
-        Ok(granted_time) => {
-            let now = Utc::now();
-            let thirty_days = chrono::Duration::days(30);
-            granted_time + thirty_days < now
-        }
-        Err(_) => true, // Invalid timestamp = expired
+        Ok(granted_time) => granted_time + chrono::Duration::days(30) < Utc::now(),
+        Err(_) => true,
     }
 }
