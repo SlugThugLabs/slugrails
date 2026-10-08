@@ -1,0 +1,31 @@
+name: Feature Request or New Guard Proposal
+description: Suggest an idea, enhancement, or new guard rule for CodeGuards.
+title: "[Proposal]: "
+labels: ["enhancement"]
+body:
+  - type: dropdown
+    id: category
+    attributes:
+      label: Category
+      options:
+        - New Guard Rule / Invariant Checker
+        - MCP Tool Enhancement
+        - CLI / TUI Workflow
+        - Language Support (TypeScript, Python, Go, etc.)
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem Statement
+      description: What architectural problem or AI drift pattern are you trying to solve?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed Solution / Guard Specification
+      description: Describe your proposed solution or how the guard should behave.
+    validations:
+      required: true

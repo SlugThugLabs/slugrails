@@ -1,0 +1,43 @@
+name: Enterprise & Commercial Licensing Inquiry
+description: Contact SlugThug Labs regarding enterprise fleet governance, custom guard packs, or OEM embedding.
+title: "[Enterprise Inquiry]: "
+labels: ["enterprise", "inquiry"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for your interest in CodeGuards enterprise solutions!
+        You can also reach our team directly at **admin@slugthuglabs.dev**.
+  - type: input
+    id: organization
+    attributes:
+      label: Company / Organization Name
+      placeholder: e.g. Acme Corp
+    validations:
+      required: true
+  - type: dropdown
+    id: inquiry_type
+    attributes:
+      label: Area of Interest
+      options:
+        - Enterprise Fleet Governance (Central Guard Hub & PR Gatekeeper)
+        - OEM Embedding / Platform Integration
+        - Compliance Guard Packs (SOC2, HIPAA, OWASP)
+        - Custom Support SLA & Consulting
+    validations:
+      required: true
+  - type: textarea
+    id: details
+    attributes:
+      label: Overview of Requirements
+      description: Briefly describe your engineering scale (number of repositories, team size, primary languages).
+      placeholder: "We have ~50 developers using Cursor and Claude Code across 30 repositories..."
+    validations:
+      required: true
+  - type: input
+    id: contact_email
+    attributes:
+      label: Best Contact Email
+      placeholder: name@company.com
+    validations:
+      required: true

@@ -1,0 +1,50 @@
+name: Bug Report
+description: File a bug report or unexpected behavior in CodeGuards.
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please verify that the issue hasn't already been reported before submitting.
+  - type: input
+    id: version
+    attributes:
+      label: CodeGuards Version
+      placeholder: e.g. 0.2.0 (or git commit hash)
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating System
+      options:
+        - Linux (x86_64)
+        - macOS (Apple Silicon / aarch64)
+        - macOS (Intel / x86_64)
+        - Windows (x86_64)
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: Describe the Bug
+      description: A clear and concise description of what happened.
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to Reproduce
+      placeholder: |
+        1. Run `codeguards-mcp init`
+        2. Execute `...`
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: What should have happened instead?
+    validations:
+      required: true
