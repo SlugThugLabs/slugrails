@@ -69,57 +69,23 @@ impl ProjectExceptions {
     ///
     /// # Errors
     ///
-    /// Returns [`CodeGuardsError::Io`] if the token generation exceeds maximum retries,\
-    /// or if the exceptions file cannot be written to disk.
+    /// Returns [`CodeGuardsError::Io`] if the exceptions file cannot be written to disk.
     pub fn add_exception(
         &mut self,
         file: &Path,
         guard_id: &str,
         reason: &str,
     ) -> Result<ExceptionEntry> {
-        let mut attempts = 0;
-        let max_attempts = 10;
-        let mut token;
+        let token = compute_exception_token(file, guard_id, reason);
 
-        loop {
-            token = compute_exception_token(file, guard_id, reason);
-
-            // Check for collision with existing tokens
-            if !self.exceptions.iter().any(|e| e.token == token) {
-                // No collision - use this token
-                break;
-            }
-
-            attempts += 1;
-            if attempts >= max_attempts {
-                // Give up after max attempts to avoid infinite loops
-                return Err(CodeGuardsError::Io {
-                    path: PathBuf::from("token-generation"),
-                    source: std::io::Error::new(
-                        std::io::ErrorKind::AlreadyExists,
-                        format!("Token collision after {max_attempts} attempts"),
-                    ),
-                });
-            }
-
-            // Add slight variation to inputs to change HMAC output
-            // by appending attempt number to reason
-            let modified_reason = format!("{reason} (attempt {attempts})");
-            token = compute_exception_token(file, guard_id, &modified_reason);
-
-            if !self.exceptions.iter().any(|e| e.token == token) {
-                break;
-            }
-        }
-
-        // Deduplicate (should be redundant but safe)
+        // Deduplicate existing entry for this token
         self.exceptions.retain(|e| e.token != token);
 
         let entry = ExceptionEntry {
-            token: token.clone(),
+            token,
             file: file.to_path_buf(),
             guard_id: guard_id.to_string(),
-            reason: reason.to_string(), // Store original reason, not modified
+            reason: reason.to_string(),
             granted_at: chrono::Utc::now().to_rfc3339(),
         };
 
@@ -150,9 +116,17 @@ impl ProjectExceptions {
     #[must_use]
     pub fn is_exception_valid(&self, file: &Path, guard_id: &str, token: &str) -> bool {
         self.exceptions.iter().any(|e| {
+            let path_matches = e.file == file
+                || file.ends_with(&e.file)
+                || file
+                    .components()
+                    .rev()
+                    .zip(e.file.components().rev())
+                    .all(|(a, b)| a == b);
+
             e.token == token
                 && e.guard_id.eq_ignore_ascii_case(guard_id)
-                && (e.file == file || file.ends_with(&e.file))
+                && path_matches
                 && !is_token_expired(&e.granted_at)
         })
     }

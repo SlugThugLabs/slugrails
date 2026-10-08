@@ -1,0 +1,94 @@
+//! CLI `exception` subcommand handler.
+
+use codeguards_mcp::storage::ProjectExceptions;
+use std::path::{Path, PathBuf};
+use std::process::ExitCode;
+
+/// Executes the `codeguards-mcp exception` command.
+pub fn run_exception(mut args: impl Iterator<Item = String>) -> ExitCode {
+    let sub = args.next().unwrap_or_else(|| "list".to_string());
+    let root = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+    let mut exceptions = ProjectExceptions::load(&root).unwrap_or_default();
+
+    match sub.as_str() {
+        "add" => {
+            let Some(file_str) = args.next() else {
+                eprintln!("Usage: codeguards exception add <file> <guard> --reason=\"...\"");
+                return ExitCode::from(2);
+            };
+            let Some(guard) = args.next() else {
+                eprintln!("Usage: codeguards exception add <file> <guard> --reason=\"...\"");
+                return ExitCode::from(2);
+            };
+            let mut reason = "User authorized exception".to_string();
+            while let Some(arg) = args.next() {
+                if let Some(value) = arg.strip_prefix("--reason=") {
+                    reason = value.trim_matches('"').to_string();
+                } else if arg == "--reason"
+                    && let Some(r) = args.next()
+                {
+                    reason = r;
+                }
+            }
+
+            match exceptions.add_exception(Path::new(&file_str), &guard, &reason) {
+                Ok(entry) => {
+                    println!("[CODEGUARD-SUCCESS] Exception authorized.");
+                    println!("  Token:   {}", entry.token);
+                    println!("  File:    {}", entry.file.display());
+                    println!("  Guard:   {}", entry.guard_id);
+                    println!(
+                        "  Header:  // codeguard-exception: token={}; guard={}; reason=\"{}\"",
+                        entry.token, entry.guard_id, entry.reason
+                    );
+                    ExitCode::SUCCESS
+                }
+                Err(e) => {
+                    eprintln!("[CODEGUARD-ERROR] Could not save exception: {e}");
+                    ExitCode::from(1)
+                }
+            }
+        }
+        "list" => {
+            println!("Active exceptions for {}:", root.display());
+            if exceptions.exceptions.is_empty() {
+                println!("  (No active exceptions)");
+            } else {
+                for e in &exceptions.exceptions {
+                    println!(
+                        "  - [{}] {} (Guard: {}) - Reason: {}",
+                        e.token,
+                        e.file.display(),
+                        e.guard_id,
+                        e.reason
+                    );
+                }
+            }
+            ExitCode::SUCCESS
+        }
+        "revoke" => {
+            let Some(token) = args.next() else {
+                eprintln!("Usage: codeguards exception revoke <token>");
+                return ExitCode::from(2);
+            };
+            match exceptions.revoke(&token) {
+                Ok(true) => {
+                    println!("[CODEGUARD-SUCCESS] Exception token {token} revoked.");
+                    ExitCode::SUCCESS
+                }
+                Ok(false) => {
+                    eprintln!("[CODEGUARD-ERROR] Token {token} not found.");
+                    ExitCode::from(1)
+                }
+                Err(e) => {
+                    eprintln!("[CODEGUARD-ERROR] Revocation failed: {e}");
+                    ExitCode::from(1)
+                }
+            }
+        }
+        other => {
+            eprintln!("Unknown exception subcommand: {other}");
+            ExitCode::from(2)
+        }
+    }
+}

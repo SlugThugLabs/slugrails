@@ -28,15 +28,21 @@ pub fn collect_source_files(project_root: &Path) -> Result<Vec<PathBuf>> {
             && let Some(ext) = path.extension().and_then(|e| e.to_str())
             && matches!(ext, "rs" | "py" | "ts" | "js" | "go" | "toml")
         {
-            // Ignore planning and git files
-            let path_str = path.to_string_lossy();
-            if path_str.contains("/.planning/")
-                || path_str.contains("/.git/")
-                || path_str.contains("/target/")
-                || path_str.contains("/node_modules/")
-                || path_str.contains("/legacy-python/")
-                || path_str.contains("/sample_code/")
-            {
+            // Ignore planning and build/temp directories (platform-agnostic)
+            let is_ignored = path.components().any(|c| {
+                matches!(
+                    c.as_os_str().to_str(),
+                    Some(
+                        ".planning"
+                            | ".git"
+                            | "target"
+                            | "node_modules"
+                            | "legacy-python"
+                            | "sample_code"
+                    )
+                )
+            });
+            if is_ignored {
                 continue;
             }
 

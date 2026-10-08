@@ -78,7 +78,7 @@ pub fn get_or_init_secret_salt() -> [u8; 32] {
     key_bytes
 }
 
-/// Computes a secure, salted 5-digit verification token for an exception.
+/// Computes a secure, salted 16-character hex verification token for an exception.
 /// Includes file path, guard ID, reason, and current timestamp to prevent replay attacks.
 #[must_use]
 pub fn compute_exception_token(file: &Path, guard_id: &str, reason: &str) -> String {
@@ -90,9 +90,7 @@ pub fn compute_exception_token(file: &Path, guard_id: &str, reason: &str) -> Str
     hasher.update(reason.as_bytes());
     hasher.update(timestamp.as_bytes());
     let hash = hasher.finalize();
-    let bytes = hash.as_bytes();
-    let num = u32::from_be_bytes([bytes[0], bytes[1], bytes[2], bytes[3]]) % 90000 + 10000;
-    num.to_string()
+    format!("cg_tok_{}", &hash.to_hex()[..16])
 }
 
 /// Returns the central ~/.slugthug directory.

@@ -1,5 +1,11 @@
 //! MCP Server implementation for Authoring and Governance tools.
 
+mod types;
+
+pub use types::{
+    AddExceptionRequest, CreateGuardTestRequest, ListGuardTestsRequest, ValidateArchitectureRequest,
+};
+
 use crate::contract::validate_architecture;
 use crate::library::catalog::GuardCatalog;
 use crate::library::create_custom_guard_test;
@@ -9,61 +15,12 @@ use rmcp::handler::server::ServerHandler;
 use rmcp::handler::server::wrapper::Parameters;
 use rmcp::model::{Implementation, ProtocolVersion, ServerCapabilities, ServerInfo};
 use rmcp::{ErrorData, Json, tool, tool_handler, tool_router};
-use schemars::JsonSchema;
-use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use std::path::Path;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
 const INSTRUCTIONS: &str = "CodeGuards architecture governance and modular test authoring tools.";
-
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-pub struct ValidateArchitectureRequest {
-    /// Absolute path to the target project directory (default: current dir)
-    pub project_path: Option<String>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-pub struct ListGuardTestsRequest {
-    /// Optional category filter (e.g. 'structural', 'complexity', 'hygiene', 'languages/rust')
-    pub category: Option<String>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-pub struct CreateGuardTestRequest {
-    /// Unique test name (e.g. '`auth_required`')
-    pub name: String,
-    /// Category (structural, complexity, hygiene, quality, languages/rust, custom/<ns>)
-    pub category: String,
-    /// Short explanation of what the guard checks
-    pub summary: String,
-    /// Search tags
-    #[serde(default)]
-    pub tags: Vec<String>,
-    /// Known aliases
-    #[serde(default)]
-    pub aliases: Vec<String>,
-    /// Execution engine name
-    pub engine: String,
-    /// Actionable fix instruction when rule fails
-    pub remediation: String,
-    /// Override duplicate detection warnings
-    #[serde(default)]
-    pub force: bool,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-pub struct AddExceptionRequest {
-    /// Project root directory
-    pub project_path: String,
-    /// Relative file path receiving exception
-    pub file: String,
-    /// Guard identifier (e.g. 'complexity/source-limits')
-    pub guard_id: String,
-    /// Specific architectural justification
-    pub reason: String,
-}
 
 #[derive(Clone)]
 pub struct CodeGuardsMcpServer {

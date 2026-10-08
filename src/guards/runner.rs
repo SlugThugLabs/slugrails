@@ -1,77 +1,34 @@
 //! Parallel guard execution runner.
 //!
-//! Dynamically routes active contract rules through the guard-tests catalog.
+//! Dynamically routes active contract rules through the modular guard checks.
 
-use crate::analyzer::{
-    count_code_lines, extract_imported_modules, find_debug_prints, find_unwrap_expect_calls,
-    is_test_path, test_region_lines,
+use super::checks::{
+    check_debug_prints, check_function_limits, check_layer_dependencies, check_no_stubs,
+    check_no_unwrap, check_source_limits,
 };
+use super::context::FileContext;
+use crate::analyzer::{is_test_path, test_region_lines};
 use crate::contract::ArchitectureContract;
 use crate::error::Result;
-use crate::library::catalog::{GuardCatalog, GuardCatalogEntry};
+use crate::library::catalog::GuardCatalog;
 use crate::storage::ProjectExceptions;
-use crate::types::{GuardReport, Severity, Violation};
+use crate::types::{GuardReport, Violation};
 use rayon::prelude::*;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::Instant;
 
-/// Runs all applicable guards across the target list of files.
-///
-/// # Errors
-///
-/// Every built-in guard reports violations inside the returned [`GuardReport`]
-/// instead of failing, so this currently always returns `Ok`; the `Result` is
-/// part of the guard-check contract so callers can propagate evaluation failures
-/// introduced by future guards.
-pub fn run_guard_checks(
-    project_root: &Path,
-    files: &[PathBuf],
-    contract: &ArchitectureContract,
-    catalog: &GuardCatalog,
-    exceptions: &ProjectExceptions,
-) -> Result<GuardReport> {
-    let start = Instant::now();
-
-    // Parallel evaluation over files
-    let violations: Vec<Violation> = files
-        .par_iter()
-        .flat_map(|file| evaluate_file_guards(project_root, file, contract, catalog, exceptions))
-        .collect();
-
-    // Saturating: elapsed milliseconds only overflow u64 after ~585 million years,
-    // so this never actually clamps — it just removes a panic path.
-    let duration_ms = u64::try_from(start.elapsed().as_millis()).unwrap_or(u64::MAX);
-
-    let (passed_tests, unevaluated_tests) = classify_rules(contract, catalog);
-
-    Ok(GuardReport {
-        project_root: project_root.to_path_buf(),
-        total_files_checked: files.len(),
-        violations,
-        passed_tests,
-        unevaluated_tests,
-        active_exceptions: exceptions.exceptions.clone(),
-        duration_ms,
-    })
-}
-
-/// Guard ids that have an implementation wired into the dispatcher in
-/// [`evaluate_file_guards`].
-///
-/// This is the single source of truth for "can this guard actually run".
-/// `tests/guard_registry_parity.rs` fails if it drifts from the built-in catalog.
+/// Guard ids that have an active handler wired into the dispatcher.
 pub const IMPLEMENTED_GUARDS: &[&str] = &[
     "complexity/source-limits",
+    "complexity/function-limits",
     "languages/rust/no-unwrap",
     "hygiene/no-debug-prints",
+    "quality/no-stubs",
     "structural/layer-dependencies",
 ];
 
-/// Guard ids that are catalogued but have no handler yet.
-///
-/// Enabling one of these evaluates nothing. They are reported as unevaluated
-/// rather than passed, so a missing implementation cannot look like a success.
+/// Guard ids that are catalogued but pending engine wiring.
 pub const UNIMPLEMENTED_GUARDS: &[&str] = &[
     "hygiene/no-secrets",
     "hygiene/no-duplicates",
@@ -88,11 +45,40 @@ pub fn is_implemented(guard_id: &str) -> bool {
     IMPLEMENTED_GUARDS.contains(&guard_id)
 }
 
-/// Splits the contract's enforced rules into what a handler will evaluate and
-/// what will be skipped.
+/// Runs all applicable guards across the target list of files in parallel.
 ///
-/// `structural/layer-dependencies` has a handler but only runs when the contract
-/// declares `allowed_dependencies`, so without those it is unevaluated too.
+/// # Errors
+///
+/// Returns [`crate::error::CodeGuardsError`] if critical evaluation fails.
+pub fn run_guard_checks(
+    project_root: &Path,
+    files: &[PathBuf],
+    contract: &ArchitectureContract,
+    catalog: &GuardCatalog,
+    exceptions: &ProjectExceptions,
+) -> Result<GuardReport> {
+    let start = Instant::now();
+
+    let violations: Vec<Violation> = files
+        .par_iter()
+        .flat_map(|file| evaluate_file_guards(project_root, file, contract, catalog, exceptions))
+        .collect();
+
+    let duration_ms = u64::try_from(start.elapsed().as_millis()).unwrap_or(u64::MAX);
+    let (passed_tests, unevaluated_tests) = classify_rules(contract, catalog);
+
+    Ok(GuardReport {
+        project_root: project_root.to_path_buf(),
+        total_files_checked: files.len(),
+        violations,
+        passed_tests,
+        unevaluated_tests,
+        active_exceptions: exceptions.exceptions.clone(),
+        duration_ms,
+    })
+}
+
+/// Splits the contract's enforced rules into evaluated vs skipped.
 #[must_use]
 fn classify_rules(
     contract: &ArchitectureContract,
@@ -120,35 +106,7 @@ fn classify_rules(
     (evaluated, skipped)
 }
 
-/// Per-file state shared by the individual guard checks in [`evaluate_file_guards`].
-struct FileContext<'a> {
-    file: &'a Path,
-    rel_file: &'a Path,
-    rel_str: &'a str,
-    content: &'a str,
-    /// The whole file is a test file (path convention) — every line is test code.
-    is_test: bool,
-    /// Line ranges of in-file `#[cfg(test)]` blocks; lines inside them are test
-    /// code even when the file itself is production code.
-    test_regions: &'a [(usize, usize)],
-    rule_name: &'a str,
-    guard: &'a GuardCatalogEntry,
-    exceptions: &'a ProjectExceptions,
-}
-
-impl FileContext<'_> {
-    /// Whether `line` holds test-only code, per the path convention or an
-    /// in-file `#[cfg(test)]` region — the same distinction `clippy.toml` makes.
-    fn is_test_line(&self, line: usize) -> bool {
-        self.is_test
-            || self
-                .test_regions
-                .iter()
-                .any(|(start, end)| line >= *start && line <= *end)
-    }
-}
-
-/// Evaluates a single file against active contract rules and catalog definitions.
+/// Evaluates a single file against all active contract rules.
 fn evaluate_file_guards(
     project_root: &Path,
     file: &Path,
@@ -165,7 +123,6 @@ fn evaluate_file_guards(
     let rel_str = rel_file.to_string_lossy();
     let test_regions = test_region_lines(&content);
 
-    // Iterate through all active rules declared in contract.enforce
     for rule_name in &contract.enforce {
         let Some(guard) = catalog.resolve(rule_name) else {
             continue;
@@ -184,13 +141,11 @@ fn evaluate_file_guards(
         };
 
         match guard.id.as_str() {
-            // ── Complexity: source_limits ──
             "complexity/source-limits" => check_source_limits(&ctx, contract, &mut violations),
-            // ── Language/Rust: no_unwrap ──
+            "complexity/function-limits" => check_function_limits(&ctx, contract, &mut violations),
             "languages/rust/no-unwrap" => check_no_unwrap(&ctx, &mut violations),
-            // ── Hygiene: no_debug_prints ──
             "hygiene/no-debug-prints" => check_debug_prints(&ctx, &mut violations),
-            // ── Structural: layer_dependencies ──
+            "quality/no-stubs" => check_no_stubs(&ctx, &mut violations),
             "structural/layer-dependencies" if !contract.allowed_dependencies.is_empty() => {
                 check_layer_dependencies(&ctx, contract, &mut violations);
             }
@@ -199,227 +154,4 @@ fn evaluate_file_guards(
     }
 
     violations
-}
-
-/// Complexity guard: flags files whose code-line count exceeds the configured limit.
-fn check_source_limits(
-    ctx: &FileContext<'_>,
-    contract: &ArchitectureContract,
-    violations: &mut Vec<Violation>,
-) {
-    let max_lines = usize::try_from(
-        contract
-            .guard_settings
-            .get("source_limits")
-            .and_then(|v| v.get("max_lines"))
-            .and_then(serde_json::Value::as_u64)
-            .unwrap_or(400),
-    )
-    .ok()
-    .unwrap_or(usize::MAX);
-
-    let code_lines = count_code_lines(ctx.content);
-    if code_lines > max_lines
-        && !has_valid_exception(ctx.file, &ctx.guard.id, ctx.content, ctx.exceptions)
-    {
-        violations.push(Violation {
-            guard_id: ctx.guard.id.clone(),
-            file: ctx.rel_file.to_path_buf(),
-            line: Some(1),
-            message: format!("File has {code_lines} code lines (exceeds limit of {max_lines})"),
-            severity: Severity::Error,
-            fix_suggestion: Some(ctx.guard.summary.clone()),
-            rule_reference: Some(format!(
-                ".planning/ARCHITECTURE.md [enforce: {}]",
-                ctx.rule_name
-            )),
-        });
-    }
-}
-
-/// Rust language guard: flags bare `.unwrap()`/`.expect()` in non-test sources.
-fn check_no_unwrap(ctx: &FileContext<'_>, violations: &mut Vec<Violation>) {
-    if ctx.rel_file.extension().is_some_and(|ext| ext == "rs") {
-        for (line, msg) in find_unwrap_expect_calls(ctx.content) {
-            if ctx.is_test_line(line) {
-                continue;
-            }
-            if !has_valid_exception(ctx.file, &ctx.guard.id, ctx.content, ctx.exceptions) {
-                violations.push(Violation {
-                    guard_id: ctx.guard.id.clone(),
-                    file: ctx.rel_file.to_path_buf(),
-                    line: Some(line),
-                    message: msg,
-                    severity: Severity::Error,
-                    fix_suggestion: Some(
-                        "Use '?' error propagation with thiserror or return a Result<T, E>."
-                            .to_string(),
-                    ),
-                    rule_reference: Some(format!(
-                        ".planning/ARCHITECTURE.md [enforce: {}]",
-                        ctx.rule_name
-                    )),
-                });
-            }
-        }
-    }
-}
-
-/// Hygiene guard: flags leftover debug print statements in non-test sources.
-fn check_debug_prints(ctx: &FileContext<'_>, violations: &mut Vec<Violation>) {
-    for (line, msg) in find_debug_prints(ctx.content) {
-        if ctx.is_test_line(line) {
-            continue;
-        }
-        if !has_valid_exception(ctx.file, &ctx.guard.id, ctx.content, ctx.exceptions) {
-            violations.push(Violation {
-                guard_id: ctx.guard.id.clone(),
-                file: ctx.rel_file.to_path_buf(),
-                line: Some(line),
-                message: msg,
-                severity: Severity::Error,
-                fix_suggestion: Some(
-                    "Replace debug print with structured tracing::info/debug or remove before committing."
-                        .to_string(),
-                ),
-                rule_reference: Some(format!(
-                    ".planning/ARCHITECTURE.md [enforce: {}]",
-                    ctx.rule_name
-                )),
-            });
-        }
-    }
-}
-
-/// Structural guard: flags imports that cross a declared layer boundary.
-fn check_layer_dependencies(
-    ctx: &FileContext<'_>,
-    contract: &ArchitectureContract,
-    violations: &mut Vec<Violation>,
-) {
-    let imported_modules = extract_imported_modules(ctx.content);
-    for (source_layer, allowed) in &contract.allowed_dependencies {
-        if ctx.rel_str.contains(&format!("src/{source_layer}/"))
-            || ctx.rel_str.starts_with(&format!("{source_layer}/"))
-        {
-            for (line_num, import_path) in &imported_modules {
-                for target_layer in contract.allowed_dependencies.keys() {
-                    let crosses_boundary = target_layer != source_layer
-                        && !allowed.contains(target_layer)
-                        && (import_path.contains(&format!("crate::{target_layer}"))
-                            || import_path.starts_with(target_layer));
-                    if crosses_boundary
-                        && !has_valid_exception(
-                            ctx.file,
-                            &ctx.guard.id,
-                            ctx.content,
-                            ctx.exceptions,
-                        )
-                    {
-                        violations.push(Violation {
-                            guard_id: ctx.guard.id.clone(),
-                            file: ctx.rel_file.to_path_buf(),
-                            line: Some(*line_num),
-                            message: format!(
-                                "Illegal import of '{target_layer}' from '{source_layer}' (import: '{import_path}')"
-                            ),
-                            severity: Severity::Error,
-                            fix_suggestion: Some(format!(
-                                "Module '{source_layer}' cannot depend on '{target_layer}'. Refactor access through declared layer boundary."
-                            )),
-                            rule_reference: Some(format!(
-                                ".planning/ARCHITECTURE.md [allowed_dependencies: {source_layer}]"
-                            )),
-                        });
-                    }
-                }
-            }
-        }
-    }
-}
-
-/// Helper that checks for inline exception headers: `// codeguard-exception: token=...; guard=...;`
-fn has_valid_exception(
-    file: &Path,
-    guard_id: &str,
-    content: &str,
-    exceptions: &ProjectExceptions,
-) -> bool {
-    // Scan up to first 50 lines to account for long license headers
-    for line in content.lines().take(50) {
-        if line.contains("codeguard-exception:")
-            && line.contains("token=")
-            && let Some(token_part) = line.split("token=").nth(1)
-        {
-            let token = token_part.split(';').next().unwrap_or("").trim();
-            if exceptions.is_exception_valid(file, guard_id, token) {
-                return true;
-            }
-        }
-    }
-    false
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::library::builtins::get_builtin_guard_tests;
-    use crate::types::GuardTestDefinition;
-
-    /// A `.unwrap()` inside an in-file `#[cfg(test)]` module is test code, while
-    /// one in production code is still reported — both halves of the fix.
-    #[test]
-    fn in_file_test_module_is_not_reported_but_production_unwrap_is() {
-        let source = "\
-pub fn production() -> u8 {
-    let x: Option<u8> = None;
-    x.unwrap()
-}
-
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn t() {
-        let y: Option<u8> = None;
-        y.unwrap();
-    }
-}
-";
-        let dir = tempfile::tempdir().expect("tempdir");
-        let root = dir.path();
-        std::fs::create_dir_all(root.join("src")).expect("create src dir");
-        let file = root.join("src/lib.rs");
-        std::fs::write(&file, source).expect("write source");
-
-        let contract = ArchitectureContract {
-            enforce: vec!["no_unwrap".to_string()],
-            ..ArchitectureContract::default()
-        };
-        let definitions: Vec<(GuardTestDefinition, PathBuf)> = get_builtin_guard_tests()
-            .into_iter()
-            .map(|definition| (definition, PathBuf::from("/x")))
-            .collect();
-        let catalog = GuardCatalog::from_definitions(&definitions);
-        let exceptions = ProjectExceptions::default();
-
-        let report = run_guard_checks(root, &[file], &contract, &catalog, &exceptions)
-            .expect("guard run succeeds");
-
-        assert!(
-            report.passed_tests.contains(&"no_unwrap".to_string()),
-            "the rule must be evaluated, not skipped: {:?}",
-            report.passed_tests
-        );
-        assert_eq!(
-            report.violations.len(),
-            1,
-            "only the production unwrap may be reported: {:?}",
-            report.violations
-        );
-        assert_eq!(
-            report.violations[0].line,
-            Some(3),
-            "the production unwrap on line 3 is a true positive"
-        );
-    }
 }
