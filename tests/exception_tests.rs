@@ -51,4 +51,15 @@ mod tests {
         assert!(exceptions.remove_exception(&entry.token));
         assert!(!exceptions.is_exception_valid(file, "languages/rust/no-unwrap", &entry.token));
     }
+
+    #[test]
+    fn test_exception_custom_ttl() {
+        let mut exceptions = ProjectExceptions::default();
+        let file = Path::new("src/ttl.rs");
+        let entry = exceptions.insert_exception(file, "hygiene/no-debug-prints", "temporary debug");
+
+        // Valid under standard 30-day TTL and 60-day TTL
+        assert!(exceptions.is_exception_valid_with_ttl(file, "hygiene/no-debug-prints", &entry.token, 30));
+        assert!(exceptions.is_exception_valid_with_ttl(file, "hygiene/no-debug-prints", &entry.token, 60));
+    }
 }

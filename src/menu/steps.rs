@@ -79,28 +79,49 @@ where
 
     println!("\nConnecting CodeGuards to {name}...");
 
-    // Remove existing
-    let _ = std::process::Command::new(cli)
+    // Remove existing with 5s timeout
+    let mut remove_cmd = std::process::Command::new(cli);
+    remove_cmd
         .args(["mcp", "remove", "codeguards"])
         .stdout(std::process::Stdio::null())
-        .stderr(std::process::Stdio::null())
-        .status();
+        .stderr(std::process::Stdio::null());
+    let _ = run_with_timeout(&mut remove_cmd, std::time::Duration::from_secs(5));
 
-    // Add server
-    let status = std::process::Command::new(cli)
+    // Add server with 5s timeout
+    let mut add_cmd = std::process::Command::new(cli);
+    add_cmd
         .args(["mcp", "add", "codeguards", "--"])
         .arg(&exec_path)
-        .arg("serve")
-        .status();
+        .arg("serve");
+    let status = run_with_timeout(&mut add_cmd, std::time::Duration::from_secs(5));
 
     match status {
-        Ok(s) if s.success() => {
+        Some(s) if s.success() => {
             println!("Connected successfully! Verify with: {cli} mcp list");
         }
         _ => {
             println!("Could not connect automatically.");
             println!("Manual command: {cli} mcp add codeguards -- {} serve", exec_path.display());
         }
+    }
+}
+
+/// Spawns a child process and waits up to `timeout`, killing it cleanly if it stalls.
+fn run_with_timeout(
+    cmd: &mut std::process::Command,
+    timeout: std::time::Duration,
+) -> Option<std::process::ExitStatus> {
+    let mut child = cmd.spawn().ok()?;
+    let start = std::time::Instant::now();
+    loop {
+        if let Ok(Some(status)) = child.try_wait() {
+            return Some(status);
+        }
+        if start.elapsed() >= timeout {
+            let _ = child.kill();
+            return None;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(50));
     }
 }
 

@@ -150,6 +150,18 @@ impl ProjectExceptions {
     /// Validates whether a file and guard violation is covered by an active exception token.
     #[must_use]
     pub fn is_exception_valid(&self, file: &Path, guard_id: &str, token: &str) -> bool {
+        self.is_exception_valid_with_ttl(file, guard_id, token, 30)
+    }
+
+    /// Validates whether an exception token is active within `ttl_days`.
+    #[must_use]
+    pub fn is_exception_valid_with_ttl(
+        &self,
+        file: &Path,
+        guard_id: &str,
+        token: &str,
+        ttl_days: i64,
+    ) -> bool {
         self.exceptions.iter().any(|e| {
             let path_matches = e.file == file
                 || file.ends_with(&e.file)
@@ -162,15 +174,15 @@ impl ProjectExceptions {
             e.token == token
                 && e.guard_id.eq_ignore_ascii_case(guard_id)
                 && path_matches
-                && !is_token_expired(&e.granted_at)
+                && !is_token_expired(&e.granted_at, ttl_days)
         })
     }
 }
 
-/// Checks if a token is older than 30 days.
-fn is_token_expired(granted_at: &str) -> bool {
+/// Checks if a token is older than `ttl_days` (default 30 days).
+fn is_token_expired(granted_at: &str, ttl_days: i64) -> bool {
     match DateTime::parse_from_rfc3339(granted_at) {
-        Ok(granted_time) => granted_time + chrono::Duration::days(30) < Utc::now(),
+        Ok(granted_time) => granted_time + chrono::Duration::days(ttl_days) < Utc::now(),
         Err(_) => true,
     }
 }
