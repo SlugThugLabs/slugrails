@@ -54,8 +54,8 @@ async fn run_menu_cli() -> ExitCode {
 
 fn print_help() {
     println!(
-        "SlugRails MCP v{} (Rust 2024)\n\
-         Architectural Guardrails & Code Governance for AI Coding Agents\n\n\
+        "SlugRails v{} (Rust 2024)\n\
+         Architectural Rail Builder & Contract Scaffolding for Native Toolchains & Agents\n\n\
          USAGE:\n\
            slugrails menu                          Launch interactive setup & management menu\n\
            slugrails init [--root <path>]          Scaffold starter ARCHITECTURE.md with slugplan\n\

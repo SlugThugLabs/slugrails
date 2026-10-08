@@ -1,21 +1,21 @@
 # SlugRails (`slugrails-mcp`)
 
-> Architectural guardrails, anti-drift enforcement, and integrated SlugPlan for AI coding agents.
+> Architectural rail builder and contract scaffolding for software projects and AI coding agents.
 
-SlugRails keeps autonomous AI coding agents on structural rails by enforcing architectural boundaries declared in `.planning/ARCHITECTURE.md`. It provides integrated planning via **SlugPlan**, real-time bouncer checking via **SlugRails**, and pairs seamlessly with **SlugAudit** for retrospective codebase evidence.
+SlugRails lays down the architectural rails for your repository. It doesn't need to run as an intrusive background daemon or active process—instead, it scaffolds machine-enforceable contracts (`.planning/ARCHITECTURE.md`) and native test harnesses (`tests/slugrails.rs`) so that your existing toolchain (**`cargo test`**, **`git commit`**, and CI/CD pipelines) triggers and enforces architectural boundaries automatically.
 
 ---
 
-## Core Philosophy: Architectural Bouncer & Intent Companion
+## Core Philosophy: The Architectural Rail Builder
 
 > [!IMPORTANT]
-> **SlugRails is NOT a linter replacement—it is an architectural bouncer and intent companion.**
+> **SlugRails is NOT an active background bouncer or linter replacement—it is the Rail Builder.**
 
 Linters (Clippy, ESLint, Ruff) enforce syntax conventions, formatting preferences, and localized code idioms. **SlugRails operates at a completely different tier of the engineering lifecycle**:
 
-1. **Architectural Bouncer:** SlugRails acts as an immovable boundary enforcer at commit and test time. It enforces layer isolation DAGs, file volume ceilings, cognitive control-flow depth, security policies, and unhandled errors. If an agent attempts to violate layer boundaries or compromise code safety, SlugRails physically halts execution with unambiguous, black-box diagnostic errors.
-2. **Intent Companion:** Autonomous agents work best when human intent is established early and reinforced continuously. Through **SlugPlan**, SlugRails conducts architectural interviews before coding starts, converging fuzzy design ideas into hard, verifiable contracts.
-3. **Tamper-Proof Invariance:** Agents cannot weaken, mock, or comment out in-repo unit assertions to pass checks. Guard definitions and bouncer logic run black-box outside agent-tamperable code paths.
+1. **Lays Down the Rails:** SlugRails establishes machine-enforceable boundaries at the repository level: layer isolation DAGs, file volume ceilings (≤ 200 LOC), control-flow depth, security policies, and unhandled errors. Once laid down, standard developer tools like `cargo test` trigger enforcement automatically.
+2. **Intent Stabilization:** Autonomous agents work best when human intent is established early and reinforced continuously. Through **SlugPlan**, SlugRails helps discover domain terms before coding starts, converging fuzzy design ideas into hard, verifiable contracts.
+3. **Tamper-Proof Invariance:** Agents cannot weaken, mock, or comment out in-repo unit assertions to pass checks. Guard definitions and verification run black-box outside agent-tamperable code paths with BLAKE3 HMAC cryptographic integrity.
 
 ---
 
@@ -64,9 +64,9 @@ When `auto_scaffold` is `true`, SlugRails establishes the complete contract and 
 
 ---
 
-## Standalone Test Harness: Daemon-Free `cargo test`
+## Standalone Test Harness: Native `cargo test` Enforcement
 
-SlugRails provides a zero-daemon bouncer integration via `slugrails scaffold-tests`:
+SlugRails provides a zero-daemon integration via `slugrails scaffold-tests`:
 
 ```bash
 slugrails scaffold-tests
@@ -75,14 +75,14 @@ slugrails scaffold-tests
 This generates `tests/slugrails.rs`:
 ```rust
 #[test]
-fn test_slugrails_architecture_invariants() {
-    // Loads .planning/ARCHITECTURE.md and evaluates all active guards
-    // Panics with actionable violation messages if boundaries are breached
+fn test_architecture_contract_enforced() {
+    // Triggers SlugRails check on all source files
+    // Fails `cargo test` with compiler-grade ANSI reports if rules are breached
 }
 ```
 
-### Why Daemon-Free `cargo test` Matters:
-- **No Background Processes:** Does not require a running MCP server, background daemon, or containerized service. Standard `cargo test` or `cargo test --test slugrails` executes the bouncer natively.
+### Why Native `cargo test` Matters:
+- **No Background Processes:** Does not require a running MCP server, background daemon, or containerized service. Standard `cargo test` or `cargo test --test slugrails` triggers the rails natively.
 - **CI/CD Integration:** Plugs directly into standard GitHub Actions, GitLab CI, or pre-push gates with zero setup overhead.
 - **Tamper Resistance:** Agents executing `cargo test` cannot bypass architectural constraints by modifying source code in `src/`.
 
