@@ -145,10 +145,20 @@ fn render_text_report(report: &GuardReport) {
         println!("\n\x1b[1;31merror\x1b[0m: architecture guard violations detected ({})", report.violations.len());
         for v in &report.violations {
             let line_num = v.line.unwrap_or(1);
+            let snippet = std::fs::read_to_string(&v.file)
+                .ok()
+                .and_then(|c| c.lines().nth(line_num.saturating_sub(1)).map(|s| s.trim_end().to_string()))
+                .unwrap_or_default();
+
             println!("\n  \x1b[1;31m[{}]\x1b[0m \x1b[1m{}\x1b[0m", v.guard_id, v.message);
             println!("    \x1b[36m-->\x1b[0m {}:{line_num}", v.file.display());
             println!("     \x1b[36m|\x1b[0m");
-            println!(" {line_num:3} \x1b[36m|\x1b[0m \x1b[31m^^^^ violation coordinate\x1b[0m");
+            if !snippet.is_empty() {
+                println!(" {line_num:3} \x1b[36m|\x1b[0m {snippet}");
+                println!("     \x1b[36m|\x1b[0m \x1b[1;31m^\x1b[0m \x1b[31mviolation detected here\x1b[0m");
+            } else {
+                println!(" {line_num:3} \x1b[36m|\x1b[0m \x1b[31m^^^^ violation coordinate\x1b[0m");
+            }
             println!("     \x1b[36m|\x1b[0m");
             if let Some(fix) = &v.fix_suggestion {
                 println!("     \x1b[32m= help:\x1b[0m {fix}");

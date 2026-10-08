@@ -67,7 +67,7 @@ fn print_help() {
            slugrails exception add <file> <guard> --reason=\"...\"\n\
            slugrails exception list\n\
            slugrails exception revoke <token>\n\
-           slugrails serve                         Start MCP server (stdio transport default)",
+           slugrails serve [--port <num>]          Start MCP server (stdio default, or TCP with --port)",
         env!("CARGO_PKG_VERSION")
     );
 }

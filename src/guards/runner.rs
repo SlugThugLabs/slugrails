@@ -97,7 +97,14 @@ fn evaluate_file_guards(
     catalog: &GuardCatalog,
     exceptions: &ProjectExceptions,
 ) -> Vec<Violation> {
-    let mut violations = Vec::new();
+    // Guard against reading oversized files (> 2 MiB) or non-regular files (FIFOs, device files).
+    let Ok(meta) = fs::metadata(file) else {
+        return violations;
+    };
+    if !meta.is_file() || meta.len() > 2 * 1024 * 1024 {
+        return violations;
+    }
+
     let Ok(content) = fs::read_to_string(file) else {
         return violations;
     };

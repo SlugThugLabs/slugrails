@@ -1,4 +1,4 @@
-//! CLI `serve` subcommand handler (starts stdio MCP server).
+//! CLI `serve` subcommand handler (starts stdio or TCP MCP server).
 
 use crate::library::ensure_test_library_seeded;
 use crate::server::CodeGuardsMcpServer;
@@ -6,11 +6,15 @@ use rmcp::service::ServiceExt;
 use rmcp::transport::io::stdio;
 use std::process::ExitCode;
 
-/// Executes the `codeguards-mcp serve` command.
+/// Executes the `slugrails serve` command.
 pub async fn run_serve(args: impl Iterator<Item = String>) -> ExitCode {
     let args_vec: Vec<String> = args.collect();
-    if args_vec.iter().any(|a| a == "--port" || a.starts_with("--port=")) {
-        eprintln!("[SLUGRAILS-NOTICE] TCP transport (--port) reserved for future release. Using stdio transport.");
+    if super::args::has_help_flag(&args_vec) {
+        println!(
+            "Usage: slugrails serve [--port <number>]\n\n\
+             Starts the MCP server. Defaults to stdio transport, or TCP socket if --port is provided."
+        );
+        return ExitCode::SUCCESS;
     }
 
     let catalog = match ensure_test_library_seeded() {
@@ -22,8 +26,23 @@ pub async fn run_serve(args: impl Iterator<Item = String>) -> ExitCode {
     };
 
     let handler = CodeGuardsMcpServer::new(catalog);
-    tracing::info!("Starting SlugRails stdio MCP server");
 
+    if let Some(port_str) = super::args::extract_option(&args_vec, "--port", Some("-p")) {
+        let port: u16 = match port_str.parse() {
+            Ok(p) => p,
+            Err(_) => {
+                eprintln!("[SLUGRAILS-ERROR] Invalid port number: '{port_str}'");
+                return ExitCode::from(2);
+            }
+        };
+        return serve_tcp(handler, port).await;
+    }
+
+    serve_stdio(handler).await
+}
+
+async fn serve_stdio(handler: CodeGuardsMcpServer) -> ExitCode {
+    tracing::info!("Starting SlugRails stdio MCP server");
     match handler.serve(stdio()).await {
         Ok(service) => match service.waiting().await {
             Ok(_) => {
@@ -40,4 +59,37 @@ pub async fn run_serve(args: impl Iterator<Item = String>) -> ExitCode {
             ExitCode::from(1)
         }
     }
+}
+
+async fn serve_tcp(handler: CodeGuardsMcpServer, port: u16) -> ExitCode {
+    let addr = format!("127.0.0.1:{port}");
+    let listener = match tokio::net::TcpListener::bind(&addr).await {
+        Ok(l) => {
+            eprintln!("[SLUGRAILS] TCP MCP server listening on {addr}");
+            l
+        }
+        Err(e) => {
+            eprintln!("[SLUGRAILS-ERROR] Failed to bind TCP listener on {addr}: {e}");
+            return ExitCode::from(1);
+        }
+    };
+
+    loop {
+        match listener.accept().await {
+            Ok((stream, peer)) => {
+                tracing::info!("Accepted MCP connection from {peer}");
+                let srv = handler.clone();
+                tokio::spawn(async move {
+                    if let Ok(svc) = srv.serve(stream).await {
+                        let _ = svc.waiting().await;
+                    }
+                });
+            }
+            Err(e) => {
+                eprintln!("[SLUGRAILS-ERROR] TCP accept error: {e}");
+                break;
+            }
+        }
+    }
+    ExitCode::SUCCESS
 }
