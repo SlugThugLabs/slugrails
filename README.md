@@ -82,11 +82,11 @@ codeguards-mcp validate
 ```
 
 ### Git Hook Integration
-Install into `.git/hooks/pre-commit`:
+Install automated pre-commit enforcement gate with one command:
 ```bash
-#!/usr/bin/env bash
-codeguards-mcp check
+codeguards-mcp hook install
 ```
+*(To uninstall: `codeguards-mcp hook uninstall`)*
 
 ---
 

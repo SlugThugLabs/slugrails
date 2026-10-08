@@ -2,7 +2,7 @@
 
 #![forbid(unsafe_code)]
 
-use codeguards_mcp::cli::{run_check, run_exception, run_init, run_serve, run_validate};
+use codeguards_mcp::cli::{run_check, run_exception, run_hook, run_init, run_serve, run_validate};
 use std::process::ExitCode;
 
 #[tokio::main]
@@ -16,6 +16,7 @@ async fn main() -> ExitCode {
         "menu" => run_menu_cli().await,
         "init" => run_init(args),
         "check" => run_check(args),
+        "hook" => run_hook(args),
         "exception" => run_exception(args),
         "validate" => run_validate(args),
         "serve" => run_serve(args).await,
@@ -53,6 +54,7 @@ fn print_help() {
            codeguards-mcp menu                          Launch interactive setup & management menu\n\
            codeguards-mcp init [--root <path>]          Scaffold starter ARCHITECTURE.md contract\n\
            codeguards-mcp check [--all] [--root <path>]  Run guard checks on modified files (or all)\n\
+           codeguards-mcp hook [install|uninstall]      Manage git pre-commit hook\n\
            codeguards-mcp validate [--root <path>]      Validate .planning/ARCHITECTURE.md against tests\n\
            codeguards-mcp exception add <file> <guard> --reason=\"...\"\n\
            codeguards-mcp exception list\n\
