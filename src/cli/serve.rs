@@ -7,7 +7,12 @@ use rmcp::transport::io::stdio;
 use std::process::ExitCode;
 
 /// Executes the `codeguards-mcp serve` command.
-pub async fn run_serve(_args: impl Iterator<Item = String>) -> ExitCode {
+pub async fn run_serve(args: impl Iterator<Item = String>) -> ExitCode {
+    let args_vec: Vec<String> = args.collect();
+    if args_vec.iter().any(|a| a == "--port" || a.starts_with("--port=")) {
+        eprintln!("[SLUGRAILS-NOTICE] TCP transport (--port) reserved for future release. Using stdio transport.");
+    }
+
     let catalog = match ensure_test_library_seeded() {
         Ok(c) => c,
         Err(e) => {

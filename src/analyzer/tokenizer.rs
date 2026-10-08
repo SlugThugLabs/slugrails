@@ -29,6 +29,7 @@ pub fn tokenize_source(source: &str) -> Vec<StrippedLine> {
     for (idx, raw_line) in source.lines().enumerate() {
         if state == LexState::Normal
             && !raw_line.contains('/')
+            && !raw_line.contains('#')
             && !raw_line.contains('"')
             && !raw_line.contains('\'')
         {
@@ -43,39 +44,39 @@ pub fn tokenize_source(source: &str) -> Vec<StrippedLine> {
         }
 
         let mut code_buf = String::with_capacity(raw_line.len());
-        let bytes = raw_line.as_bytes();
+        let chars: Vec<char> = raw_line.chars().collect();
         let mut i = 0;
         let mut has_code = false;
 
-        while i < bytes.len() {
-            let b = bytes[i];
-            let next = bytes.get(i + 1).copied();
+        while i < chars.len() {
+            let c = chars[i];
+            let next = chars.get(i + 1).copied();
 
             match state {
                 LexState::Normal => {
-                    if b == b'/' && next == Some(b'/') {
+                    if (c == '/' && next == Some('/')) || c == '#' {
                         state = LexState::LineComment;
                         break;
-                    } else if b == b'/' && next == Some(b'*') {
+                    } else if c == '/' && next == Some('*') {
                         state = LexState::BlockComment;
                         i += 2;
                         continue;
-                    } else if b == b'"' {
+                    } else if c == '"' {
                         state = LexState::StringLiteral { escaped: false };
                         has_code = true;
-                    } else if b == b'\'' {
+                    } else if c == '\'' {
                         state = LexState::CharLiteral { escaped: false };
                         has_code = true;
                     } else {
-                        if !b.is_ascii_whitespace() {
+                        if !c.is_whitespace() {
                             has_code = true;
                         }
-                        code_buf.push(b as char);
+                        code_buf.push(c);
                     }
                 }
                 LexState::LineComment => break,
                 LexState::BlockComment => {
-                    if b == b'*' && next == Some(b'/') {
+                    if c == '*' && next == Some('/') {
                         state = LexState::Normal;
                         i += 2;
                         continue;
@@ -84,18 +85,18 @@ pub fn tokenize_source(source: &str) -> Vec<StrippedLine> {
                 LexState::StringLiteral { escaped } => {
                     if escaped {
                         state = LexState::StringLiteral { escaped: false };
-                    } else if b == b'\\' {
+                    } else if c == '\\' {
                         state = LexState::StringLiteral { escaped: true };
-                    } else if b == b'"' {
+                    } else if c == '"' {
                         state = LexState::Normal;
                     }
                 }
                 LexState::CharLiteral { escaped } => {
                     if escaped {
                         state = LexState::CharLiteral { escaped: false };
-                    } else if b == b'\\' {
+                    } else if c == '\\' {
                         state = LexState::CharLiteral { escaped: true };
-                    } else if b == b'\'' {
+                    } else if c == '\'' {
                         state = LexState::Normal;
                     }
                 }

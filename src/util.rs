@@ -11,6 +11,14 @@ use std::path::{Path, PathBuf};
 ///
 /// Returns [`CodeGuardsError::SandboxViolation`] if the path escapes the project root.
 pub fn validate_safe_path(path: &Path) -> Result<PathBuf> {
+    let raw_str = path.to_string_lossy();
+    if raw_str.starts_with(r"\\") || raw_str.starts_with("//") {
+        return Err(CodeGuardsError::SandboxViolation { path: path.to_path_buf() });
+    }
+    if raw_str.chars().skip(2).any(|c| c == ':') {
+        return Err(CodeGuardsError::SandboxViolation { path: path.to_path_buf() });
+    }
+
     let canonical = match path.canonicalize() {
         Ok(p) => p,
         Err(_) => path.to_path_buf(),
@@ -18,14 +26,21 @@ pub fn validate_safe_path(path: &Path) -> Result<PathBuf> {
 
     let path_str = canonical.to_string_lossy();
 
-    // Check strict component boundaries rather than substring
+    const RESERVED_NAMES: &[&str] = &[
+        "CON", "PRN", "AUX", "NUL", "COM1", "COM2", "COM3", "COM4",
+        "COM5", "COM6", "COM7", "COM8", "COM9", "LPT1", "LPT2", "LPT3",
+        "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9",
+    ];
+
     for comp in canonical.components() {
         if matches!(comp, std::path::Component::ParentDir) {
             return Err(CodeGuardsError::SandboxViolation { path: canonical });
         }
         if let std::path::Component::Normal(c) = comp {
             let name = c.to_string_lossy();
-            if name == ".ssh" || name == ".aws" || name == ".gnupg" {
+            let upper = name.to_ascii_uppercase();
+            let stem = upper.split('.').next().unwrap_or("");
+            if RESERVED_NAMES.contains(&stem) || name == ".ssh" || name == ".aws" || name == ".gnupg" {
                 return Err(CodeGuardsError::SandboxViolation { path: canonical });
             }
         }
@@ -74,26 +89,42 @@ pub fn get_or_init_secret_salt() -> [u8; 32] {
     let random_key = uuid::Uuid::new_v4();
     let mut hasher = blake3::Hasher::new();
     hasher.update(random_key.as_bytes());
-    hasher.update(b"slugrails-salt-key");
+    hasher.update(chrono::Utc::now().to_rfc3339().as_bytes());
+    hasher.update(b"slugrails-salt-key-v2");
     let key_bytes = *hasher.finalize().as_bytes();
 
     let _ = fs::write(&key_path, key_bytes);
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        let _ = fs::set_permissions(&key_path, fs::Permissions::from_mode(0o600));
+    }
     key_bytes
 }
 
-/// Computes a secure, salted 16-character hex verification token for an exception.
-/// Includes file path, guard ID, reason, and current timestamp to prevent replay attacks.
+/// Computes an HMAC token using a specified date string.
 #[must_use]
-pub fn compute_exception_token(file: &Path, guard_id: &str, reason: &str) -> String {
+pub fn compute_exception_token_with_date(
+    file: &Path,
+    guard_id: &str,
+    reason: &str,
+    date_str: &str,
+) -> String {
     let salt = get_or_init_secret_salt();
-    let timestamp = chrono::Utc::now().format("%Y-%m-%d").to_string(); // Daily granularity
     let mut hasher = blake3::Hasher::new_keyed(&salt);
     hasher.update(file.to_string_lossy().as_bytes());
     hasher.update(guard_id.as_bytes());
     hasher.update(reason.as_bytes());
-    hasher.update(timestamp.as_bytes());
+    hasher.update(date_str.as_bytes());
     let hash = hasher.finalize();
     format!("sr_tok_{}", &hash.to_hex()[..16])
+}
+
+/// Computes a secure, salted 16-character hex verification token for an exception.
+#[must_use]
+pub fn compute_exception_token(file: &Path, guard_id: &str, reason: &str) -> String {
+    let timestamp = chrono::Utc::now().format("%Y-%m-%d").to_string();
+    compute_exception_token_with_date(file, guard_id, reason, &timestamp)
 }
 
 /// Returns the central ~/.slugthuglabs directory.

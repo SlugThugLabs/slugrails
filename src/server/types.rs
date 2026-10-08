@@ -48,6 +48,9 @@ pub struct AddExceptionRequest {
     pub guard_id: String,
     /// Specific architectural justification
     pub reason: String,
+    /// Explicit human approval required to authorize guardrail bypass
+    #[serde(default)]
+    pub human_confirmed: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]

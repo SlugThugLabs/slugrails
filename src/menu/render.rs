@@ -9,7 +9,7 @@ pub const MENU: &str = "\
 
   ── Setup ───────────────────────────────────
 
-  1) Install the binary  (~/.slugthug/bin)
+  1) Install the binary  (~/.slugthuglabs/bin)
      A stable path for agents and MCP clients to launch.
 
   2) Connect to an AI agent
@@ -21,7 +21,7 @@ pub const MENU: &str = "\
      tool that supports MCP servers (OpenCode, Cursor, Zed, ...).
 
   4) Inspect guard-test library
-     List available modular tests in ~/.slugthug/codeguards/tests/
+     List available modular tests in ~/.slugthuglabs/slugrails/tests/
 
   ── Advanced ─────────────────────────────────
 

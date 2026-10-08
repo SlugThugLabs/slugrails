@@ -2,7 +2,9 @@
 
 use crate::error::{CodeGuardsError, Result};
 use crate::types::ExceptionEntry;
-use crate::util::{compute_exception_token, get_project_storage_dir};
+use crate::util::{
+    compute_exception_token, compute_exception_token_with_date, get_project_storage_dir,
+};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::fs;
@@ -163,18 +165,22 @@ impl ProjectExceptions {
         ttl_days: i64,
     ) -> bool {
         self.exceptions.iter().any(|e| {
-            let path_matches = e.file == file
-                || file.ends_with(&e.file)
-                || file
-                    .components()
-                    .rev()
-                    .zip(e.file.components().rev())
-                    .all(|(a, b)| a == b);
+            let norm_file = file.to_string_lossy().replace('\\', "/");
+            let norm_e_file = e.file.to_string_lossy().replace('\\', "/");
+            let path_matches = norm_file == norm_e_file
+                || (norm_e_file.contains('/') && norm_file.ends_with(&norm_e_file));
 
-            e.token == token
-                && e.guard_id.eq_ignore_ascii_case(guard_id)
-                && path_matches
-                && !is_token_expired(&e.granted_at, ttl_days)
+            if !path_matches
+                || !e.guard_id.eq_ignore_ascii_case(guard_id)
+                || is_token_expired(&e.granted_at, ttl_days)
+            {
+                return false;
+            }
+
+            let date_part = e.granted_at.get(..10).unwrap_or("");
+            let exp = compute_exception_token_with_date(&e.file, &e.guard_id, &e.reason, date_part);
+            let legacy_exp = compute_exception_token(&e.file, &e.guard_id, &e.reason);
+            e.token == token && (e.token == exp || e.token == legacy_exp)
         })
     }
 }

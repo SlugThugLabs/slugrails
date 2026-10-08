@@ -57,8 +57,15 @@ pub async fn handle_check_project(
     };
 
     let exceptions = ProjectExceptions::load(&project_root).unwrap_or_default();
-    let cat = catalog.lock().await;
-    match run_guard_checks(&project_root, &files, &contract, &cat, &exceptions) {
+    let cat = catalog.lock().await.clone();
+    let root = project_root.clone();
+    let res = tokio::task::spawn_blocking(move || {
+        run_guard_checks(&root, &files, &contract, &cat, &exceptions)
+    })
+    .await
+    .map_err(|e| ErrorData::internal_error(format!("Scan task failed: {e}"), None))?;
+
+    match res {
         Ok(report) => Ok(Json(report)),
         Err(e) => Err(ErrorData::internal_error(format!("Guard scan failed: {e}"), None)),
     }
@@ -117,8 +124,10 @@ pub async fn handle_create_guard_test(
     catalog: &Arc<Mutex<GuardCatalog>>,
     req: CreateGuardTestRequest,
 ) -> Result<Json<String>, ErrorData> {
-    if req.name.len() > 128 || req.category.len() > 256 || req.summary.len() > 512 {
-        return Err(ErrorData::invalid_params("Request fields too large", None));
+    if req.name.len() > 128 || req.category.len() > 256 || req.summary.len() > 512
+        || req.tags.len() > 32 || req.aliases.len() > 32 || req.remediation.len() > 2048
+    {
+        return Err(ErrorData::invalid_params("Request fields exceed size limits", None));
     }
     if req.category.contains("..") || req.name.contains("..")
         || req.name.contains('/') || req.name.contains('\\')
@@ -154,8 +163,14 @@ pub async fn handle_create_guard_test(
 }
 
 pub fn handle_add_exception(req: AddExceptionRequest) -> Result<Json<crate::types::ExceptionEntry>, ErrorData> {
-    if req.file.contains("..") {
-        return Err(ErrorData::invalid_params("File path cannot contain '..'", None));
+    if !req.human_confirmed {
+        return Err(ErrorData::invalid_params(
+            "Autonomous exceptions prohibited: explicit human confirmation required (pass human_confirmed: true)",
+            None,
+        ));
+    }
+    if req.file.contains("..") || req.file.len() > 1024 || req.reason.len() > 2048 {
+        return Err(ErrorData::invalid_params("Invalid file path or reason length", None));
     }
     let project_path = resolve_safe_root(Some(&req.project_path))?;
     let mut exceptions = ProjectExceptions::load(&project_path).unwrap_or_default();

@@ -46,8 +46,10 @@ pub fn check_no_secrets(ctx: &FileContext<'_>, violations: &mut Vec<Violation>) 
             .iter()
             .any(|re| re.is_match(&lit.value) || re.is_match(&lit.context));
         if is_secret && !has_valid_exception(ctx.file, &ctx.guard.id, ctx.content, ctx.exceptions) {
-            let masked = if lit.value.len() > 8 {
-                format!("{}...", &lit.value[..8])
+            let char_count = lit.value.chars().count();
+            let masked = if char_count > 8 {
+                let prefix: String = lit.value.chars().take(8).collect();
+                format!("{prefix}...")
             } else {
                 "***".to_string()
             };

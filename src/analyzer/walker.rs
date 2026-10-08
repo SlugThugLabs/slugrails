@@ -90,8 +90,7 @@ pub fn collect_git_diff_files(project_root: &Path) -> Result<Vec<PathBuf>> {
     }
 
     let output = std::process::Command::new("git")
-        .arg("status")
-        .arg("--porcelain")
+        .args(["-c", "core.fsmonitor=", "-c", "core.hooksPath=/dev/null", "status", "--porcelain"])
         .current_dir(project_root)
         .output();
 
@@ -105,8 +104,14 @@ pub fn collect_git_diff_files(project_root: &Path) -> Result<Vec<PathBuf>> {
 
     for line in text.lines() {
         if line.len() > 3 {
-            let rel_path = line[3..].trim();
-            let full_path = project_root.join(rel_path);
+            let raw_rel = line[3..].trim();
+            let target_rel = if let Some((_old, new)) = raw_rel.split_once("->") {
+                new.trim()
+            } else {
+                raw_rel
+            };
+            let clean_rel = target_rel.trim_matches('"');
+            let full_path = project_root.join(clean_rel);
             if full_path.is_file()
                 && !is_path_ignored(&full_path)
                 && let Some(ext) = full_path.extension().and_then(|e| e.to_str())
