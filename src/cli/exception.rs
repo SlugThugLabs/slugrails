@@ -1,6 +1,6 @@
 //! CLI `exception` subcommand handler.
 
-use codeguards_mcp::storage::ProjectExceptions;
+use crate::storage::ProjectExceptions;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 

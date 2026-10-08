@@ -111,8 +111,8 @@ fn test_plan_architecture_cli_style_with_rust_cargo_toml() {
     let enforce = intent_json["enforced_guards"]
         .as_array()
         .expect("enforced_guards array");
-    assert!(enforce.iter().any(|g| g == "\"languages/rust/unsafe-policy\""));
-    assert!(enforce.iter().any(|g| g == "\"languages/rust/no-unwrap\""));
+    assert!(enforce.iter().any(|g| g == "languages/rust/unsafe-policy"));
+    assert!(enforce.iter().any(|g| g == "languages/rust/no-unwrap"));
 }
 
 #[test]

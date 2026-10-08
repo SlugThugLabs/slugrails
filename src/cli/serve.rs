@@ -1,7 +1,7 @@
 //! CLI `serve` subcommand handler (starts stdio MCP server).
 
-use codeguards_mcp::library::ensure_test_library_seeded;
-use codeguards_mcp::server::CodeGuardsMcpServer;
+use crate::library::ensure_test_library_seeded;
+use crate::server::CodeGuardsMcpServer;
 use rmcp::service::ServiceExt;
 use rmcp::transport::io::stdio;
 use std::process::ExitCode;

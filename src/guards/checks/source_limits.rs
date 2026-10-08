@@ -27,6 +27,9 @@ pub fn check_source_limits(
     contract: &ArchitectureContract,
     violations: &mut Vec<Violation>,
 ) {
+    if ctx.is_test {
+        return;
+    }
     let max_lines = usize::try_from(
         contract
             .guard_settings

@@ -20,6 +20,9 @@ pub fn validate_safe_path(path: &Path) -> Result<PathBuf> {
 
     // Check strict component boundaries rather than substring
     for comp in canonical.components() {
+        if matches!(comp, std::path::Component::ParentDir) {
+            return Err(CodeGuardsError::SandboxViolation { path: canonical });
+        }
         if let std::path::Component::Normal(c) = comp {
             let name = c.to_string_lossy();
             if name == ".ssh" || name == ".aws" || name == ".gnupg" {

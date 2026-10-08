@@ -37,6 +37,9 @@ pub fn check_layer_dependencies(
 
         if in_source_layer {
             for (line_num, import_path) in &imported_modules {
+                if ctx.is_test_line(*line_num) {
+                    continue;
+                }
                 for target_layer in contract.allowed_dependencies.keys() {
                     let crosses_boundary = target_layer != source_layer
                         && !allowed.contains(target_layer)

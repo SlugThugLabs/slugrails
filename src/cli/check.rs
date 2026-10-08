@@ -3,11 +3,13 @@
 use super::args::{extract_option, extract_root, has_flag};
 use super::fix::auto_remediate_violations;
 use super::sarif::format_sarif;
-use codeguards_mcp::analyzer::{collect_git_diff_files, collect_source_files};
-use codeguards_mcp::contract::load_architecture;
-use codeguards_mcp::guards::run_guard_checks;
-use codeguards_mcp::library::ensure_test_library_seeded;
-use codeguards_mcp::storage::ProjectExceptions;
+use crate::analyzer::{collect_git_diff_files, collect_source_files};
+use crate::contract::load_architecture;
+use crate::guards::run_guard_checks;
+use crate::library::ensure_test_library_seeded;
+use crate::storage::ProjectExceptions;
+use crate::types::GuardReport;
+
 use std::process::ExitCode;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -56,7 +58,7 @@ pub fn run_check(args: impl Iterator<Item = String>) -> ExitCode {
         match format {
             OutputFormat::Json => println!("{{\"files_checked\":0,\"violations\":[]}}"),
             OutputFormat::Sarif => {
-                let empty = codeguards_mcp::types::GuardReport::default();
+                let empty = GuardReport::default();
                 println!("{}", serde_json::to_string_pretty(&format_sarif(&empty)).unwrap_or_default());
             }
             OutputFormat::Text => println!("[CODEGUARD-PASS] No source files to check."),
@@ -107,7 +109,7 @@ fn parse_format(f: &str) -> OutputFormat {
     }
 }
 
-fn render_text_report(report: &codeguards_mcp::types::GuardReport) {
+fn render_text_report(report: &GuardReport) {
     if !report.unevaluated_tests.is_empty() {
         println!(
             "[CODEGUARD-WARNING] {} enabled rule(s) were NOT evaluated (no implementation):",

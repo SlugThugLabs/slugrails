@@ -52,17 +52,17 @@ pub fn plan_architecture(
 
     let is_rust = root.join("Cargo.toml").exists();
     let mut enforce = vec![
-        "\"complexity/source-limits\"",
-        "\"complexity/function-limits\"",
-        "\"complexity/deep-nesting\"",
-        "\"quality/no-stubs\"",
-        "\"hygiene/swallowed-errors\"",
-        "\"hygiene/no-secrets\"",
-        "\"hygiene/no-debug-prints\"",
+        "complexity/source-limits",
+        "complexity/function-limits",
+        "complexity/deep-nesting",
+        "quality/no-stubs",
+        "hygiene/swallowed-errors",
+        "hygiene/no-secrets",
+        "hygiene/no-debug-prints",
     ];
     if is_rust {
-        enforce.push("\"languages/rust/no-unwrap\"");
-        enforce.push("\"languages/rust/unsafe-policy\"");
+        enforce.push("languages/rust/no-unwrap");
+        enforce.push("languages/rust/unsafe-policy");
     }
 
     let layers_str = layers
@@ -70,7 +70,11 @@ pub fn plan_architecture(
         .map(|l| format!("\"{l}\""))
         .collect::<Vec<_>>()
         .join(", ");
-    let enforce_str = enforce.join(", ");
+    let enforce_str = enforce
+        .iter()
+        .map(|e| format!("\"{e}\""))
+        .collect::<Vec<_>>()
+        .join(", ");
 
     let arch_path = plan_dir.join("ARCHITECTURE.md");
     let arch_content = format!(

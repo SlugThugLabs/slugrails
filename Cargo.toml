@@ -22,13 +22,14 @@ missing_errors_doc = "warn"
 missing_panics_doc = "warn"
 module_name_repetitions = "allow"  # Allow in test modules
 
+[lib]
+name = "codeguards_mcp"
+path = "src/lib.rs"
+
 [[bin]]
 name = "slugrails"
 path = "src/main.rs"
 
-[[bin]]
-name = "slugrails-mcp"
-path = "src/main.rs"
 
 [[bench]]
 name = "tokenizer"

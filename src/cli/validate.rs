@@ -1,8 +1,8 @@
 //! CLI `validate` subcommand handler.
 
 use super::args::extract_root;
-use codeguards_mcp::contract::validate_architecture;
-use codeguards_mcp::library::ensure_test_library_seeded;
+use crate::contract::validate_architecture;
+use crate::library::ensure_test_library_seeded;
 use std::process::ExitCode;
 
 /// Executes the `codeguards-mcp validate` command.
