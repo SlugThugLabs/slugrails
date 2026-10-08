@@ -78,12 +78,28 @@ pub fn get_builtin_guard_tests() -> Vec<GuardTestDefinition> {
             "Decompose long function into smaller single-responsibility helper functions.",
         ),
         guard(
+            "complexity/deep-nesting", "deep_nesting", "complexity",
+            "Flags functions exceeding maximum control flow nesting depth (default 4)",
+            &["nesting", "complexity", "depth", "cyclomatic"],
+            &["deep_nesting", "max_nesting_depth"],
+            "deep_nesting", &[("max_depth", serde_json::json!(4))],
+            "Flatten control flow using early returns, guard clauses, or extracted helper functions.",
+        ),
+        guard(
             "quality/no-stubs", "no_stubs", "quality",
             "Rejects unimplemented stub macros (todo!, unimplemented!) in production",
             &["stubs", "todo", "quality"],
             &["no_stubs", "check_no_stubs", "forbid_stubs"],
             "no_stubs", &[],
             "Provide complete production implementation or remove unused stub.",
+        ),
+        guard(
+            "hygiene/swallowed-errors", "swallowed_errors", "hygiene",
+            "Flags swallowed errors, discarded results, or empty error catch/match arms",
+            &["errors", "swallowed", "discarded", "exceptions"],
+            &["swallowed_errors", "empty_catch", "discarded_results"],
+            "swallowed_errors", &[],
+            "Explicitly handle errors, propagate with '?', or log failures.",
         ),
         guard(
             "hygiene/no-secrets", "no_secrets", "hygiene",

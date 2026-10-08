@@ -181,31 +181,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c8d4a3bb8b1e0c1050499d1815f5ab16d04f0959b233085fb31653fbfc9d98f9"
 
 [[package]]
-name = "codeguards-mcp"
-version = "0.2.0"
-dependencies = [
- "blake3",
- "chrono",
- "criterion",
- "ignore",
- "rayon",
- "regex",
- "rmcp",
- "schemars",
- "serde",
- "serde_json",
- "tempfile",
- "thiserror",
- "tokio",
- "toml",
- "tracing",
- "tracing-subscriber",
- "uuid",
- "walkdir",
- "which",
-]
-
-[[package]]
 name = "constant_time_eq"
 version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -963,6 +938,31 @@ name = "slab"
 version = "0.4.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0c790de23124f9ab44544d7ac05d60440adc586479ce501c1d6d7da3cd8c9cf5"
+
+[[package]]
+name = "slugrails-mcp"
+version = "0.2.0"
+dependencies = [
+ "blake3",
+ "chrono",
+ "criterion",
+ "ignore",
+ "rayon",
+ "regex",
+ "rmcp",
+ "schemars",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "thiserror",
+ "tokio",
+ "toml",
+ "tracing",
+ "tracing-subscriber",
+ "uuid",
+ "walkdir",
+ "which",
+]
 
 [[package]]
 name = "smallvec"

@@ -5,7 +5,7 @@ mod types;
 
 pub use types::{
     AddExceptionRequest, CheckProjectRequest, CreateGuardTestRequest, ListGuardTestsRequest,
-    ProbeArchitectureRequest, ValidateArchitectureRequest,
+    ProbeArchitectureRequest, ScaffoldHarnessRequest, ValidateArchitectureRequest,
 };
 
 use crate::library::catalog::GuardCatalog;
@@ -107,6 +107,16 @@ impl SlugRailsMcpServer {
         request: Parameters<AddExceptionRequest>,
     ) -> Result<Json<crate::types::ExceptionEntry>, ErrorData> {
         handlers::handle_add_exception(request.0)
+    }
+
+    #[tool(
+        description = "Generates tests/slugrails.rs integration test harness for native cargo test enforcement."
+    )]
+    async fn scaffold_test_harness(
+        &self,
+        request: Parameters<ScaffoldHarnessRequest>,
+    ) -> Result<Json<String>, ErrorData> {
+        handlers::handle_scaffold_harness(request.0)
     }
 }
 

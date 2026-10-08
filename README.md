@@ -4,19 +4,126 @@
 
 SlugRails keeps autonomous AI coding agents on structural rails by enforcing architectural boundaries declared in `.planning/ARCHITECTURE.md`. It provides integrated planning via **SlugPlan**, real-time bouncer checking via **SlugRails**, and pairs seamlessly with **SlugAudit** for retrospective codebase evidence.
 
-### Two-Tier Storage Architecture:
-- **Global Hub:** `~/.slugthuglabs/slugrails/tests/` (reusable guard templates and secret keys)
+---
+
+## Core Philosophy: Architectural Bouncer & Intent Companion
+
+> [!IMPORTANT]
+> **SlugRails is NOT a linter replacement—it is an architectural bouncer and intent companion.**
+
+Linters (Clippy, ESLint, Ruff) enforce syntax conventions, formatting preferences, and localized code idioms. **SlugRails operates at a completely different tier of the engineering lifecycle**:
+
+1. **Architectural Bouncer:** SlugRails acts as an immovable boundary enforcer at commit and test time. It enforces layer isolation DAGs, file volume ceilings, cognitive control-flow depth, security policies, and unhandled errors. If an agent attempts to violate layer boundaries or compromise code safety, SlugRails physically halts execution with unambiguous, black-box diagnostic errors.
+2. **Intent Companion:** Autonomous agents work best when human intent is established early and reinforced continuously. Through **SlugPlan**, SlugRails conducts architectural interviews before coding starts, converging fuzzy design ideas into hard, verifiable contracts.
+3. **Tamper-Proof Invariance:** Agents cannot weaken, mock, or comment out in-repo unit assertions to pass checks. Guard definitions and bouncer logic run black-box outside agent-tamperable code paths.
+
+---
+
+## Two-Tier Storage Architecture
+
+- **Global Hub:** `~/.slugthuglabs/slugrails/tests/` (reusable guard templates, global catalogs, and secret keys)
 - **Local Project Hub:**
-  - `<project>/.planning/ARCHITECTURE.md` (the core architectural contract)
+  - `<project>/.planning/ARCHITECTURE.md` (the core architectural contract with TOML frontmatter)
   - `<project>/.planning/slugplan/` (intent declarations and project milestones)
   - `<project>/.planning/slugrails/` (exceptions and anti-drift tokens)
   - `<project>/.planning/slugaudit/` (evidence database when auditing)
 
 ---
 
-## AI Agent Integration (Hermes, Claude Code, Cursor, Antigravity)
+## SlugPlan: Intent Convergence Engine & Architectural Interview
 
-SlugRails is built to be driven directly by AI agents through MCP tools and CLI execution.
+Autonomous coding begins with intent convergence. SlugPlan interviews the developer or agent, establishes domain boundaries, and scaffold architectural contracts.
+
+### CLI Architectural Interview (`slugrails plan`)
+```bash
+# Conduct an architectural interview and scaffold contracts
+slugrails plan --intent "Payment gateway integration with idempotent webhook processing" --style "hexagonal"
+
+# Supported architectural styles:
+#   - layered (domain -> application -> infrastructure)
+#   - hexagonal / ports-and-adapters (domain -> ports -> adapters -> driver)
+#   - cli / tool (domain -> engine -> cli)
+```
+
+Running `slugrails plan`:
+1. Generates `.planning/ARCHITECTURE.md` populated with dependency matrices and recommended guards.
+2. Records `.planning/slugplan/intent.json` with high-level architectural goals.
+3. Automatically scaffolds `tests/slugrails.rs` for daemon-free `cargo test` enforcement.
+
+### Agent Workflow via MCP (`slugplan_probe`)
+AI agents (Hermes, Claude Code, Cursor, Antigravity) use the `slugplan_probe` tool during high-level planning:
+```json
+{
+  "description": "High-throughput telemetry ingestion pipeline",
+  "language": "rust",
+  "style": "layered",
+  "auto_scaffold": true
+}
+```
+When `auto_scaffold` is `true`, SlugRails establishes the complete contract and test harness in a single turn, enabling the agent to immediately code within hard bounds.
+
+---
+
+## Standalone Test Harness: Daemon-Free `cargo test`
+
+SlugRails provides a zero-daemon bouncer integration via `slugrails scaffold-tests`:
+
+```bash
+slugrails scaffold-tests
+```
+
+This generates `tests/slugrails.rs`:
+```rust
+#[test]
+fn test_slugrails_architecture_invariants() {
+    // Loads .planning/ARCHITECTURE.md and evaluates all active guards
+    // Panics with actionable violation messages if boundaries are breached
+}
+```
+
+### Why Daemon-Free `cargo test` Matters:
+- **No Background Processes:** Does not require a running MCP server, background daemon, or containerized service. Standard `cargo test` or `cargo test --test slugrails` executes the bouncer natively.
+- **CI/CD Integration:** Plugs directly into standard GitHub Actions, GitLab CI, or pre-push gates with zero setup overhead.
+- **Tamper Resistance:** Agents executing `cargo test` cannot bypass architectural constraints by modifying source code in `src/`.
+
+---
+
+## Active Guard Tests Catalog
+
+SlugRails ships with built-in, pure-Rust tokenizer guard checks:
+
+| Guard Identifier | Category | Purpose & Behavior |
+| :--- | :--- | :--- |
+| **`complexity/deep-nesting`** | `complexity` | **Newly Active.** Flags functions exceeding maximum control flow nesting depth (default: `<= 4`). Prevents arrow anti-patterns and forces early returns or decomposition. |
+| **`hygiene/swallowed-errors`** | `hygiene` | **Newly Active.** Flags discarded results, suppressed errors, and empty error catch/match arms (`Err(_) => {}`). Enforces explicit `?` propagation or logging. |
+| **`hygiene/no-secrets`** | `hygiene` | **Newly Active.** Entropy- and pattern-based scanner detecting hardcoded API keys, bearer tokens, private keys, and credential strings before commit. |
+| **`languages/rust/unsafe-policy`** | `languages/rust` | **Newly Active.** Strictly enforces crate-level `#![forbid(unsafe_code)]` and flags unexempted `unsafe` blocks or functions in production code. |
+| `complexity/source-limits` | `complexity` | Enforces production code line budget per file (default: 400 lines; strict internal repo ceiling: 200 LOC). |
+| `complexity/function-limits` | `complexity` | Enforces maximum function/method length (default: 80 lines). |
+| `quality/no-stubs` | `quality` | Rejects `todo!`, `unimplemented!`, or unfinished placeholder stubs in production paths. |
+| `hygiene/no-debug-prints` | `hygiene` | Rejects leftover `println!`, `dbg!`, or `console.log` statements in production code. |
+| `languages/rust/no-unwrap` | `languages/rust` | Prohibits bare `.unwrap()` and `.expect()` calls in production Rust source code. |
+| `structural/layer-dependencies`| `structural` | Enforces strict DAG import hierarchy based on `[allowed_dependencies]` in `ARCHITECTURE.md`. |
+| `structural/docs-drift` | `structural` | Bidirectional verification between declared module map and filesystem reality. |
+
+---
+
+## Repository Invariants Verification
+
+SlugRails enforces 4 absolute quality and architectural invariants on its own codebase, verified via automated script:
+
+```powershell
+pwsh -File .\scripts\verify_invariants.ps1
+```
+
+1. **File Line Budget:** Every source file in `src/` has `<= 200 LOC` (hard ceiling).
+2. **Zero Unsafe:** Zero occurrences of `unsafe` code in `src/`, enforced by crate-level `#![forbid(unsafe_code)]`.
+3. **Zero Test Pollution:** Zero `#[cfg(test)]` or `#[test]` attributes in `src/` (tests isolated exclusively to `tests/`).
+4. **Module Disk Alignment:** All modules declared in `src/guards/checks/mod.rs` exist on disk.
+
+---
+
+## AI Agent Integration (Hermes, Claude Code, Cursor, Antigravity)
 
 ### Registering the MCP Server
 
@@ -39,44 +146,9 @@ For clients configuring via `mcp.json` (Cursor, Claude Desktop, Antigravity, Ope
 
 ---
 
-## Agent Workflow
+## Agent Enforcement & Coding Loop
 
-### 1. Authoring & Architecture Setup
-During conversational planning, the agent creates or updates `.planning/ARCHITECTURE.md` with TOML frontmatter:
-
-```toml
-+++
-modules = ["server", "domain", "storage"]
-layers = ["transport", "domain", "storage"]
-enforce = [
-  "source_limits",
-  "no_unwrap",
-  "no_debug_prints",
-  "layer_dependencies",
-]
-
-[allowed_dependencies]
-server = ["domain"]
-domain = ["storage"]
-storage = []
-
-[guard_settings.source_limits]
-max_lines = 400
-+++
-
-# Architecture & System Design
-```
-
-The agent validates the contract via MCP:
-* **`validate_architecture`**: Checks that all declared `enforce` rules exist in `~/.slugthug/codeguards/tests/`.
-* **`list_guard_tests`**: Inspects available guard tests across categories (`structural`, `complexity`, `hygiene`, `languages/rust`).
-* **`create_guard_test`**: Authors a new reusable test definition when a project requires custom invariants.
-
----
-
-## 2. Enforcement & Coding Loop
-
-During normal coding, the agent runs standard implementation tasks. Verification happens via CLI triggers:
+During normal coding, verification happens via fast CLI triggers:
 
 ```bash
 # Check modified / staged files in active git diff (<5ms)
@@ -87,20 +159,13 @@ slugrails check --all
 
 # Validate architecture contract
 slugrails validate
-```
 
-### Git Hook Integration
-Install automated pre-commit enforcement gate with one command:
-```bash
+# Install automated git pre-commit hook
 slugrails hook install
 ```
-*(To uninstall: `slugrails hook uninstall`)*
 
----
-
-## 3. User-Authorized Exceptions
-
-When a file genuinely requires an exemption (e.g. file size limit for generated code), agents cannot self-authorize. The user grants an exception token:
+### User-Authorized Exceptions
+When a file genuinely requires an exemption, agents cannot self-authorize. The user grants an exception token:
 
 ```bash
 # User grants exception
@@ -111,11 +176,6 @@ slugrails exception list
 
 # Revoke an exception
 slugrails exception revoke <token>
-```
-
-The file adds the verified header:
-```rust
-// codeguard-exception: token=23954; guard=complexity/source-limits; reason="Combined transport scaffolding"
 ```
 
 ---
@@ -131,10 +191,10 @@ cp target/release/codeguards-mcp /root/.slugthug/bin/codeguards-mcp
 
 ## License & Commercial Terms
 
-CodeGuards is licensed under the **Functional Source License, Version 1.1, Apache 2.0 Change License (`FSL-1.1-Apache-2.0`)**.
+SlugRails is licensed under the **Functional Source License, Version 1.1, Apache 2.0 Change License (`FSL-1.1-Apache-2.0`)**.
 
-- **100% Free for Developers & Internal Teams:** You are free to use CodeGuards internally to develop, analyze, audit, test, and maintain your own software—including commercial products and services. You own 100% of the code and products you build with it.
-- **Protection Against Commercial Resale & AI Bundling:** Third parties and AI platforms may not offer the functionality of CodeGuards as a competing commercial product or service, nor bundle or embed it into a paid commercial offering without an agreement from SlugThug Labs.
+- **100% Free for Developers & Internal Teams:** You are free to use SlugRails internally to develop, analyze, audit, test, and maintain your own software—including commercial products and services. You own 100% of the code and products you build with it.
+- **Protection Against Commercial Resale & AI Bundling:** Third parties and AI platforms may not offer the functionality of SlugRails as a competing commercial product or service, nor bundle or embed it into a paid commercial offering without an agreement from SlugThug Labs.
 - **Automatic Apache 2.0 Conversion:** Every release automatically converts to the fully permissive **Apache License 2.0** two years after its release date.
 
 For full tier comparisons, OEM embedding, and enterprise fleet governance, see **[Commercial Solutions & Licensing](docs/commercial-licensing.md)** or contact **`admin@slugthuglabs.dev`**.
@@ -145,4 +205,3 @@ For full tier comparisons, OEM embedding, and enterprise fleet governance, see *
 
 - **[Security Policy](SECURITY.md)**: Responsible vulnerability disclosure and security SLAs.
 - **[Contributing Guide](CONTRIBUTING.md)**: Architectural standards, invariants, and Contributor License Agreement.
-

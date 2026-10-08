@@ -1,8 +1,8 @@
 //! Registry of all available GuardCheck implementations.
 
 use super::checks::{
-    DebugPrintsCheck, FunctionLimitsCheck, LayerDependenciesCheck, NoStubsCheck, NoUnwrapCheck,
-    SourceLimitsCheck,
+    DebugPrintsCheck, DeepNestingCheck, FunctionLimitsCheck, LayerDependenciesCheck, NoSecretsCheck,
+    NoStubsCheck, NoUnwrapCheck, SourceLimitsCheck, SwallowedErrorsCheck, UnsafePolicyCheck,
 };
 use super::traits::GuardCheck;
 use std::collections::HashMap;
@@ -21,9 +21,13 @@ impl GuardRegistry {
         let all_checks: Vec<Box<dyn GuardCheck>> = vec![
             Box::new(SourceLimitsCheck),
             Box::new(FunctionLimitsCheck),
+            Box::new(DeepNestingCheck),
             Box::new(NoUnwrapCheck),
+            Box::new(UnsafePolicyCheck),
             Box::new(DebugPrintsCheck),
             Box::new(NoStubsCheck),
+            Box::new(SwallowedErrorsCheck),
+            Box::new(NoSecretsCheck),
             Box::new(LayerDependenciesCheck),
         ];
 

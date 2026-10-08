@@ -2,7 +2,10 @@
 
 #![forbid(unsafe_code)]
 
-use codeguards_mcp::cli::{run_check, run_exception, run_hook, run_init, run_serve, run_validate};
+use codeguards_mcp::cli::{
+    run_check, run_exception, run_hook, run_init, run_plan, run_scaffold_tests, run_serve,
+    run_validate,
+};
 use std::process::ExitCode;
 
 #[tokio::main]
@@ -15,11 +18,14 @@ async fn main() -> ExitCode {
     match command.as_str() {
         "menu" => run_menu_cli().await,
         "init" => run_init(args),
+        "plan" => run_plan(args),
+        "scaffold-tests" | "harness" => run_scaffold_tests(args),
         "check" => run_check(args),
         "hook" => run_hook(args),
         "exception" => run_exception(args),
         "validate" => run_validate(args),
         "serve" => run_serve(args).await,
+
         "--version" | "-v" | "-V" => {
             println!("slugrails {} (Rust 2024 Edition)", env!("CARGO_PKG_VERSION"));
             ExitCode::SUCCESS
@@ -53,6 +59,8 @@ fn print_help() {
          USAGE:\n\
            slugrails menu                          Launch interactive setup & management menu\n\
            slugrails init [--root <path>]          Scaffold starter ARCHITECTURE.md with slugplan\n\
+           slugrails plan [--root <path>]          Converse/discover terms & auto-scaffold architecture + tests\n\
+           slugrails scaffold-tests [--root <path>] Generate tests/slugrails.rs integration test harness\n\
            slugrails check [--all] [--root <path>]  Run rail checks on modified files (or all)\n\
            slugrails hook [install|uninstall]      Manage git pre-commit hook\n\
            slugrails validate [--root <path>]      Validate .planning/ARCHITECTURE.md against tests\n\

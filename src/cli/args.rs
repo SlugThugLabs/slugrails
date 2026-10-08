@@ -2,15 +2,22 @@
 
 use std::path::PathBuf;
 
-/// Extracts the `--root` / `-r` path from command arguments if provided.
+/// Extracts the `--root` / `-r` / `--project` / `-p` path from command arguments if provided.
 #[must_use]
 pub fn extract_root(args: &[String]) -> PathBuf {
     let mut iter = args.iter();
     while let Some(arg) = iter.next() {
-        if let Some(r) = arg.strip_prefix("--root=").or_else(|| arg.strip_prefix("-r=")) {
+        if let Some(r) = arg
+            .strip_prefix("--root=")
+            .or_else(|| arg.strip_prefix("-r="))
+            .or_else(|| arg.strip_prefix("--project="))
+            .or_else(|| arg.strip_prefix("-p="))
+        {
             return PathBuf::from(r);
         }
-        if (arg == "--root" || arg == "-r") && let Some(next) = iter.next() {
+        if (arg == "--root" || arg == "-r" || arg == "--project" || arg == "-p")
+            && let Some(next) = iter.next()
+        {
             return PathBuf::from(next);
         }
     }

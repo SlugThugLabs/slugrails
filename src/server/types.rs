@@ -65,4 +65,18 @@ pub struct ProbeArchitectureRequest {
     pub description: String,
     /// Primary target programming language (e.g. 'rust', 'typescript', 'python')
     pub language: Option<String>,
+    /// Optional target project directory (default: current dir)
+    pub project_path: Option<String>,
+    /// Automatically scaffold ARCHITECTURE.md, intent.json, and tests/slugrails.rs
+    #[serde(default)]
+    pub auto_scaffold: bool,
+    /// Architectural style hint ('layered', 'hexagonal', 'cli')
+    pub style: Option<String>,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+pub struct ScaffoldHarnessRequest {
+    /// Absolute path to target project directory (default: current dir)
+    pub project_path: Option<String>,
+}
+

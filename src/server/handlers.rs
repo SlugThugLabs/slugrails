@@ -7,8 +7,9 @@ use crate::library::catalog::GuardCatalog;
 use crate::library::create_custom_guard_test;
 use crate::server::types::{
     AddExceptionRequest, CheckProjectRequest, CreateGuardTestRequest, ProbeArchitectureRequest,
-    ValidateArchitectureRequest,
+    ScaffoldHarnessRequest, ValidateArchitectureRequest,
 };
+
 use crate::storage::ProjectExceptions;
 use crate::types::{GuardReport, GuardTestDefinition};
 use rmcp::{ErrorData, Json};
@@ -86,21 +87,60 @@ pub async fn handle_probe(
     ];
     if lang.contains("rust") {
         recommended_rules.push("languages/rust/no-unwrap");
+        recommended_rules.push("languages/rust/unsafe-policy");
+    }
+
+    let mut scaffold_output = None;
+    if req.auto_scaffold {
+        let path_str = req.project_path.as_deref().unwrap_or(".");
+        let project_root = match crate::util::validate_safe_path(Path::new(path_str)) {
+            Ok(p) => p,
+            Err(e) => return Err(ErrorData::invalid_params(format!("Unsafe path: {e}"), None)),
+        };
+        match crate::cli::plan_architecture(
+            &project_root,
+            Some(&req.description),
+            req.style.as_deref(),
+        ) {
+            Ok(msg) => scaffold_output = Some(msg),
+            Err(e) => {
+                return Err(ErrorData::internal_error(
+                    format!("Scaffolding failed: {e}"),
+                    None,
+                ));
+            }
+        }
     }
 
     let result = serde_json::json!({
-        "status": "ready_to_scaffold",
+        "status": if scaffold_output.is_some() { "scaffolded" } else { "ready_to_scaffold" },
         "description": req.description,
         "recommended_layers": ["domain", "application", "infrastructure"],
         "recommended_rules": recommended_rules,
-        "scaffold_command": "slugrails init",
-        "planning_directory": ".planning/slugplan/",
-        "rails_directory": ".planning/slugrails/",
-        "guidance": "Run 'slugrails init' to establish the baseline contract. Ensure source files stay <= 200 LOC."
+        "scaffold_result": scaffold_output,
+        "guidance": "Contracts enforced via SlugRails and SlugPlan. Source files must stay <= 200 LOC."
     });
 
     Ok(Json(result))
 }
+
+pub fn handle_scaffold_harness(req: ScaffoldHarnessRequest) -> Result<Json<String>, ErrorData> {
+    let path_str = req.project_path.as_deref().unwrap_or(".");
+    let project_root = match crate::util::validate_safe_path(Path::new(path_str)) {
+        Ok(p) => p,
+        Err(e) => return Err(ErrorData::invalid_params(format!("Unsafe path: {e}"), None)),
+    };
+    match crate::cli::scaffold_tests_harness(&project_root) {
+        Ok(p) => Ok(Json(format!("Scaffolded test harness: {}", p.display()))),
+        Err(e) => {
+            Err(ErrorData::internal_error(
+                format!("Failed to scaffold harness: {e}"),
+                None,
+            ))
+        }
+    }
+}
+
 
 pub async fn handle_create_guard_test(
     catalog: &Arc<Mutex<GuardCatalog>>,
