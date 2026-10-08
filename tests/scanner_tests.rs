@@ -1,6 +1,8 @@
 #[cfg(test)]
 mod tests {
-    use codeguards_mcp::analyzer::{count_code_lines, find_debug_prints, find_unwrap_expect_calls};
+    use codeguards_mcp::analyzer::{
+        collect_source_files, count_code_lines, find_debug_prints, find_unwrap_expect_calls,
+    };
     use codeguards_mcp::contract::ArchitectureContract;
     use codeguards_mcp::guards::run_guard_checks;
     use codeguards_mcp::library::catalog::GuardCatalog;
@@ -91,5 +93,20 @@ fn run() {
         assert!(!report.is_pass());
         assert_eq!(report.violations.len(), 1);
         assert_eq!(report.violations[0].guard_id, "languages/rust/no-unwrap");
+    }
+
+    #[test]
+    fn test_walker_skips_files_exceeding_size_ceiling() {
+        let dir = tempdir().unwrap();
+        let normal_file = dir.path().join("normal.rs");
+        fs::write(&normal_file, "pub fn ok() {}\n").unwrap();
+
+        let huge_file = dir.path().join("huge.rs");
+        let huge_data = vec![b' '; 2 * 1024 * 1024 + 1024];
+        fs::write(&huge_file, huge_data).unwrap();
+
+        let collected = collect_source_files(dir.path()).unwrap();
+        assert!(collected.contains(&normal_file));
+        assert!(!collected.contains(&huge_file));
     }
 }

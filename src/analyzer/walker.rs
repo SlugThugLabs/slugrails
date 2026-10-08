@@ -4,6 +4,9 @@ use crate::error::{CodeGuardsError, Result};
 use ignore::WalkBuilder;
 use std::path::{Path, PathBuf};
 
+/// Maximum file size (2 MB) scanned into memory to protect against buffer exhaustion.
+pub const MAX_FILE_SIZE_BYTES: u64 = 2 * 1024 * 1024;
+
 const DEFAULT_IGNORED_DIRS: &[&str] = &[
     ".planning",
     ".git",
@@ -57,6 +60,11 @@ pub fn collect_source_files(project_root: &Path) -> Result<Vec<PathBuf>> {
             if is_path_ignored(path) {
                 continue;
             }
+            if let Ok(meta) = entry.metadata() {
+                if meta.len() > MAX_FILE_SIZE_BYTES {
+                    continue;
+                }
+            }
             files.push(path.to_path_buf());
         }
     }
@@ -93,6 +101,11 @@ pub fn collect_git_diff_files(project_root: &Path) -> Result<Vec<PathBuf>> {
                 && let Some(ext) = full_path.extension().and_then(|e| e.to_str())
                 && matches!(ext, "rs" | "py" | "ts" | "js" | "go" | "toml")
             {
+                if let Ok(meta) = full_path.metadata() {
+                    if meta.len() > MAX_FILE_SIZE_BYTES {
+                        continue;
+                    }
+                }
                 files.push(full_path);
             }
         }

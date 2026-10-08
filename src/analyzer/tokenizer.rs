@@ -27,7 +27,22 @@ pub fn tokenize_source(source: &str) -> Vec<StrippedLine> {
     let mut lines = Vec::new();
 
     for (idx, raw_line) in source.lines().enumerate() {
-        let mut code_buf = String::new();
+        if state == LexState::Normal
+            && !raw_line.contains('/')
+            && !raw_line.contains('"')
+            && !raw_line.contains('\'')
+        {
+            let has_code = !raw_line.trim().is_empty();
+            lines.push(StrippedLine {
+                line_number: idx + 1,
+                raw: raw_line.to_string(),
+                code_only: raw_line.to_string(),
+                has_code_token: has_code,
+            });
+            continue;
+        }
+
+        let mut code_buf = String::with_capacity(raw_line.len());
         let bytes = raw_line.as_bytes();
         let mut i = 0;
         let mut has_code = false;
@@ -167,5 +182,5 @@ pub fn extract_imported_modules(source: &str) -> Vec<(usize, String)> {
         }
     }
 
+    imports
 }
-
