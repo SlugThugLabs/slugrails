@@ -4,7 +4,22 @@ use super::exception::has_valid_exception;
 use crate::analyzer::count_code_lines;
 use crate::contract::ArchitectureContract;
 use crate::guards::context::FileContext;
+use crate::guards::traits::GuardCheck;
 use crate::types::{Severity, Violation};
+
+pub struct SourceLimitsCheck;
+
+impl GuardCheck for SourceLimitsCheck {
+    fn id(&self) -> &'static str {
+        "complexity/source-limits"
+    }
+
+    fn check(&self, ctx: &FileContext<'_>, contract: &ArchitectureContract) -> Vec<Violation> {
+        let mut violations = Vec::new();
+        check_source_limits(ctx, contract, &mut violations);
+        violations
+    }
+}
 
 /// Checks whether a file's code lines exceed the configured threshold.
 pub fn check_source_limits(

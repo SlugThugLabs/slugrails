@@ -2,11 +2,8 @@
 //!
 //! Dynamically routes active contract rules through the modular guard checks.
 
-use super::checks::{
-    check_debug_prints, check_function_limits, check_layer_dependencies, check_no_stubs,
-    check_no_unwrap, check_source_limits,
-};
 use super::context::FileContext;
+use super::registry::DEFAULT_REGISTRY;
 use crate::analyzer::{is_test_path, test_region_lines};
 use crate::contract::ArchitectureContract;
 use crate::error::Result;
@@ -18,31 +15,10 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::Instant;
 
-/// Guard ids that have an active handler wired into the dispatcher.
-pub const IMPLEMENTED_GUARDS: &[&str] = &[
-    "complexity/source-limits",
-    "complexity/function-limits",
-    "languages/rust/no-unwrap",
-    "hygiene/no-debug-prints",
-    "quality/no-stubs",
-    "structural/layer-dependencies",
-];
-
-/// Guard ids that are catalogued but pending engine wiring.
-pub const UNIMPLEMENTED_GUARDS: &[&str] = &[
-    "hygiene/no-secrets",
-    "hygiene/no-duplicates",
-    "structural/docs-drift",
-    "structural/manifest-dependencies",
-    "languages/rust/unsafe-policy",
-    "languages/rust/runtime-leak",
-    "languages/rust/tracing-instrument",
-];
-
 /// Whether `guard_id` has a handler wired into the dispatcher.
 #[must_use]
 pub fn is_implemented(guard_id: &str) -> bool {
-    IMPLEMENTED_GUARDS.contains(&guard_id)
+    DEFAULT_REGISTRY.is_implemented(guard_id)
 }
 
 /// Runs all applicable guards across the target list of files in parallel.
@@ -128,6 +104,10 @@ fn evaluate_file_guards(
             continue;
         };
 
+        let Some(check) = DEFAULT_REGISTRY.get(&guard.id) else {
+            continue;
+        };
+
         let ctx = FileContext {
             file,
             rel_file,
@@ -140,17 +120,7 @@ fn evaluate_file_guards(
             exceptions,
         };
 
-        match guard.id.as_str() {
-            "complexity/source-limits" => check_source_limits(&ctx, contract, &mut violations),
-            "complexity/function-limits" => check_function_limits(&ctx, contract, &mut violations),
-            "languages/rust/no-unwrap" => check_no_unwrap(&ctx, &mut violations),
-            "hygiene/no-debug-prints" => check_debug_prints(&ctx, &mut violations),
-            "quality/no-stubs" => check_no_stubs(&ctx, &mut violations),
-            "structural/layer-dependencies" if !contract.allowed_dependencies.is_empty() => {
-                check_layer_dependencies(&ctx, contract, &mut violations);
-            }
-            _ => {}
-        }
+        violations.extend(check.check(&ctx, contract));
     }
 
     violations

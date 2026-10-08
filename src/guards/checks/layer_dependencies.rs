@@ -4,7 +4,22 @@ use super::exception::has_valid_exception;
 use crate::analyzer::extract_imported_modules;
 use crate::contract::ArchitectureContract;
 use crate::guards::context::FileContext;
+use crate::guards::traits::GuardCheck;
 use crate::types::{Severity, Violation};
+
+pub struct LayerDependenciesCheck;
+
+impl GuardCheck for LayerDependenciesCheck {
+    fn id(&self) -> &'static str {
+        "structural/layer-dependencies"
+    }
+
+    fn check(&self, ctx: &FileContext<'_>, contract: &ArchitectureContract) -> Vec<Violation> {
+        let mut violations = Vec::new();
+        check_layer_dependencies(ctx, contract, &mut violations);
+        violations
+    }
+}
 
 /// Enforces the DAG import hierarchy defined in `allowed_dependencies`.
 pub fn check_layer_dependencies(

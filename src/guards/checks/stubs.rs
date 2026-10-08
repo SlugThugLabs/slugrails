@@ -2,8 +2,24 @@
 
 use super::exception::has_valid_exception;
 use crate::analyzer::find_stub_markers;
+use crate::contract::ArchitectureContract;
 use crate::guards::context::FileContext;
+use crate::guards::traits::GuardCheck;
 use crate::types::{Severity, Violation};
+
+pub struct NoStubsCheck;
+
+impl GuardCheck for NoStubsCheck {
+    fn id(&self) -> &'static str {
+        "quality/no-stubs"
+    }
+
+    fn check(&self, ctx: &FileContext<'_>, _contract: &ArchitectureContract) -> Vec<Violation> {
+        let mut violations = Vec::new();
+        check_no_stubs(ctx, &mut violations);
+        violations
+    }
+}
 
 /// Checks for stub macros and placeholder implementations in production code.
 pub fn check_no_stubs(ctx: &FileContext<'_>, violations: &mut Vec<Violation>) {

@@ -2,8 +2,24 @@
 
 use super::exception::has_valid_exception;
 use crate::analyzer::find_unwrap_expect_calls;
+use crate::contract::ArchitectureContract;
 use crate::guards::context::FileContext;
+use crate::guards::traits::GuardCheck;
 use crate::types::{Severity, Violation};
+
+pub struct NoUnwrapCheck;
+
+impl GuardCheck for NoUnwrapCheck {
+    fn id(&self) -> &'static str {
+        "languages/rust/no-unwrap"
+    }
+
+    fn check(&self, ctx: &FileContext<'_>, _contract: &ArchitectureContract) -> Vec<Violation> {
+        let mut violations = Vec::new();
+        check_no_unwrap(ctx, &mut violations);
+        violations
+    }
+}
 
 /// Checks for bare unwrap/expect invocations in production Rust code.
 pub fn check_no_unwrap(ctx: &FileContext<'_>, violations: &mut Vec<Violation>) {

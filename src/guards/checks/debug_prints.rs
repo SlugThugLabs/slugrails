@@ -2,10 +2,26 @@
 
 use super::exception::has_valid_exception;
 use crate::analyzer::find_debug_prints;
+use crate::contract::ArchitectureContract;
 use crate::guards::context::FileContext;
+use crate::guards::traits::GuardCheck;
 use crate::types::{Severity, Violation};
 
-/// Checks for debug print statements (`dbg!`, `println!`, `console.log`) in production code.
+pub struct DebugPrintsCheck;
+
+impl GuardCheck for DebugPrintsCheck {
+    fn id(&self) -> &'static str {
+        "hygiene/no-debug-prints"
+    }
+
+    fn check(&self, ctx: &FileContext<'_>, _contract: &ArchitectureContract) -> Vec<Violation> {
+        let mut violations = Vec::new();
+        check_debug_prints(ctx, &mut violations);
+        violations
+    }
+}
+
+/// Checks for debug print statements (`dbg!`, `console.log`) in production code.
 pub fn check_debug_prints(ctx: &FileContext<'_>, violations: &mut Vec<Violation>) {
     for (line, msg) in find_debug_prints(ctx.content) {
         if ctx.is_test_line(line) {

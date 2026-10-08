@@ -4,7 +4,22 @@ use super::exception::has_valid_exception;
 use crate::analyzer::metrics::function_spans;
 use crate::contract::ArchitectureContract;
 use crate::guards::context::FileContext;
+use crate::guards::traits::GuardCheck;
 use crate::types::{Severity, Violation};
+
+pub struct FunctionLimitsCheck;
+
+impl GuardCheck for FunctionLimitsCheck {
+    fn id(&self) -> &'static str {
+        "complexity/function-limits"
+    }
+
+    fn check(&self, ctx: &FileContext<'_>, contract: &ArchitectureContract) -> Vec<Violation> {
+        let mut violations = Vec::new();
+        check_function_limits(ctx, contract, &mut violations);
+        violations
+    }
+}
 
 /// Checks whether any function/method exceeds the max line length.
 pub fn check_function_limits(
