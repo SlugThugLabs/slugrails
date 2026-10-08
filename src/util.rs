@@ -89,8 +89,11 @@ pub fn get_or_init_secret_salt() -> [u8; 32] {
     let random_key = uuid::Uuid::new_v4();
     let mut hasher = blake3::Hasher::new();
     hasher.update(random_key.as_bytes());
+    if let Ok(user) = std::env::var("USERNAME").or_else(|_| std::env::var("USER")) {
+        hasher.update(user.as_bytes());
+    }
     hasher.update(chrono::Utc::now().to_rfc3339().as_bytes());
-    hasher.update(b"slugrails-salt-key-v2");
+    hasher.update(b"slugrails-salt-key-v3");
     let key_bytes = *hasher.finalize().as_bytes();
 
     let _ = fs::write(&key_path, key_bytes);

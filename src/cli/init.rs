@@ -11,6 +11,10 @@ use std::path::Path;
 /// Returns an error if the contract file cannot be written.
 pub fn run_init<I: Iterator<Item = String>>(args: I) -> std::process::ExitCode {
     let args_vec: Vec<String> = args.collect();
+    if super::args::has_help_flag(&args_vec) {
+        println!("Usage: slugrails init [--root <path>]\n\nScaffolds starter .planning/ARCHITECTURE.md contract with auto-discovered modules.");
+        return std::process::ExitCode::SUCCESS;
+    }
     let root_path = super::args::extract_root(&args_vec);
     match initialize_project(&root_path) {
         Ok(msg) => {

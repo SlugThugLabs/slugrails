@@ -67,6 +67,10 @@ fn test_slugrails_architecture_invariants() {
 /// Writes `tests/slugrails.rs` to the project root.
 pub fn run_scaffold_tests(args: impl Iterator<Item = String>) -> ExitCode {
     let args_vec: Vec<String> = args.collect();
+    if crate::cli::args::has_help_flag(&args_vec) {
+        println!("Usage: slugrails scaffold-tests [--root <path>]\n\nGenerates tests/slugrails.rs integration test harness for native cargo test enforcement.");
+        return ExitCode::SUCCESS;
+    }
     let root = extract_root(&args_vec);
 
     match scaffold_tests_harness(&root) {

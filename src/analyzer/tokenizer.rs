@@ -11,18 +11,20 @@ enum LexState {
     CharLiteral { escaped: bool },
 }
 
+use std::borrow::Cow;
+
 /// A line in a source file, split into raw content and code-only content (comments/strings stripped).
 #[derive(Debug, Clone)]
-pub struct StrippedLine {
+pub struct StrippedLine<'a> {
     pub line_number: usize,
-    pub raw: String,
-    pub code_only: String,
+    pub raw: Cow<'a, str>,
+    pub code_only: Cow<'a, str>,
     pub has_code_token: bool,
 }
 
 /// Tokenizes source text and strips all non-executable tokens (comments, strings).
 #[must_use]
-pub fn tokenize_source(source: &str) -> Vec<StrippedLine> {
+pub fn tokenize_source(source: &str) -> Vec<StrippedLine<'_>> {
     let mut state = LexState::Normal;
     let mut lines = Vec::new();
 
@@ -36,8 +38,8 @@ pub fn tokenize_source(source: &str) -> Vec<StrippedLine> {
             let has_code = !raw_line.trim().is_empty();
             lines.push(StrippedLine {
                 line_number: idx + 1,
-                raw: raw_line.to_string(),
-                code_only: raw_line.to_string(),
+                raw: Cow::Borrowed(raw_line),
+                code_only: Cow::Borrowed(raw_line),
                 has_code_token: has_code,
             });
             continue;
@@ -110,8 +112,8 @@ pub fn tokenize_source(source: &str) -> Vec<StrippedLine> {
 
         lines.push(StrippedLine {
             line_number: idx + 1,
-            raw: raw_line.to_string(),
-            code_only: code_buf,
+            raw: Cow::Borrowed(raw_line),
+            code_only: Cow::Owned(code_buf),
             has_code_token: has_code,
         });
     }

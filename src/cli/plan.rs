@@ -11,6 +11,10 @@ use std::process::ExitCode;
 
 pub fn run_plan(args: impl Iterator<Item = String>) -> ExitCode {
     let args_vec: Vec<String> = args.collect();
+    if crate::cli::args::has_help_flag(&args_vec) {
+        println!("Usage: slugrails plan [--root <path>] [--intent <desc>] [--style <layered|hexagonal|cli>]\n\nDiscovers architectural domain terms and auto-scaffolds contracts + test harness.");
+        return ExitCode::SUCCESS;
+    }
     let root = extract_root(&args_vec);
     let intent_input = extract_option(&args_vec, "--intent", Some("-i"));
     let style_input = extract_option(&args_vec, "--style", Some("-s"));

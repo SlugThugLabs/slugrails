@@ -7,6 +7,10 @@ use std::process::ExitCode;
 /// Executes the `codeguards-mcp exception` command.
 pub fn run_exception(mut args: impl Iterator<Item = String>) -> ExitCode {
     let sub = args.next().unwrap_or_else(|| "list".to_string());
+    if sub == "--help" || sub == "-h" || sub == "help" {
+        println!("Usage: slugrails exception [add|list|revoke] [OPTIONS]\n\nCommands:\n  add <file> <guard> --reason=\"...\"   Authorizes a cryptographic exception\n  list                                Lists all active exceptions\n  revoke <token>                      Revokes an authorized exception");
+        return ExitCode::SUCCESS;
+    }
     let root = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
     let mut exceptions = ProjectExceptions::load(&root).unwrap_or_default();
 

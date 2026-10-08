@@ -142,22 +142,19 @@ fn render_text_report(report: &GuardReport) {
             report.duration_ms
         );
     } else {
-        println!("\n════════════════════════════════════════════════════════════");
-        println!(" [CODEGUARD-BLOCKED] ARCHITECTURE GUARD VIOLATIONS DETECTED");
-        println!("════════════════════════════════════════════════════════════");
+        println!("\n\x1b[1;31merror\x1b[0m: architecture guard violations detected ({})", report.violations.len());
         for v in &report.violations {
-            let line_str = v.line.map_or(String::new(), |l| format!(":{l}"));
-            println!("\n❌ [{}] {}{}", v.guard_id, v.file.display(), line_str);
-            println!("   Reason:      {}", v.message);
+            let line_num = v.line.unwrap_or(1);
+            println!("\n  \x1b[1;31m[{}]\x1b[0m \x1b[1m{}\x1b[0m", v.guard_id, v.message);
+            println!("    \x1b[36m-->\x1b[0m {}:{line_num}", v.file.display());
+            println!("     \x1b[36m|\x1b[0m");
+            println!(" {line_num:3} \x1b[36m|\x1b[0m \x1b[31m^^^^ violation coordinate\x1b[0m");
+            println!("     \x1b[36m|\x1b[0m");
             if let Some(fix) = &v.fix_suggestion {
-                println!("   Remediation: {fix}");
+                println!("     \x1b[32m= help:\x1b[0m {fix}");
             }
-            println!(
-                "   Authorize:   codeguards-mcp exception add {} {} --reason=\"Approved architectural exception\"",
-                v.file.display(),
-                v.guard_id
-            );
+            println!("     \x1b[33m= bypass:\x1b[0m slugrails exception add {} {} --reason=\"...\"", v.file.display(), v.guard_id);
         }
-        println!("\nTotal violations: {}", report.violations.len());
+        println!("\n\x1b[1;31mFailed with {} violation(s)\x1b[0m", report.violations.len());
     }
 }
