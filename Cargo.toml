@@ -6,6 +6,9 @@ publish = false
 license = "FSL-1.1-Apache-2.0"
 repository = "https://github.com/SlugThugLabs/slugrails-mcp"
 description = "Architectural guardrails and code governance MCP server for AI coding agents."
+homepage = "https://slugthuglabs.dev"
+keywords = ["guardrails", "mcp", "architecture", "code-governance", "ai-agents"]
+categories = ["development-tools", "command-line-utilities"]
 default-run = "slugrails"
 
 [lints.rust]

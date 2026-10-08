@@ -30,6 +30,12 @@ pub fn has_flag(args: &[String], flags: &[&str]) -> bool {
     args.iter().any(|arg| flags.contains(&arg.as_str()))
 }
 
+/// Checks whether help was requested (`--help`, `-h`, or `help`).
+#[must_use]
+pub fn has_help_flag(args: &[String]) -> bool {
+    has_flag(args, &["--help", "-h", "help"])
+}
+
 /// Extracts a string option with standard formats (`--key=val`, `--key val`, `-k=val`, `-k val`).
 #[must_use]
 pub fn extract_option(args: &[String], long: &str, short: Option<&str>) -> Option<String> {

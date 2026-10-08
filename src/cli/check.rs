@@ -22,6 +22,20 @@ enum OutputFormat {
 /// Executes the `codeguards-mcp check` command.
 pub fn run_check(args: impl Iterator<Item = String>) -> ExitCode {
     let args_vec: Vec<String> = args.collect();
+    if crate::cli::args::has_help_flag(&args_vec) {
+        println!(
+            "Usage: slugrails check [OPTIONS]\n\n\
+             Enforces architectural invariants and guardrails.\n\n\
+             Options:\n\
+               --all, -a            Scan all source files instead of git modified files\n\
+               --fix                Automatically remediate auto-fixable violations\n\
+               --format, -f <FMT>   Output format: 'text', 'json', or 'sarif' (default: text)\n\
+               --root, -r <PATH>    Path to project root (default: current dir)\n\
+               --help, -h           Show this help message"
+        );
+        return ExitCode::SUCCESS;
+    }
+
     let root = extract_root(&args_vec);
     let check_all = has_flag(&args_vec, &["--all", "-a"]);
     let should_fix = has_flag(&args_vec, &["--fix"]);

@@ -1,5 +1,6 @@
 //! Analyzer coordinator module.
 
+pub mod imports;
 pub mod metrics;
 pub mod tokenizer;
 pub mod walker;

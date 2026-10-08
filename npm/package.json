@@ -1,0 +1,23 @@
+{
+  "name": "slugrails",
+  "version": "0.2.0",
+  "description": "Architectural Guardrails & Governance for AI Coding Agents",
+  "bin": {
+    "slugrails": "./bin/slugrails.js",
+    "codeguards": "./bin/slugrails.js"
+  },
+  "keywords": [
+    "mcp",
+    "guardrails",
+    "architecture",
+    "ai-agents",
+    "claude-code",
+    "codex",
+    "hermes"
+  ],
+  "author": "SlugThug Labs",
+  "license": "FSL-1.1-Apache-2.0",
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

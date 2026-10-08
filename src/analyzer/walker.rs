@@ -33,6 +33,9 @@ fn is_path_ignored(path: &Path) -> bool {
     })
 }
 
+const MAX_DIRECTORY_DEPTH: usize = 32;
+const MAX_SCANNED_FILES: usize = 50_000;
+
 /// Collects all relevant source files in the project root.
 ///
 /// # Errors
@@ -44,9 +47,15 @@ pub fn collect_source_files(project_root: &Path) -> Result<Vec<PathBuf>> {
         .standard_filters(true)
         .hidden(true)
         .parents(true)
+        .max_depth(Some(MAX_DIRECTORY_DEPTH))
         .build();
 
     for result in walker {
+        if files.len() >= MAX_SCANNED_FILES {
+            tracing::warn!("Scan reached maximum file budget of {MAX_SCANNED_FILES} files");
+            break;
+        }
+
         let entry = result.map_err(|e| CodeGuardsError::Io {
             path: project_root.to_path_buf(),
             source: std::io::Error::other(e),
