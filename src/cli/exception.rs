@@ -20,16 +20,10 @@ pub fn run_exception(mut args: impl Iterator<Item = String>) -> ExitCode {
                 eprintln!("Usage: codeguards exception add <file> <guard> --reason=\"...\"");
                 return ExitCode::from(2);
             };
-            let mut reason = "User authorized exception".to_string();
-            while let Some(arg) = args.next() {
-                if let Some(value) = arg.strip_prefix("--reason=") {
-                    reason = value.trim_matches('"').to_string();
-                } else if arg == "--reason"
-                    && let Some(r) = args.next()
-                {
-                    reason = r;
-                }
-            }
+            let args_vec: Vec<String> = args.collect();
+            let reason = super::args::extract_option(&args_vec, "--reason", None)
+                .map(|r| r.trim_matches('"').to_string())
+                .unwrap_or_else(|| "User authorized exception".to_string());
 
             match exceptions.add_exception(Path::new(&file_str), &guard, &reason) {
                 Ok(entry) => {

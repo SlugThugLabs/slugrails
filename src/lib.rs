@@ -3,6 +3,7 @@
 #![forbid(unsafe_code)]
 
 pub mod analyzer;
+pub mod cli;
 pub mod contract;
 pub mod error;
 pub mod guards;

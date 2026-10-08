@@ -9,20 +9,10 @@ use std::path::Path;
 /// # Errors
 ///
 /// Returns an error if the contract file cannot be written.
-pub fn run_init<I: Iterator<Item = String>>(mut args: I) -> std::process::ExitCode {
-    let mut root_dir = ".".to_string();
-    while let Some(arg) = args.next() {
-        if let Some(val) = arg.strip_prefix("--root=") {
-            root_dir = val.to_string();
-        } else if (arg == "--root" || arg == "-r")
-            && let Some(val) = args.next()
-        {
-            root_dir = val;
-        }
-    }
-
-    let root_path = Path::new(&root_dir);
-    match initialize_project(root_path) {
+pub fn run_init<I: Iterator<Item = String>>(args: I) -> std::process::ExitCode {
+    let args_vec: Vec<String> = args.collect();
+    let root_path = super::args::extract_root(&args_vec);
+    match initialize_project(&root_path) {
         Ok(msg) => {
             println!("{msg}");
             std::process::ExitCode::SUCCESS

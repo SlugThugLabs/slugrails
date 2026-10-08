@@ -1,15 +1,15 @@
 //! CLI `check` subcommand handler.
 
+use super::args::{extract_option, extract_root, has_flag};
+use super::fix::auto_remediate_violations;
 use super::sarif::format_sarif;
 use codeguards_mcp::analyzer::{collect_git_diff_files, collect_source_files};
 use codeguards_mcp::contract::load_architecture;
 use codeguards_mcp::guards::run_guard_checks;
 use codeguards_mcp::library::ensure_test_library_seeded;
 use codeguards_mcp::storage::ProjectExceptions;
-use std::path::PathBuf;
 use std::process::ExitCode;
 
-/// Output formats supported by `check`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum OutputFormat {
     Text,
@@ -18,26 +18,14 @@ enum OutputFormat {
 }
 
 /// Executes the `codeguards-mcp check` command.
-pub fn run_check(mut args: impl Iterator<Item = String>) -> ExitCode {
-    let mut check_all = false;
-    let mut root = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
-    let mut format = OutputFormat::Text;
-
-    while let Some(arg) = args.next() {
-        if let Some(r) = arg.strip_prefix("--root=").or_else(|| arg.strip_prefix("-r=")) {
-            root = PathBuf::from(r);
-        } else if (arg == "--root" || arg == "-r") && let Some(r) = args.next() {
-            root = PathBuf::from(r);
-        } else if let Some(f) = arg.strip_prefix("--format=").or_else(|| arg.strip_prefix("-f=")) {
-            format = parse_format(f);
-        } else if (arg == "--format" || arg == "-f") && let Some(f) = args.next() {
-            format = parse_format(&f);
-        } else if arg == "--all" || arg == "-a" {
-            check_all = true;
-        } else if arg == "--diff" || arg == "-d" {
-            check_all = false;
-        }
-    }
+pub fn run_check(args: impl Iterator<Item = String>) -> ExitCode {
+    let args_vec: Vec<String> = args.collect();
+    let root = extract_root(&args_vec);
+    let check_all = has_flag(&args_vec, &["--all", "-a"]);
+    let should_fix = has_flag(&args_vec, &["--fix"]);
+    let format = parse_format(
+        &extract_option(&args_vec, "--format", Some("-f")).unwrap_or_else(|| "text".to_string()),
+    );
 
     let catalog = match ensure_test_library_seeded() {
         Ok(c) => c,
@@ -66,21 +54,31 @@ pub fn run_check(mut args: impl Iterator<Item = String>) -> ExitCode {
         match format {
             OutputFormat::Json => println!("{{\"files_checked\":0,\"violations\":[]}}"),
             OutputFormat::Sarif => {
-                let empty_report = codeguards_mcp::types::GuardReport::default();
-                println!("{}", serde_json::to_string_pretty(&format_sarif(&empty_report)).unwrap_or_default());
+                let empty = codeguards_mcp::types::GuardReport::default();
+                println!("{}", serde_json::to_string_pretty(&format_sarif(&empty)).unwrap_or_default());
             }
             OutputFormat::Text => println!("[CODEGUARD-PASS] No source files to check."),
         }
         return ExitCode::SUCCESS;
     }
 
-    let report = match run_guard_checks(&root, &files, &contract, &catalog, &exceptions) {
+    let mut report = match run_guard_checks(&root, &files, &contract, &catalog, &exceptions) {
         Ok(r) => r,
         Err(e) => {
             eprintln!("[CODEGUARD-ERROR] Check evaluation failed: {e}");
             return ExitCode::from(2);
         }
     };
+
+    if should_fix && !report.violations.is_empty() {
+        let fixed = auto_remediate_violations(&root, &report.violations);
+        if fixed > 0 {
+            println!("[CODEGUARD-FIX] Remediated {fixed} violation(s). Re-evaluating...");
+            if let Ok(rerun) = run_guard_checks(&root, &files, &contract, &catalog, &exceptions) {
+                report = rerun;
+            }
+        }
+    }
 
     match format {
         OutputFormat::Json => {
@@ -136,6 +134,11 @@ fn render_text_report(report: &codeguards_mcp::types::GuardReport) {
             if let Some(fix) = &v.fix_suggestion {
                 println!("   Remediation: {fix}");
             }
+            println!(
+                "   Authorize:   codeguards-mcp exception add {} {} --reason=\"Approved architectural exception\"",
+                v.file.display(),
+                v.guard_id
+            );
         }
         println!("\nTotal violations: {}", report.violations.len());
     }

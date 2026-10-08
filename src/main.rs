@@ -2,9 +2,7 @@
 
 #![forbid(unsafe_code)]
 
-mod cli;
-
-use cli::{run_check, run_exception, run_init, run_serve, run_validate};
+use codeguards_mcp::cli::{run_check, run_exception, run_init, run_serve, run_validate};
 use std::process::ExitCode;
 
 #[tokio::main]

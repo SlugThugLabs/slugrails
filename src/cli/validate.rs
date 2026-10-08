@@ -1,20 +1,14 @@
 //! CLI `validate` subcommand handler.
 
+use super::args::extract_root;
 use codeguards_mcp::contract::validate_architecture;
 use codeguards_mcp::library::ensure_test_library_seeded;
-use std::path::PathBuf;
 use std::process::ExitCode;
 
 /// Executes the `codeguards-mcp validate` command.
-pub fn run_validate(mut args: impl Iterator<Item = String>) -> ExitCode {
-    let mut root = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
-    while let Some(arg) = args.next() {
-        if let Some(r) = arg.strip_prefix("--root=").or_else(|| arg.strip_prefix("-r=")) {
-            root = PathBuf::from(r);
-        } else if (arg == "--root" || arg == "-r") && let Some(r) = args.next() {
-            root = PathBuf::from(r);
-        }
-    }
+pub fn run_validate(args: impl Iterator<Item = String>) -> ExitCode {
+    let args_vec: Vec<String> = args.collect();
+    let root = extract_root(&args_vec);
 
     let catalog = match ensure_test_library_seeded() {
         Ok(c) => c,
