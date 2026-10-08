@@ -1,4 +1,5 @@
-//! Architecture contract parser and validator for .planning/ARCHITECTURE.md.
+pub mod discovery;
+pub use discovery::{ProjectInspection, inspect_project};
 
 use crate::error::{CodeGuardsError, ContractError, Result};
 use crate::library::catalog::GuardCatalog;

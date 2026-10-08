@@ -77,25 +77,21 @@ pub async fn handle_probe(
     if req.description.len() > 4096 {
         return Err(ErrorData::invalid_params("Description exceeds max length (4096)", None));
     }
-    let lang = req.language.as_deref().unwrap_or("rust").to_lowercase();
-    let mut recommended_rules = vec![
-        "complexity/source-limits",
-        "quality/no-stubs",
-        "hygiene/no-secrets",
-        "hygiene/no-debug-prints",
-    ];
-    if lang.contains("rust") {
-        recommended_rules.push("languages/rust/no-unwrap");
-        recommended_rules.push("languages/rust/unsafe-policy");
-    }
+    let project_root = resolve_safe_root(req.project_path.as_deref())?;
+    let inspection = crate::contract::discovery::inspect_project(
+        &project_root,
+        &req.description,
+        req.style.as_deref(),
+    );
 
     let mut scaffold_output = None;
     if req.auto_scaffold {
-        let project_root = resolve_safe_root(req.project_path.as_deref())?;
         match crate::cli::plan_architecture(
             &project_root,
             Some(&req.description),
             req.style.as_deref(),
+            req.custom_layers.clone(),
+            req.custom_rules.clone(),
         ) {
             Ok(msg) => scaffold_output = Some(msg),
             Err(e) => return Err(ErrorData::internal_error(format!("Scaffolding failed: {e}"), None)),
@@ -105,10 +101,14 @@ pub async fn handle_probe(
     Ok(Json(serde_json::json!({
         "status": if scaffold_output.is_some() { "scaffolded" } else { "ready_to_scaffold" },
         "description": req.description,
-        "recommended_layers": ["domain", "application", "infrastructure"],
-        "recommended_rules": recommended_rules,
+        "detected_language": inspection.detected_language,
+        "existing_modules": inspection.existing_modules,
+        "recommended_layers": req.custom_layers.unwrap_or(inspection.candidate_layers),
+        "recommended_rules": req.custom_rules.unwrap_or(inspection.recommended_rules),
+        "interview_prompts": inspection.interview_prompts,
+        "candidate_contract": inspection.candidate_contract,
         "scaffold_result": scaffold_output,
-        "guidance": "Contracts enforced via SlugRails and SlugPlan. Source files must stay <= 200 LOC."
+        "guidance": "Discuss boundaries and terms with user in chat. When agreed, call with auto_scaffold: true."
     })))
 }
 

@@ -17,7 +17,7 @@ use std::collections::BTreeMap;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
-const INSTRUCTIONS: &str = "SlugRails architectural guardrails, anti-drift gates, and slugplan authoring tools.";
+const INSTRUCTIONS: &str = "SlugRails: Architectural Rail Builder. Use slugplan_probe to inspect projects, interview users in chat to discover domain terms, and scaffold contracts with tests/slugrails.rs harnesses for native cargo test enforcement.";
 
 #[derive(Clone)]
 pub struct SlugRailsMcpServer {

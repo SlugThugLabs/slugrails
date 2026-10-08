@@ -9,7 +9,7 @@ fn test_plan_architecture_default_layered() {
     let dir = tempdir().expect("failed to create temp dir");
     let root = dir.path();
 
-    let output = plan_architecture(root, None, None).expect("plan_architecture should succeed");
+    let output = plan_architecture(root, None, None, None, None).expect("plan_architecture should succeed");
     assert!(output.contains("SlugPlan successfully converged architectural intent"));
 
     // 1. Verify .planning/ARCHITECTURE.md
@@ -30,8 +30,8 @@ fn test_plan_architecture_default_layered() {
     let intent_raw = fs::read_to_string(&intent_file).expect("read intent.json");
     let intent_json: Value = serde_json::from_str(&intent_raw).expect("parse intent.json");
 
-    assert_eq!(intent_json["style"], "layered");
-    assert_eq!(intent_json["intent"], "General production codebase");
+    assert_eq!(intent_json["style"], "discovered");
+    assert_eq!(intent_json["intent"], "Define system boundaries and human intent here.");
     assert_eq!(intent_json["created_by"], "slugplan");
     let layers = intent_json["layers"]
         .as_array()
@@ -42,7 +42,7 @@ fn test_plan_architecture_default_layered() {
     let harness_file = root.join("tests").join("slugrails.rs");
     assert!(harness_file.exists(), "tests/slugrails.rs must exist");
     let harness_content = fs::read_to_string(&harness_file).expect("read slugrails.rs");
-    assert!(harness_content.contains("test_slugrails_architecture_invariants"));
+    assert!(harness_content.contains("test_architecture_contract_enforced"));
 }
 
 #[test]
@@ -51,7 +51,7 @@ fn test_plan_architecture_hexagonal_style_and_custom_intent() {
     let root = dir.path();
 
     let custom_intent = "Financial ledger core using hexagonal boundaries";
-    let output = plan_architecture(root, Some(custom_intent), Some("hexagonal"))
+    let output = plan_architecture(root, Some(custom_intent), Some("hexagonal"), None, None)
         .expect("plan_architecture with hexagonal should succeed");
     assert!(output.contains("SlugPlan successfully converged architectural intent"));
 
@@ -92,7 +92,7 @@ fn test_plan_architecture_cli_style_with_rust_cargo_toml() {
     .expect("write Cargo.toml");
 
     let custom_intent = "Cross-platform terminal runner";
-    plan_architecture(root, Some(custom_intent), Some("cli"))
+    plan_architecture(root, Some(custom_intent), Some("cli"), None, None)
         .expect("plan_architecture with cli style should succeed");
 
     // 1. Verify ARCHITECTURE.md contains CLI layers and Rust guards
@@ -113,6 +113,30 @@ fn test_plan_architecture_cli_style_with_rust_cargo_toml() {
         .expect("enforced_guards array");
     assert!(enforce.iter().any(|g| g == "languages/rust/unsafe-policy"));
     assert!(enforce.iter().any(|g| g == "languages/rust/no-unwrap"));
+}
+
+#[test]
+fn test_plan_architecture_custom_agreed_terms_from_chat() {
+    let dir = tempdir().expect("failed to create temp dir");
+    let root = dir.path();
+
+    // Simulate custom terms agreed between developer and AI in chat
+    let agreed_layers = vec!["core_models".to_string(), "query_engine".to_string(), "rest_api".to_string()];
+    let agreed_rules = vec!["complexity/source-limits".to_string(), "hygiene/no-secrets".to_string()];
+
+    plan_architecture(
+        root,
+        Some("Custom e-commerce search service"),
+        None,
+        Some(agreed_layers),
+        Some(agreed_rules),
+    )
+    .expect("custom agreed plan should succeed");
+
+    let arch_file = root.join(".planning").join("ARCHITECTURE.md");
+    let arch_content = fs::read_to_string(&arch_file).expect("read ARCHITECTURE.md");
+    assert!(arch_content.contains("layers = [\"core_models\", \"query_engine\", \"rest_api\"]"));
+    assert!(arch_content.contains("enforce = [\"complexity/source-limits\", \"hygiene/no-secrets\"]"));
 }
 
 #[test]

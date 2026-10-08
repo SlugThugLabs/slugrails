@@ -75,6 +75,12 @@ pub struct ProbeArchitectureRequest {
     pub auto_scaffold: bool,
     /// Architectural style hint ('layered', 'hexagonal', 'cli')
     pub style: Option<String>,
+    /// Optional agreed custom layers from chat interview
+    #[serde(default)]
+    pub custom_layers: Option<Vec<String>>,
+    /// Optional agreed custom rules from chat interview
+    #[serde(default)]
+    pub custom_rules: Option<Vec<String>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
