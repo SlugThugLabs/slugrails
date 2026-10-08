@@ -30,6 +30,7 @@ pub fn run_check(args: impl Iterator<Item = String>) -> ExitCode {
     let catalog = match ensure_test_library_seeded() {
         Ok(c) => c,
         Err(e) => {
+            tracing::error!(error = %e, "Failed to seed test library");
             eprintln!("[CODEGUARD-ERROR] Failed to seed test library: {e}");
             return ExitCode::from(2);
         }
@@ -38,6 +39,7 @@ pub fn run_check(args: impl Iterator<Item = String>) -> ExitCode {
     let contract = match load_architecture(&root) {
         Ok(c) => c,
         Err(e) => {
+            tracing::error!(error = %e, path = %root.display(), "Could not load ARCHITECTURE.md");
             eprintln!("[CODEGUARD-ERROR] Could not load ARCHITECTURE.md: {e}");
             return ExitCode::from(2);
         }

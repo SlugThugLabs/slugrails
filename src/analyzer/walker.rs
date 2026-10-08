@@ -62,6 +62,11 @@ pub fn collect_source_files(project_root: &Path) -> Result<Vec<PathBuf>> {
             }
             if let Ok(meta) = entry.metadata() {
                 if meta.len() > MAX_FILE_SIZE_BYTES {
+                    tracing::warn!(
+                        path = %path.display(),
+                        size = meta.len(),
+                        "Skipping file exceeding 2MB memory defense limit"
+                    );
                     continue;
                 }
             }
@@ -79,6 +84,11 @@ pub fn collect_source_files(project_root: &Path) -> Result<Vec<PathBuf>> {
 /// Returns [`CodeGuardsError::Io`] if git commands fail to execute or\
 /// if the project directory cannot be traversed as a fallback.
 pub fn collect_git_diff_files(project_root: &Path) -> Result<Vec<PathBuf>> {
+    if which::which("git").is_err() {
+        tracing::debug!("'git' CLI not found on PATH; falling back to full repository scan");
+        return collect_source_files(project_root);
+    }
+
     let output = std::process::Command::new("git")
         .arg("status")
         .arg("--porcelain")
@@ -86,6 +96,7 @@ pub fn collect_git_diff_files(project_root: &Path) -> Result<Vec<PathBuf>> {
         .output();
 
     let Ok(output) = output else {
+        tracing::debug!("'git status' command failed; falling back to full repository scan");
         return collect_source_files(project_root);
     };
 

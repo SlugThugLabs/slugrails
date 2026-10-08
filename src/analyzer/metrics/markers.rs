@@ -49,23 +49,16 @@ static RE_TODO: LazyRegex = LazyLock::new(|| Regex::new(r"\btodo!\s*\(").ok());
 static RE_UNIMPLEMENTED: LazyRegex = LazyLock::new(|| Regex::new(r"\bunimplemented!\s*\(").ok());
 static RE_UNREACHABLE: LazyRegex = LazyLock::new(|| Regex::new(r"\bunreachable!\s*\(").ok());
 static RE_PANIC_STR: LazyRegex = LazyLock::new(|| Regex::new(r#"panic!\s*\(\s*"([^"]*)""#).ok());
-static RE_NOT_IMPLEMENTED: LazyRegex =
-    LazyLock::new(|| Regex::new(r"\braise\s+NotImplementedError\b").ok());
-static RE_PLACEHOLDER_WORDS: LazyRegex = LazyLock::new(|| {
-    Regex::new(r"(?i)(not implemented|todo|unimplemented|stub|placeholder|replace me)").ok()
-});
+static RE_NOT_IMPLEMENTED: LazyRegex = LazyLock::new(|| Regex::new(r"\braise\s+NotImplementedError\b").ok());
+static RE_PLACEHOLDER_WORDS: LazyRegex = LazyLock::new(|| Regex::new(r"(?i)(not implemented|todo|unimplemented|stub|placeholder|replace me)").ok());
 static RE_LET_UNDERSCORE: LazyRegex = LazyLock::new(|| Regex::new(r"\blet\s+_\s*=").ok());
 static RE_EMPTY_ARM: LazyRegex = LazyLock::new(|| Regex::new(r"_\s*=>\s*\{\s*\}").ok());
-static RE_EMPTY_ERR_ARM: LazyRegex =
-    LazyLock::new(|| Regex::new(r"Err\(\s*_\s*\)\s*=>\s*\{\s*\}").ok());
+static RE_EMPTY_ERR_ARM: LazyRegex = LazyLock::new(|| Regex::new(r"Err\(\s*_\s*\)\s*=>\s*\{\s*\}").ok());
 static RE_IF_LET_ERR: LazyRegex = LazyLock::new(|| Regex::new(r"\bif\s+let\s+Err\(\s*_\s*\)").ok());
 static RE_BARE_EXCEPT: LazyRegex = LazyLock::new(|| Regex::new(r"except\s*:\s*pass").ok());
-static RE_TYPED_EXCEPT: LazyRegex =
-    LazyLock::new(|| Regex::new(r"except\s+[A-Za-z_][A-Za-z0-9_.]*\s*:\s*pass").ok());
-static RE_EMPTY_CATCH: LazyRegex =
-    LazyLock::new(|| Regex::new(r"catch\s*(?:\([^)]*\))?\s*\{\s*\}").ok());
-static RE_EMPTY_PROMISE_CATCH: LazyRegex =
-    LazyLock::new(|| Regex::new(r"\.catch\(\s*\(\s*\)\s*=>\s*\{\s*\}\s*\)").ok());
+static RE_TYPED_EXCEPT: LazyRegex = LazyLock::new(|| Regex::new(r"except\s+[A-Za-z_][A-Za-z0-9_.]*\s*:\s*pass").ok());
+static RE_EMPTY_CATCH: LazyRegex = LazyLock::new(|| Regex::new(r"catch\s*(?:\([^)]*\))?\s*\{\s*\}").ok());
+static RE_EMPTY_PROMISE_CATCH: LazyRegex = LazyLock::new(|| Regex::new(r"\.catch\(\s*\(\s*\)\s*=>\s*\{\s*\}\s*\)").ok());
 
 // ── find_stub_markers ────────────────────────────────────────────────────
 

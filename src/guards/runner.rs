@@ -43,6 +43,13 @@ pub fn run_guard_checks(
     let duration_ms = u64::try_from(start.elapsed().as_millis()).unwrap_or(u64::MAX);
     let (passed_tests, unevaluated_tests) = classify_rules(contract, catalog);
 
+    tracing::debug!(
+        files_checked = files.len(),
+        violations_found = violations.len(),
+        duration_ms,
+        "Completed architecture guard scan"
+    );
+
     Ok(GuardReport {
         project_root: project_root.to_path_buf(),
         total_files_checked: files.len(),

@@ -17,10 +17,14 @@ pub async fn run_serve(_args: impl Iterator<Item = String>) -> ExitCode {
     };
 
     let handler = CodeGuardsMcpServer::new(catalog);
+    tracing::info!("Starting CodeGuards stdio MCP server");
 
     match handler.serve(stdio()).await {
         Ok(service) => match service.waiting().await {
-            Ok(_) => ExitCode::SUCCESS,
+            Ok(_) => {
+                tracing::info!("CodeGuards stdio MCP server terminated gracefully");
+                ExitCode::SUCCESS
+            }
             Err(e) => {
                 eprintln!("[CODEGUARD-ERROR] Service error: {e}");
                 ExitCode::from(1)

@@ -7,6 +7,8 @@ use std::process::ExitCode;
 
 #[tokio::main]
 async fn main() -> ExitCode {
+    init_tracing();
+
     let mut args = std::env::args().skip(1);
     let command = args.next().unwrap_or_else(|| "check".to_string());
 
@@ -58,4 +60,14 @@ fn print_help() {
            codeguards-mcp serve [--port <port>]         Start MCP server (stdio default)",
         env!("CARGO_PKG_VERSION")
     );
+}
+
+fn init_tracing() {
+    let filter = tracing_subscriber::EnvFilter::try_from_default_env()
+        .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("warn"));
+
+    let _ = tracing_subscriber::fmt()
+        .with_env_filter(filter)
+        .with_writer(std::io::stderr)
+        .try_init();
 }
