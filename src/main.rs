@@ -1,5 +1,7 @@
 //! CodeGuards CLI entrypoint and subcommand dispatch.
 
+#![forbid(unsafe_code)]
+
 mod cli;
 
 use cli::{run_check, run_exception, run_serve, run_validate};

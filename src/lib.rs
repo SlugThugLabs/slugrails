@@ -1,5 +1,7 @@
 //! `CodeGuards` library root.
 
+#![forbid(unsafe_code)]
+
 pub mod analyzer;
 pub mod contract;
 pub mod error;
