@@ -1,0 +1,88 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build-release:
+    name: Build (${{ matrix.target }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: x86_64-pc-windows-msvc
+            os: windows-latest
+            bin: codeguards-mcp.exe
+            archive: zip
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-latest
+            bin: codeguards-mcp
+            archive: tar.gz
+          - target: x86_64-apple-darwin
+            os: macos-13
+            bin: codeguards-mcp
+            archive: tar.gz
+          - target: aarch64-apple-darwin
+            os: macos-latest
+            bin: codeguards-mcp
+            archive: tar.gz
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Cache cargo dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.target }}
+
+      - name: Build release binary
+        run: cargo build --release --target ${{ matrix.target }}
+
+      - name: Package archive (Windows)
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        run: |
+          $tag = if ($env:GITHUB_REF_NAME) { $env:GITHUB_REF_NAME } else { "latest" }
+          $archiveName = "codeguards-mcp-${tag}-${{ matrix.target }}.zip"
+          Compress-Archive -Path "target/${{ matrix.target }}/release/${{ matrix.bin }}" -DestinationPath $archiveName
+          $hash = (Get-FileHash -Path $archiveName -Algorithm SHA256).Hash.ToLower()
+          "$hash  $archiveName" | Out-File -FilePath "${archiveName}.sha256" -Encoding ascii
+          echo "ARCHIVE=$archiveName" >> $env:GITHUB_ENV
+          echo "CHECKSUM=${archiveName}.sha256" >> $env:GITHUB_ENV
+
+      - name: Package archive (Unix)
+        if: matrix.os != 'windows-latest'
+        run: |
+          TAG="${GITHUB_REF_NAME:-latest}"
+          ARCHIVE_NAME="codeguards-mcp-${TAG}-${{ matrix.target }}.tar.gz"
+          tar -czvf "$ARCHIVE_NAME" -C "target/${{ matrix.target }}/release" "${{ matrix.bin }}"
+          shasum -a 256 "$ARCHIVE_NAME" > "${ARCHIVE_NAME}.sha256"
+          echo "ARCHIVE=$ARCHIVE_NAME" >> "$GITHUB_ENV"
+          echo "CHECKSUM=${ARCHIVE_NAME}.sha256" >> "$GITHUB_ENV"
+
+      - name: Upload artifact to GitHub Release
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: |
+            ${{ env.ARCHIVE }}
+            ${{ env.CHECKSUM }}
+          draft: false
+          prerelease: false
+          generate_release_notes: true
