@@ -2,7 +2,7 @@ use codeguards_mcp::contract::{
     ArchitectureContract, load_architecture, parse_frontmatter, validate_architecture,
     validate_contract,
 };
-use codeguards_mcp::error::CodeGuardsError;
+use codeguards_mcp::error::{CodeGuardsError, ContractError};
 use codeguards_mcp::library::catalog::GuardCatalog;
 use std::fs;
 use tempfile::tempdir;
@@ -47,7 +47,10 @@ fn frontmatter_without_fences_returns_default_contract() {
 fn frontmatter_unclosed_fence_is_an_error() {
     let content = "+++\nmodules = [\"x\"]\n# never closed\n";
     let err = parse_frontmatter(content).expect_err("unclosed fence must fail");
-    assert!(matches!(err, CodeGuardsError::Contract(_)));
+    assert!(matches!(
+        err,
+        CodeGuardsError::Contract(ContractError::UnclosedFrontmatter)
+    ));
 }
 
 #[test]
@@ -67,7 +70,10 @@ fn frontmatter_wrong_field_types_is_an_error() {
 fn load_architecture_missing_file_errors() {
     let dir = tempdir().expect("tempdir");
     let err = load_architecture(dir.path()).expect_err("no .planning dir");
-    assert!(matches!(err, CodeGuardsError::Contract(_)));
+    assert!(matches!(
+        err,
+        CodeGuardsError::Contract(ContractError::MissingContract { .. })
+    ));
 }
 
 #[test]

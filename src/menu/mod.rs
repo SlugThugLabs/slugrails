@@ -4,6 +4,7 @@
 mod render;
 mod steps;
 
+use crate::error::MenuError;
 use crate::style::Style;
 use std::io::{BufRead as _, Write as _};
 
@@ -12,7 +13,7 @@ pub use steps::{confirm_serve, connect_step, guard_catalog_step, install_step, o
 
 /// Reads one menu choice from stdin. Unparseable input maps to `0` so the
 /// caller's `_` arm reports it as invalid rather than panicking.
-fn read_choice() -> Result<Option<usize>, Box<dyn std::error::Error>> {
+fn read_choice() -> Result<Option<usize>, MenuError> {
     let mut line = String::new();
     let bytes_read = std::io::stdin().lock().read_line(&mut line)?;
     if bytes_read == 0 {
@@ -27,9 +28,9 @@ fn read_choice() -> Result<Option<usize>, Box<dyn std::error::Error>> {
 ///
 /// # Errors
 ///
-/// Returns an error if the menu prompt cannot be flushed to stdout or if
+/// Returns a [`MenuError`] if the menu prompt cannot be flushed to stdout or if
 /// reading the user's choice from stdin fails.
-pub fn run_menu() -> Result<bool, Box<dyn std::error::Error>> {
+pub fn run_menu() -> Result<bool, MenuError> {
     loop {
         let style = Style::stdout();
         print!("{}", render_menu(style));

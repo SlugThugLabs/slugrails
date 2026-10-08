@@ -1,5 +1,6 @@
 //! Execution steps for the interactive setup menu options.
 
+use crate::error::MenuError;
 use crate::util::{get_slugthug_home, get_tests_dir};
 use std::io::{BufRead as _, Write as _};
 use std::path::PathBuf;
@@ -38,7 +39,7 @@ pub fn install_step() {
 
 pub fn connect_step<F>(mut read_choice_fn: F)
 where
-    F: FnMut() -> Result<Option<usize>, Box<dyn std::error::Error>>,
+    F: FnMut() -> Result<Option<usize>, MenuError>,
 {
     println!();
     println!("Supported AI agent CLIs:");
@@ -144,7 +145,7 @@ pub fn guard_catalog_step() {
     }
 }
 
-pub fn confirm_serve() -> Result<bool, Box<dyn std::error::Error>> {
+pub fn confirm_serve() -> Result<bool, MenuError> {
     println!();
     println!("The MCP server (`serve`) is normally started automatically by your AI agent.");
     print!("Start the server in this terminal now? [y/N]: ");

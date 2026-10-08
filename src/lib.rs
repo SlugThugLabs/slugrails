@@ -19,7 +19,7 @@ pub use contract::{
     ArchitectureContract, ValidationResult, load_architecture, parse_frontmatter,
     validate_architecture, validate_contract,
 };
-pub use error::{CodeGuardsError, Result};
+pub use error::{CodeGuardsError, ContractError, MenuError, Result};
 pub use guards::run_guard_checks;
 pub use library::catalog::GuardCatalog;
 pub use menu::run_menu;

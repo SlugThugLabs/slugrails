@@ -1,6 +1,6 @@
 //! Architecture contract parser and validator for .planning/ARCHITECTURE.md.
 
-use crate::error::{CodeGuardsError, Result};
+use crate::error::{CodeGuardsError, ContractError, Result};
 use crate::library::catalog::GuardCatalog;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -60,11 +60,9 @@ pub fn parse_frontmatter(content: &str) -> Result<(ArchitectureContract, &str)> 
     }
 
     let rest = &trimmed[3..];
-    let end_idx = rest.find("+++").ok_or_else(|| {
-        CodeGuardsError::Contract(
-            "Unclosed '+++' TOML frontmatter fence in ARCHITECTURE.md".to_string(),
-        )
-    })?;
+    let end_idx = rest
+        .find("+++")
+        .ok_or_else(|| CodeGuardsError::Contract(ContractError::UnclosedFrontmatter))?;
 
     let toml_str = &rest[..end_idx];
     let body = &rest[end_idx + 3..];
@@ -128,10 +126,11 @@ pub fn validate_contract(
 pub fn load_architecture(project_root: &Path) -> Result<ArchitectureContract> {
     let arch_file = project_root.join(".planning").join("ARCHITECTURE.md");
     if !arch_file.exists() {
-        return Err(CodeGuardsError::Contract(format!(
-            "Missing architecture contract at {}. Hint: Run 'codeguards-mcp init' to automatically scaffold one for this project.",
-            arch_file.display()
-        )));
+        return Err(CodeGuardsError::Contract(ContractError::MissingContract {
+            path: arch_file,
+            hint: "Run 'codeguards-mcp init' to automatically scaffold one for this project."
+                .to_string(),
+        }));
     }
 
     let content = fs::read_to_string(&arch_file).map_err(|e| CodeGuardsError::Io {

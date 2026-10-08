@@ -3,6 +3,44 @@
 use std::path::PathBuf;
 use thiserror::Error;
 
+/// Granular architecture contract errors.
+#[derive(Debug, Error)]
+pub enum ContractError {
+    #[error("Missing architecture contract at {path}. Hint: {hint}")]
+    MissingContract { path: PathBuf, hint: String },
+
+    #[error("Unclosed '+++' TOML frontmatter fence in ARCHITECTURE.md")]
+    UnclosedFrontmatter,
+
+    #[error("Contract error: {0}")]
+    Custom(String),
+}
+
+impl From<String> for ContractError {
+    fn from(s: String) -> Self {
+        Self::Custom(s)
+    }
+}
+
+impl From<&str> for ContractError {
+    fn from(s: &str) -> Self {
+        Self::Custom(s.to_string())
+    }
+}
+
+/// Granular interactive menu errors.
+#[derive(Debug, Error)]
+pub enum MenuError {
+    #[error("Terminal I/O error: {0}")]
+    Io(#[from] std::io::Error),
+
+    #[error("Invalid menu choice: {0}")]
+    InvalidChoice(usize),
+
+    #[error("Subprocess execution failed for '{command}': {reason}")]
+    SubprocessFailed { command: String, reason: String },
+}
+
 /// Core error type for `CodeGuards` operations.
 #[derive(Debug, Error)]
 pub enum CodeGuardsError {
@@ -29,7 +67,10 @@ pub enum CodeGuardsError {
     },
 
     #[error("Architecture contract error: {0}")]
-    Contract(String),
+    Contract(#[from] ContractError),
+
+    #[error("Interactive menu error: {0}")]
+    Menu(#[from] MenuError),
 
     #[error("Guard test schema validation error for {test_id}: {reason}")]
     InvalidGuardTest { test_id: String, reason: String },
