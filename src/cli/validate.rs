@@ -9,9 +9,9 @@ use std::process::ExitCode;
 pub fn run_validate(mut args: impl Iterator<Item = String>) -> ExitCode {
     let mut root = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
     while let Some(arg) = args.next() {
-        if arg == "--root"
-            && let Some(r) = args.next()
-        {
+        if let Some(r) = arg.strip_prefix("--root=").or_else(|| arg.strip_prefix("-r=")) {
+            root = PathBuf::from(r);
+        } else if (arg == "--root" || arg == "-r") && let Some(r) = args.next() {
             root = PathBuf::from(r);
         }
     }

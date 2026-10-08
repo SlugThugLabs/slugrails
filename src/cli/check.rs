@@ -14,15 +14,14 @@ pub fn run_check(mut args: impl Iterator<Item = String>) -> ExitCode {
     let mut root = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
 
     while let Some(arg) = args.next() {
-        match arg.as_str() {
-            "--all" => check_all = true,
-            "--diff" => check_all = false,
-            "--root" => {
-                if let Some(r) = args.next() {
-                    root = PathBuf::from(r);
-                }
-            }
-            _ => {}
+        if let Some(r) = arg.strip_prefix("--root=").or_else(|| arg.strip_prefix("-r=")) {
+            root = PathBuf::from(r);
+        } else if (arg == "--root" || arg == "-r") && let Some(r) = args.next() {
+            root = PathBuf::from(r);
+        } else if arg == "--all" || arg == "-a" {
+            check_all = true;
+        } else if arg == "--diff" || arg == "-d" {
+            check_all = false;
         }
     }
 
@@ -88,20 +87,10 @@ pub fn run_check(mut args: impl Iterator<Item = String>) -> ExitCode {
         for v in &report.violations {
             let line_str = v.line.map_or(String::new(), |l| format!(":{l}"));
             println!("\n❌ [{}] {}{}", v.guard_id, v.file.display(), line_str);
-            println!("   Message: {}", v.message);
-            if let Some(rule) = &v.rule_reference {
-                println!("   Rule:    {rule}");
-            }
-            if let Some(fix) = &v.fix_suggestion {
-                println!("   Fix:     {fix}");
-            }
+            println!("   Reason:      {}", v.message);
+            println!("   Remediation: {}", v.remediation);
         }
-        println!("\n════════════════════════════════════════════════════════════");
-        println!(" Total Errors: {}", report.error_count());
-        println!(
-            " Run 'codeguards exception add <file> <guard> --reason=\"...\"' if an approved exception is required."
-        );
-        println!("════════════════════════════════════════════════════════════\n");
+        println!("\nTotal violations: {}", report.violations.len());
         ExitCode::from(1)
     }
 }

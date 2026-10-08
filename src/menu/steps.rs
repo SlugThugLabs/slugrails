@@ -68,6 +68,14 @@ where
         running_binary()
     };
 
+    // Pre-flight check: is the CLI on PATH?
+    if which::which(cli).is_err() {
+        println!("\n'{cli}' CLI was not found on your system PATH.");
+        println!("Please install {name} first, or connect manually using:");
+        println!("  {cli} mcp add codeguards -- {} serve\n", exec_path.display());
+        return;
+    }
+
     println!("\nConnecting CodeGuards to {name}...");
 
     // Remove existing
@@ -89,13 +97,8 @@ where
             println!("Connected successfully! Verify with: {cli} mcp list");
         }
         _ => {
-            println!(
-                "Could not invoke '{cli}' CLI. Make sure '{cli}' is installed and on your PATH."
-            );
-            println!(
-                "Manual command: {cli} mcp add codeguards -- {} serve",
-                exec_path.display()
-            );
+            println!("Could not connect automatically.");
+            println!("Manual command: {cli} mcp add codeguards -- {} serve", exec_path.display());
         }
     }
 }

@@ -4,7 +4,7 @@
 
 mod cli;
 
-use cli::{run_check, run_exception, run_serve, run_validate};
+use cli::{run_check, run_exception, run_init, run_serve, run_validate};
 use std::process::ExitCode;
 
 #[tokio::main]
@@ -14,10 +14,15 @@ async fn main() -> ExitCode {
 
     match command.as_str() {
         "menu" => run_menu_cli().await,
+        "init" => run_init(args),
         "check" => run_check(args),
         "exception" => run_exception(args),
         "validate" => run_validate(args),
         "serve" => run_serve(args).await,
+        "--version" | "-v" | "-V" => {
+            println!("codeguards-mcp {} (Rust 2024 Edition)", env!("CARGO_PKG_VERSION"));
+            ExitCode::SUCCESS
+        }
         "--help" | "-h" | "help" => {
             print_help();
             ExitCode::SUCCESS
@@ -42,15 +47,17 @@ async fn run_menu_cli() -> ExitCode {
 
 fn print_help() {
     println!(
-        "CodeGuards MCP (Rust 2024)\n\
+        "CodeGuards MCP v{} (Rust 2024)\n\
          Continuous Code Governance & Architectural Enforcement\n\n\
          USAGE:\n\
            codeguards-mcp menu                          Launch interactive setup & management menu\n\
+           codeguards-mcp init [--root <path>]          Scaffold starter ARCHITECTURE.md contract\n\
            codeguards-mcp check [--all] [--root <path>]  Run guard checks on modified files (or all)\n\
            codeguards-mcp validate [--root <path>]      Validate .planning/ARCHITECTURE.md against tests\n\
            codeguards-mcp exception add <file> <guard> --reason=\"...\"\n\
            codeguards-mcp exception list\n\
            codeguards-mcp exception revoke <token>\n\
-           codeguards-mcp serve [--port <port>]         Start MCP server (stdio default)"
+           codeguards-mcp serve [--port <port>]         Start MCP server (stdio default)",
+        env!("CARGO_PKG_VERSION")
     );
 }

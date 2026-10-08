@@ -1,0 +1,120 @@
+//! Scaffolds a starter .planning/ARCHITECTURE.md contract for a project.
+
+use crate::error::{CodeGuardsError, Result};
+use std::fs;
+use std::path::Path;
+
+/// Initializes a CodeGuards architecture contract for the given project root.
+///
+/// # Errors
+///
+/// Returns an error if the contract file cannot be written.
+pub fn run_init<I: Iterator<Item = String>>(mut args: I) -> std::process::ExitCode {
+    let mut root_dir = ".".to_string();
+    while let Some(arg) = args.next() {
+        if let Some(val) = arg.strip_prefix("--root=") {
+            root_dir = val.to_string();
+        } else if (arg == "--root" || arg == "-r")
+            && let Some(val) = args.next()
+        {
+            root_dir = val;
+        }
+    }
+
+    let root_path = Path::new(&root_dir);
+    match initialize_project(root_path) {
+        Ok(msg) => {
+            println!("{msg}");
+            std::process::ExitCode::SUCCESS
+        }
+        Err(e) => {
+            eprintln!("Initialization error: {e}");
+            std::process::ExitCode::from(1)
+        }
+    }
+}
+
+pub fn initialize_project(project_root: &Path) -> Result<String> {
+    let plan_dir = project_root.join(".planning");
+    let arch_file = plan_dir.join("ARCHITECTURE.md");
+
+    if arch_file.exists() {
+        return Ok(format!(
+            "Architecture contract already exists at {}",
+            arch_file.display()
+        ));
+    }
+
+    fs::create_dir_all(&plan_dir).map_err(|e| CodeGuardsError::Io {
+        path: plan_dir.clone(),
+        source: e,
+    })?;
+
+    let modules = discover_modules(project_root);
+    let is_rust = project_root.join("Cargo.toml").exists();
+
+    let mut enforce_rules = vec![
+        "\"complexity/source-limits\"".to_string(),
+        "\"quality/no-stubs\"".to_string(),
+        "\"hygiene/no-secrets\"".to_string(),
+        "\"hygiene/no-debug-prints\"".to_string(),
+    ];
+    if is_rust {
+        enforce_rules.push("\"languages/rust/no-unwrap\"".to_string());
+    }
+
+    let mod_strings = modules
+        .iter()
+        .map(|m| format!("\"{m}\""))
+        .collect::<Vec<_>>()
+        .join(", ");
+    let enforce_strings = enforce_rules.join(", ");
+
+    let content = format!(
+        "+++\n\
+         modules = [{mod_strings}]\n\
+         layers = [\"domain\", \"application\", \"infrastructure\"]\n\
+         enforce = [{enforce_strings}]\n\n\
+         [allowed_dependencies]\n\
+         # Declare allowed module dependency flow here\n\
+         +++\n\n\
+         # Architecture Contract\n\n\
+         Define your architecture, layers, and boundaries here.\n\
+         CodeGuards will continuously verify that code matches this contract.\n"
+    );
+
+    fs::write(&arch_file, content).map_err(|e| CodeGuardsError::Io {
+        path: arch_file.clone(),
+        source: e,
+    })?;
+
+    // Seed test library in ~/.slugthug/codeguards/tests/
+    let _ = crate::library::ensure_test_library_seeded();
+
+    Ok(format!(
+        "Initialized architecture contract at {}.\n\
+         Run 'codeguards-mcp check' to verify your codebase against it.",
+        arch_file.display()
+    ))
+}
+
+fn discover_modules(root: &Path) -> Vec<String> {
+    let src_dir = root.join("src");
+    let target = if src_dir.is_dir() { &src_dir } else { root };
+    let mut modules = Vec::new();
+
+    if let Ok(entries) = fs::read_dir(target) {
+        for entry in entries.flatten() {
+            let path = entry.path();
+            let name = path.file_stem().and_then(|s| s.to_str()).unwrap_or("");
+            if name.is_empty() || name == "lib" || name == "main" || name.starts_with('.') {
+                continue;
+            }
+            if path.is_dir() || path.extension().is_some_and(|ext| ext == "rs" || ext == "py" || ext == "ts") {
+                modules.push(name.to_string());
+            }
+        }
+    }
+    modules.sort();
+    modules
+}

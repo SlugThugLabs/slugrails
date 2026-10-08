@@ -89,7 +89,7 @@ pub fn load_architecture(project_root: &Path) -> Result<ArchitectureContract> {
     let arch_file = project_root.join(".planning").join("ARCHITECTURE.md");
     if !arch_file.exists() {
         return Err(CodeGuardsError::Contract(format!(
-            "Missing architecture contract at {}",
+            "Missing architecture contract at {}. Hint: Run 'codeguards-mcp init' to automatically scaffold one for this project.",
             arch_file.display()
         )));
     }

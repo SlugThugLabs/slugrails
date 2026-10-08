@@ -4,6 +4,32 @@ use crate::error::{CodeGuardsError, Result};
 use ignore::WalkBuilder;
 use std::path::{Path, PathBuf};
 
+const DEFAULT_IGNORED_DIRS: &[&str] = &[
+    ".planning",
+    ".git",
+    "target",
+    "node_modules",
+    "legacy-python",
+    "sample_code",
+    ".venv",
+    "venv",
+    "env",
+    "dist",
+    "build",
+    ".next",
+    ".nuxt",
+    ".cache",
+    "__pycache__",
+];
+
+fn is_path_ignored(path: &Path) -> bool {
+    path.components().any(|c| {
+        c.as_os_str()
+            .to_str()
+            .is_some_and(|s| DEFAULT_IGNORED_DIRS.contains(&s))
+    })
+}
+
 /// Collects all relevant source files in the project root.
 ///
 /// # Errors
@@ -28,24 +54,9 @@ pub fn collect_source_files(project_root: &Path) -> Result<Vec<PathBuf>> {
             && let Some(ext) = path.extension().and_then(|e| e.to_str())
             && matches!(ext, "rs" | "py" | "ts" | "js" | "go" | "toml")
         {
-            // Ignore planning and build/temp directories (platform-agnostic)
-            let is_ignored = path.components().any(|c| {
-                matches!(
-                    c.as_os_str().to_str(),
-                    Some(
-                        ".planning"
-                            | ".git"
-                            | "target"
-                            | "node_modules"
-                            | "legacy-python"
-                            | "sample_code"
-                    )
-                )
-            });
-            if is_ignored {
+            if is_path_ignored(path) {
                 continue;
             }
-
             files.push(path.to_path_buf());
         }
     }
@@ -78,6 +89,7 @@ pub fn collect_git_diff_files(project_root: &Path) -> Result<Vec<PathBuf>> {
             let rel_path = line[3..].trim();
             let full_path = project_root.join(rel_path);
             if full_path.is_file()
+                && !is_path_ignored(&full_path)
                 && let Some(ext) = full_path.extension().and_then(|e| e.to_str())
                 && matches!(ext, "rs" | "py" | "ts" | "js" | "go" | "toml")
             {
@@ -87,7 +99,6 @@ pub fn collect_git_diff_files(project_root: &Path) -> Result<Vec<PathBuf>> {
     }
 
     if files.is_empty() {
-        // If git diff returned nothing or not in git repo, fall back to all source files
         collect_source_files(project_root)
     } else {
         Ok(files)

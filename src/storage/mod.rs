@@ -17,7 +17,7 @@ pub struct ProjectExceptions {
 }
 
 impl ProjectExceptions {
-    /// Loads the exceptions registry for a given project, or empty if not present.
+    /// Loads the exceptions registry for a given project, recovering if corrupt.
     ///
     /// # Errors
     ///
@@ -39,11 +39,22 @@ impl ProjectExceptions {
             source: e,
         })?;
 
-        let registry = serde_json::from_str::<Self>(&content)?;
-        Ok(registry)
+        match serde_json::from_str::<Self>(&content) {
+            Ok(registry) => Ok(registry),
+            Err(_) => {
+                // Auto-recover from corrupt file: backup and start clean
+                let backup_name = format!("exceptions.json.corrupt.{}", Utc::now().timestamp());
+                let _ = fs::rename(&file_path, storage_dir.join(backup_name));
+                Ok(Self {
+                    project_path: project_path.to_path_buf(),
+                    version: "1.0.0".to_string(),
+                    exceptions: Vec::new(),
+                })
+            }
+        }
     }
 
-    /// Saves the exceptions registry to ~/.slugthug/codeguards/projects/<id>/exceptions.json.
+    /// Atomically saves the exceptions registry to disk using a temporary file rename.
     ///
     /// # Errors
     ///
@@ -56,8 +67,23 @@ impl ProjectExceptions {
         })?;
 
         let file_path = storage_dir.join("exceptions.json");
+        let tmp_path = storage_dir.join(format!(
+            "exceptions.json.tmp.{}.{}",
+            std::process::id(),
+            Utc::now().timestamp_nanos_opt().unwrap_or(0)
+        ));
+
         let content = serde_json::to_string_pretty(self)?;
-        fs::write(&file_path, content).map_err(|e| CodeGuardsError::Io {
+        fs::write(&tmp_path, content).map_err(|e| CodeGuardsError::Io {
+            path: tmp_path.clone(),
+            source: e,
+        })?;
+
+        // On Windows and Unix, replace file atomically
+        #[cfg(windows)]
+        let _ = fs::remove_file(&file_path);
+
+        fs::rename(&tmp_path, &file_path).map_err(|e| CodeGuardsError::Io {
             path: file_path.clone(),
             source: e,
         })?;
