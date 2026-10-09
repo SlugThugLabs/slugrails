@@ -35,6 +35,26 @@ impl GuardCheck for NoSecretsCheck {
     }
 }
 
+/// Calculates Shannon entropy of a candidate string literal to detect high-entropy keys/tokens.
+fn is_high_entropy_secret(s: &str) -> bool {
+    if s.len() < 24 || s.contains(' ') || s.starts_with("http://") || s.starts_with("https://") {
+        return false;
+    }
+    let mut freq = [0u32; 256];
+    for &b in s.as_bytes() {
+        freq[b as usize] += 1;
+    }
+    let len = s.len() as f64;
+    let mut entropy = 0.0;
+    for &count in &freq {
+        if count > 0 {
+            let p = count as f64 / len;
+            entropy -= p * p.log2();
+        }
+    }
+    entropy > 4.5
+}
+
 /// Scans source for hardcoded secrets, private keys, and known API token formats.
 pub fn check_no_secrets(ctx: &FileContext<'_>, violations: &mut Vec<Violation>) {
     for lit in extract_literals(ctx.content) {
@@ -44,7 +64,8 @@ pub fn check_no_secrets(ctx: &FileContext<'_>, violations: &mut Vec<Violation>) 
 
         let is_secret = RE_SECRETS
             .iter()
-            .any(|re| re.is_match(&lit.value) || re.is_match(&lit.context));
+            .any(|re| re.is_match(&lit.value) || re.is_match(&lit.context))
+            || is_high_entropy_secret(&lit.value);
         if is_secret && !has_valid_exception(ctx.file, &ctx.guard.id, ctx.content, ctx.exceptions) {
             let char_count = lit.value.chars().count();
             let masked = if char_count > 8 {

@@ -7,13 +7,15 @@ use std::process::ExitCode;
 const HOOK_SCRIPT: &str = r#"#!/usr/bin/env sh
 # SlugRails Pre-Commit Enforcement Gate
 if command -v slugrails >/dev/null 2>&1; then
-    slugrails check
+    exec slugrails check
 elif command -v slugrails-mcp >/dev/null 2>&1; then
-    slugrails-mcp check
+    exec slugrails-mcp check
 elif command -v codeguards-mcp >/dev/null 2>&1; then
-    codeguards-mcp check
+    exec codeguards-mcp check
 else
-    echo "Warning: slugrails not found in PATH; skipping architectural check."
+    echo "Error: slugrails not found in PATH. Architectural rails cannot be verified." >&2
+    echo "Please install slugrails or commit with --no-verify if explicitly authorized." >&2
+    exit 1
 fi
 "#;
 

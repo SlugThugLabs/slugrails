@@ -86,7 +86,7 @@ pub async fn handle_probe(
 
     let mut scaffold_output = None;
     if req.auto_scaffold {
-        match crate::cli::plan_architecture(
+        match crate::contract::plan_architecture(
             &project_root,
             Some(&req.description),
             req.style.as_deref(),
@@ -114,7 +114,7 @@ pub async fn handle_probe(
 
 pub fn handle_scaffold_harness(req: ScaffoldHarnessRequest) -> Result<Json<String>, ErrorData> {
     let project_root = resolve_safe_root(req.project_path.as_deref())?;
-    match crate::cli::scaffold_tests_harness(&project_root) {
+    match crate::contract::scaffold_tests_harness(&project_root) {
         Ok(p) => Ok(Json(format!("Scaffolded test harness: {}", p.display()))),
         Err(e) => Err(ErrorData::internal_error(format!("Failed to scaffold harness: {e}"), None)),
     }
@@ -169,8 +169,8 @@ pub fn handle_add_exception(req: AddExceptionRequest) -> Result<Json<crate::type
             None,
         ));
     }
-    if req.file.contains("..") || req.file.len() > 1024 || req.reason.len() > 2048 {
-        return Err(ErrorData::invalid_params("Invalid file path or reason length", None));
+    if req.file.contains("..") || Path::new(&req.file).is_absolute() || req.file.len() > 1024 || req.reason.len() > 2048 {
+        return Err(ErrorData::invalid_params("Invalid file path (must be relative without '..') or excessive length", None));
     }
     let project_path = resolve_safe_root(Some(&req.project_path))?;
     let mut exceptions = ProjectExceptions::load(&project_path).unwrap_or_default();

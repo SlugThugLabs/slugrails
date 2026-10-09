@@ -1,5 +1,7 @@
 pub mod discovery;
+pub mod scaffold;
 pub use discovery::{ProjectInspection, inspect_project};
+pub use scaffold::{plan_architecture, scaffold_tests_harness};
 
 use crate::error::{CodeGuardsError, ContractError, Result};
 use crate::library::catalog::GuardCatalog;

@@ -96,7 +96,9 @@ pub fn get_or_init_secret_salt() -> [u8; 32] {
     hasher.update(b"slugrails-salt-key-v3");
     let key_bytes = *hasher.finalize().as_bytes();
 
-    let _ = fs::write(&key_path, key_bytes);
+    if let Err(e) = fs::write(&key_path, key_bytes) {
+        tracing::warn!("Failed to persist secret salt to {}: {e}", key_path.display());
+    }
     #[cfg(unix)]
     {
         use std::os::unix::fs::PermissionsExt;
@@ -142,7 +144,7 @@ pub fn get_slugthug_home() -> PathBuf {
     } else if let Ok(profile) = std::env::var("USERPROFILE") {
         PathBuf::from(profile).join(".slugthuglabs")
     } else {
-        PathBuf::from("/root/.slugthuglabs")
+        std::env::temp_dir().join(".slugthuglabs")
     }
 }
 

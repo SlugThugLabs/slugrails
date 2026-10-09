@@ -15,6 +15,30 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::Instant;
 
+/// Currently implemented active guard checks in the runner registry.
+pub const IMPLEMENTED_GUARDS: &[&str] = &[
+    "complexity/source-limits",
+    "complexity/function-limits",
+    "complexity/deep-nesting",
+    "quality/no-stubs",
+    "hygiene/swallowed-errors",
+    "hygiene/no-secrets",
+    "hygiene/no-debug-prints",
+    "languages/rust/no-unwrap",
+    "languages/rust/no-panic",
+    "languages/rust/unsafe-policy",
+    "structural/layer-dependencies",
+];
+
+/// Known catalog guards not yet implemented in the runner registry.
+pub const UNIMPLEMENTED_GUARDS: &[&str] = &[
+    "structural/docs-drift",
+    "structural/manifest-dependencies",
+    "hygiene/no-duplicates",
+    "languages/rust/tracing-instrument",
+    "languages/rust/runtime-leak",
+];
+
 /// Whether `guard_id` has a handler wired into the dispatcher.
 #[must_use]
 pub fn is_implemented(guard_id: &str) -> bool {
@@ -97,6 +121,8 @@ fn evaluate_file_guards(
     catalog: &GuardCatalog,
     exceptions: &ProjectExceptions,
 ) -> Vec<Violation> {
+    let mut violations = Vec::new();
+
     // Guard against reading oversized files (> 2 MiB) or non-regular files (FIFOs, device files).
     let Ok(meta) = fs::metadata(file) else {
         return violations;

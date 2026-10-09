@@ -56,9 +56,13 @@ pub fn tokenize_source(source: &str) -> Vec<StrippedLine<'_>> {
 
             match state {
                 LexState::Normal => {
-                    if (c == '/' && next == Some('/')) || c == '#' {
+                    let is_rust_attr = c == '#' && matches!(next, Some('[') | Some('!'));
+                    if (c == '/' && next == Some('/')) || (c == '#' && !is_rust_attr) {
                         state = LexState::LineComment;
                         break;
+                    } else if is_rust_attr {
+                        has_code = true;
+                        code_buf.push(c);
                     } else if c == '/' && next == Some('*') {
                         state = LexState::BlockComment;
                         i += 2;
