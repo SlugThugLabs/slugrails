@@ -39,16 +39,16 @@
   - Flags missing tests and prompts to use `create_guard_test` for custom project rules.
 
 ## Phase 4: Pure-Rust Scanner & Standalone Check CLI (`slugrails check`)
-- [ ] Implement fast comment/literal stripping state machine (`src/analyzer/tokenizer.rs`).
-- [ ] Implement `Cargo.toml` / manifest dependency scanner (`src/analyzer/manifest.rs`).
-- [ ] Implement Rayon-backed fast parallel file walker with ignore filters (`src/analyzer/walker.rs`).
-- [ ] Implement rule evaluators (`src/guards/runner.rs`).
-- [ ] Implement `slugrails check` CLI subcommand:
+- [x] Implement fast comment/literal stripping state machine (`src/analyzer/tokenizer.rs`).
+- [x] Implement `Cargo.toml` / manifest dependency scanner (`src/analyzer/manifest.rs`).
+- [x] Implement Rayon-backed fast parallel file walker with ignore filters (`src/analyzer/walker.rs`).
+- [x] Implement rule evaluators (`src/guards/runner.rs`).
+- [x] Implement `slugrails check` CLI subcommand:
   - Supports `--diff` (fast-path staged/unstaged check <5ms) and `--all` (full repo scan).
   - Validates user-authorized exception tokens against `exceptions.json`.
   - Returns standard exit codes (`0` pass, `1` fail) with structured `[SLUGRAILS-BLOCKED]` output.
-- [ ] Implement `slugrails fix` CLI subcommand.
-- [ ] Implement git hook installer: `slugrails hook install` (installs `.git/hooks/pre-commit`).
+- [x] Implement `slugrails fix` CLI subcommand.
+- [x] Implement git hook installer: `slugrails hook install` (installs `.git/hooks/pre-commit`).
 
 ## Phase 5: MCP Protocol for Authoring Mode
 - [ ] Implement `slugrails-authoring` MCP tool handlers:

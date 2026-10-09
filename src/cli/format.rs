@@ -62,7 +62,7 @@ pub fn print_text_report(report: &GuardReport) {
             );
         }
         println!(
-            "\n\x1b[1;31mFailed with {} violation(s)\x1b[0m",
+            "\n\x1b[1;31m[SLUGRAILS-BLOCKED] Failed with {} violation(s)\x1b[0m",
             report.violations.len()
         );
     }

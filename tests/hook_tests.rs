@@ -40,3 +40,34 @@ fn test_hook_install_and_uninstall_lifecycle() {
     // 5. Clean up
     let _ = fs::remove_dir_all(&temp_dir);
 }
+
+#[test]
+fn test_hook_preserves_existing_user_hook() {
+    let temp_dir =
+        std::env::temp_dir().join(format!("slugrails_hook_preserve_{}", std::process::id()));
+    let _ = fs::remove_dir_all(&temp_dir);
+    fs::create_dir_all(temp_dir.join(".git/hooks")).unwrap();
+
+    let hook_file = temp_dir.join(".git/hooks/pre-commit");
+    fs::write(
+        &hook_file,
+        "#!/usr/bin/env sh\necho 'running custom linter'\n",
+    )
+    .unwrap();
+
+    let status = install_hook(&temp_dir);
+    assert_eq!(status, ExitCode::SUCCESS);
+
+    let content = fs::read_to_string(&hook_file).unwrap();
+    assert!(content.contains("running custom linter"));
+    assert!(content.contains("slugrails check"));
+
+    let status_uninstall = uninstall_hook(&temp_dir);
+    assert_eq!(status_uninstall, ExitCode::SUCCESS);
+    assert!(hook_file.exists());
+    let remaining = fs::read_to_string(&hook_file).unwrap();
+    assert!(remaining.contains("running custom linter"));
+    assert!(!remaining.contains("slugrails"));
+
+    let _ = fs::remove_dir_all(&temp_dir);
+}

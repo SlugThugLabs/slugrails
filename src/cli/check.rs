@@ -10,6 +10,7 @@ use crate::library::ensure_test_library_seeded;
 use crate::storage::ProjectExceptions;
 use crate::types::GuardReport;
 
+use std::path::Path;
 use std::process::ExitCode;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -23,23 +24,15 @@ enum OutputFormat {
 pub fn run_check(args: impl Iterator<Item = String>) -> ExitCode {
     let args_vec: Vec<String> = args.collect();
     if crate::cli::args::has_help_flag(&args_vec) {
-        println!(
-            "Usage: slugrails check [OPTIONS]\n\n\
-             Enforces architectural invariants and guardrails.\n\n\
-             Options:\n\
-               --all, -a            Scan all source files instead of git modified files\n\
-               --fix                Automatically remediate auto-fixable violations\n\
-               --format, -f <FMT>   Output format: 'text', 'json', or 'sarif' (default: text)\n\
-               --root, -r <PATH>    Path to project root (default: current dir)\n\
-               --help, -h           Show this help message"
-        );
+        print_check_help();
         return ExitCode::SUCCESS;
     }
 
     if let Err(err) = validate_known_flags(
         &args_vec,
         &[
-            "--all", "-a", "--root", "-r", "--format", "-f", "--help", "-h", "--fix",
+            "--all", "-a", "--diff", "-d", "--root", "-r", "--format", "-f", "--help", "-h",
+            "--fix",
         ],
     ) {
         eprintln!("{err}");
@@ -47,76 +40,101 @@ pub fn run_check(args: impl Iterator<Item = String>) -> ExitCode {
     }
 
     let root = extract_root(&args_vec);
-    let check_all = has_flag(&args_vec, &["--all", "-a"]);
+    let check_diff = has_flag(&args_vec, &["--diff", "-d"]);
     let should_fix = has_flag(&args_vec, &["--fix"]);
     let format = parse_format(
         &extract_option(&args_vec, "--format", Some("-f")).unwrap_or_else(|| "text".to_string()),
     );
 
-    let catalog = match ensure_test_library_seeded() {
-        Ok(c) => c,
-        Err(e) => {
-            tracing::error!(error = %e, "Failed to seed test library");
-            eprintln!("[SLUGRAILS-ERROR] Failed to seed test library: {e}");
-            return ExitCode::from(2);
+    match execute_check_pipeline(&root, check_diff, should_fix) {
+        Ok(Some(report)) => {
+            print_report(format, &report);
+            if report.is_pass() {
+                ExitCode::SUCCESS
+            } else {
+                ExitCode::from(1)
+            }
         }
-    };
-
-    let contract = match load_architecture(&root) {
-        Ok(c) => c,
-        Err(e) => {
-            tracing::error!(error = %e, path = %root.display(), "Could not load ARCHITECTURE.md");
-            eprintln!("[SLUGRAILS-ERROR] Could not load ARCHITECTURE.md: {e}");
-            return ExitCode::from(2);
+        Ok(None) => {
+            print_empty_report(format);
+            ExitCode::SUCCESS
         }
-    };
+        Err(code) => code,
+    }
+}
 
-    let exceptions = ProjectExceptions::load(&root).unwrap_or_default();
-    let files = if check_all {
-        collect_source_files(&root).unwrap_or_default()
+fn execute_check_pipeline(
+    root: &Path,
+    check_diff: bool,
+    should_fix: bool,
+) -> Result<Option<GuardReport>, ExitCode> {
+    let catalog = ensure_test_library_seeded().map_err(|e| {
+        tracing::error!(error = %e, "Failed to seed test library");
+        eprintln!("[SLUGRAILS-ERROR] Failed to seed test library: {e}");
+        ExitCode::from(2)
+    })?;
+
+    let contract = load_architecture(root).map_err(|e| {
+        tracing::error!(error = %e, path = %root.display(), "Could not load ARCHITECTURE.md");
+        eprintln!("[SLUGRAILS-ERROR] Could not load ARCHITECTURE.md: {e}");
+        ExitCode::from(2)
+    })?;
+
+    let exceptions = ProjectExceptions::load(root).unwrap_or_default();
+    let files = if check_diff {
+        collect_git_diff_files(root).unwrap_or_default()
     } else {
-        collect_git_diff_files(&root).unwrap_or_default()
+        collect_source_files(root).unwrap_or_default()
     };
 
     if files.is_empty() {
-        match format {
-            OutputFormat::Json => println!("{{\"files_checked\":0,\"violations\":[]}}"),
-            OutputFormat::Sarif => {
-                let empty = GuardReport::default();
-                println!(
-                    "{}",
-                    serde_json::to_string_pretty(&format_sarif(&empty)).unwrap_or_default()
-                );
-            }
-            OutputFormat::Text => println!("[SLUGRAILS-PASS] No source files to check."),
-        }
-        return ExitCode::SUCCESS;
+        return Ok(None);
     }
 
-    let mut report = match run_guard_checks(&root, &files, &contract, &catalog, &exceptions) {
-        Ok(r) => r,
-        Err(e) => {
+    let mut report =
+        run_guard_checks(root, &files, &contract, &catalog, &exceptions).map_err(|e| {
             eprintln!("[SLUGRAILS-ERROR] Check evaluation failed: {e}");
-            return ExitCode::from(2);
-        }
-    };
+            ExitCode::from(2)
+        })?;
 
     if should_fix && !report.violations.is_empty() {
-        let fixed = auto_remediate_violations(&root, &report.violations);
+        let fixed = auto_remediate_violations(root, &report.violations);
         if fixed > 0 {
             println!("[SLUGRAILS-FIX] Remediated {fixed} violation(s). Re-evaluating...");
-            if let Ok(rerun) = run_guard_checks(&root, &files, &contract, &catalog, &exceptions) {
+            if let Ok(rerun) = run_guard_checks(root, &files, &contract, &catalog, &exceptions) {
                 report = rerun;
             }
         }
     }
 
-    print_report(format, &report);
+    Ok(Some(report))
+}
 
-    if report.is_pass() {
-        ExitCode::SUCCESS
-    } else {
-        ExitCode::from(1)
+fn print_check_help() {
+    println!(
+        "Usage: slugrails check [OPTIONS]\n\n\
+         Enforces architectural invariants and guardrails.\n\n\
+         Options:\n\
+           --diff, -d           Scan git modified files only (fast-path)\n\
+           --all, -a            Scan all source files (default)\n\
+           --fix                Automatically remediate auto-fixable violations\n\
+           --format, -f <FMT>   Output format: 'text', 'json', or 'sarif' (default: text)\n\
+           --root, -r <PATH>    Path to project root (default: current dir)\n\
+           --help, -h           Show this help message"
+    );
+}
+
+fn print_empty_report(format: OutputFormat) {
+    match format {
+        OutputFormat::Json => println!("{{\"files_checked\":0,\"violations\":[]}}"),
+        OutputFormat::Sarif => {
+            let empty = GuardReport::default();
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&format_sarif(&empty)).unwrap_or_default()
+            );
+        }
+        OutputFormat::Text => println!("[SLUGRAILS-PASS] No source files to check."),
     }
 }
 

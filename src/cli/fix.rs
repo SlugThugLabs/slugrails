@@ -1,9 +1,72 @@
 //! Auto-remediation engine for self-healing guard violations.
 
+use super::args::{extract_root, validate_known_flags};
+use crate::analyzer::collect_source_files;
+use crate::contract::load_architecture;
+use crate::guards::run_guard_checks;
+use crate::library::ensure_test_library_seeded;
+use crate::storage::ProjectExceptions;
 use crate::types::Violation;
 use std::collections::HashSet;
 use std::fs;
 use std::path::Path;
+use std::process::ExitCode;
+
+/// Entry point for `slugrails fix` subcommand.
+pub fn run_fix(args: impl Iterator<Item = String>) -> ExitCode {
+    let args_vec: Vec<String> = args.collect();
+    if crate::cli::args::has_help_flag(&args_vec) {
+        println!(
+            "Usage: slugrails fix [OPTIONS]\n\n\
+             Automatically remediates self-healing guard violations.\n\n\
+             Options:\n\
+               --root, -r <PATH>    Path to project root (default: current dir)\n\
+               --help, -h           Show this help message"
+        );
+        return ExitCode::SUCCESS;
+    }
+
+    if let Err(err) = validate_known_flags(&args_vec, &["--root", "-r", "--help", "-h"]) {
+        eprintln!("{err}");
+        return ExitCode::from(2);
+    }
+
+    let root = extract_root(&args_vec);
+    let catalog = match ensure_test_library_seeded() {
+        Ok(c) => c,
+        Err(e) => {
+            eprintln!("[SLUGRAILS-ERROR] Failed to seed test library: {e}");
+            return ExitCode::from(2);
+        }
+    };
+
+    let contract = match load_architecture(&root) {
+        Ok(c) => c,
+        Err(e) => {
+            eprintln!("[SLUGRAILS-ERROR] Could not load ARCHITECTURE.md: {e}");
+            return ExitCode::from(2);
+        }
+    };
+
+    let exceptions = ProjectExceptions::load(&root).unwrap_or_default();
+    let files = collect_source_files(&root).unwrap_or_default();
+    let report = match run_guard_checks(&root, &files, &contract, &catalog, &exceptions) {
+        Ok(r) => r,
+        Err(e) => {
+            eprintln!("[SLUGRAILS-ERROR] Check evaluation failed: {e}");
+            return ExitCode::from(2);
+        }
+    };
+
+    if report.violations.is_empty() {
+        println!("[SLUGRAILS-PASS] No violations found to remediate.");
+        return ExitCode::SUCCESS;
+    }
+
+    let fixed = auto_remediate_violations(&root, &report.violations);
+    println!("[SLUGRAILS-FIX] Successfully remediated {fixed} violation(s).");
+    ExitCode::SUCCESS
+}
 
 /// Automatically remediates supported violations (e.g. hygiene/no-debug-prints).
 ///

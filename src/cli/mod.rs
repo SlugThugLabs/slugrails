@@ -15,7 +15,7 @@ pub mod validate;
 
 pub use check::run_check;
 pub use exception::run_exception;
-pub use fix::auto_remediate_violations;
+pub use fix::{auto_remediate_violations, run_fix};
 pub use hook::{install_hook, run_hook, uninstall_hook};
 pub use init::{initialize_project, run_init};
 pub use plan::{plan_architecture, run_plan};

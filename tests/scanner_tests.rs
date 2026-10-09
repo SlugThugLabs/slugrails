@@ -111,4 +111,65 @@ fn run() {
         assert!(collected.contains(&normal_file));
         assert!(!collected.contains(&huge_file));
     }
+
+    #[test]
+    fn test_tokenizer_raw_strings_and_lifetimes() {
+        let code = r##"
+fn lifetime<'a, 'b>(x: &'a str) -> &'b str {
+    let raw1 = r#"hello "world" unwrap() inside raw"#;
+    let raw2 = r"plain unwrap() inside raw";
+    let ch = 'z';
+    x
+}
+"##;
+        let unwraps = find_unwrap_expect_calls(code);
+        assert_eq!(unwraps.len(), 0);
+    }
+
+    #[test]
+    fn test_manifest_scanner_cargo_and_package_json() {
+        let dir = tempdir().unwrap();
+        let cargo_toml = dir.path().join("Cargo.toml");
+        fs::write(
+            &cargo_toml,
+            r#"
+[package]
+name = "test-pkg"
+version = "0.1.0"
+
+[dependencies]
+serde = "1.0"
+tokio = { version = "1.0", features = ["full"] }
+
+[dev-dependencies]
+tempfile = "3.0"
+"#,
+        )
+        .unwrap();
+
+        let cargo_deps = slugrails::analyzer::manifest::scan_cargo_manifest(dir.path()).unwrap();
+        assert!(cargo_deps.contains("serde"));
+        assert!(cargo_deps.contains("tokio"));
+        assert!(cargo_deps.contains("tempfile"));
+        assert!(!cargo_deps.contains("actix"));
+
+        let package_json = dir.path().join("package.json");
+        fs::write(
+            &package_json,
+            r#"{
+  "dependencies": {
+    "react": "^18.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0"
+  }
+}"#,
+        )
+        .unwrap();
+
+        let js_deps = slugrails::analyzer::manifest::scan_package_json(dir.path()).unwrap();
+        assert!(js_deps.contains("react"));
+        assert!(js_deps.contains("typescript"));
+        assert!(!js_deps.contains("vue"));
+    }
 }
