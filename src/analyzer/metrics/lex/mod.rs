@@ -43,7 +43,7 @@ impl CodeView {
             starts.push(text.len());
             text.push_str(&stripped.code_only);
             text.push('\n');
-            lines.push(stripped.code_only);
+            lines.push(stripped.code_only.into_owned());
         }
         Self {
             lines,

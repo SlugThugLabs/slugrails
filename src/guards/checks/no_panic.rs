@@ -13,10 +13,6 @@ impl GuardCheck for NoPanicCheck {
         "languages/rust/no-panic"
     }
 
-    fn aliases(&self) -> &'static [&'static str] {
-        &["no_panic", "forbid_panic"]
-    }
-
     fn check(&self, ctx: &FileContext<'_>, _contract: &ArchitectureContract) -> Vec<Violation> {
         let mut violations = Vec::new();
         check_no_panic(ctx, &mut violations);
