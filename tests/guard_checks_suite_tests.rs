@@ -1,13 +1,13 @@
-use codeguards_mcp::analyzer::test_region_lines;
-use codeguards_mcp::contract::ArchitectureContract;
-use codeguards_mcp::guards::checks::{
+use slugrails::analyzer::test_region_lines;
+use slugrails::contract::ArchitectureContract;
+use slugrails::guards::checks::{
     DeepNestingCheck, NoSecretsCheck, SwallowedErrorsCheck, UnsafePolicyCheck,
 };
-use codeguards_mcp::guards::context::FileContext;
-use codeguards_mcp::guards::traits::GuardCheck;
-use codeguards_mcp::library::catalog::GuardCatalogEntry;
-use codeguards_mcp::storage::ProjectExceptions;
-use codeguards_mcp::types::Severity;
+use slugrails::guards::context::FileContext;
+use slugrails::guards::traits::GuardCheck;
+use slugrails::library::catalog::GuardCatalogEntry;
+use slugrails::storage::ProjectExceptions;
+use slugrails::types::Severity;
 use std::collections::BTreeMap;
 use std::fs;
 use std::path::{Path, PathBuf};

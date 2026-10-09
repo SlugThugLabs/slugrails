@@ -1,4 +1,4 @@
-use codeguards_mcp::analyzer::{function_spans, has_doc_comment};
+use slugrails::analyzer::{function_spans, has_doc_comment};
 
 #[test]
 fn rust_spans_carry_bounds_params_visibility_and_docs() {

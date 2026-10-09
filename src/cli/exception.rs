@@ -4,7 +4,7 @@ use crate::storage::ProjectExceptions;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
-/// Executes the `codeguards-mcp exception` command.
+/// Executes the `slugrails exception` command.
 pub fn run_exception(mut args: impl Iterator<Item = String>) -> ExitCode {
     let sub = args.next().unwrap_or_else(|| "list".to_string());
     if sub == "--help" || sub == "-h" || sub == "help" {
@@ -17,11 +17,11 @@ pub fn run_exception(mut args: impl Iterator<Item = String>) -> ExitCode {
     match sub.as_str() {
         "add" => {
             let Some(file_str) = args.next() else {
-                eprintln!("Usage: codeguards exception add <file> <guard> --reason=\"...\"");
+                eprintln!("Usage: slugrails exception add <file> <guard> --reason=\"...\"");
                 return ExitCode::from(2);
             };
             let Some(guard) = args.next() else {
-                eprintln!("Usage: codeguards exception add <file> <guard> --reason=\"...\"");
+                eprintln!("Usage: slugrails exception add <file> <guard> --reason=\"...\"");
                 return ExitCode::from(2);
             };
             let args_vec: Vec<String> = args.collect();
@@ -66,7 +66,7 @@ pub fn run_exception(mut args: impl Iterator<Item = String>) -> ExitCode {
         }
         "revoke" => {
             let Some(token) = args.next() else {
-                eprintln!("Usage: codeguards exception revoke <token>");
+                eprintln!("Usage: slugrails exception revoke <token>");
                 return ExitCode::from(2);
             };
             match exceptions.revoke(&token) {

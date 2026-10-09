@@ -5,8 +5,8 @@
 //! this test existed, the run reported it as *passed*. Any new catalog entry
 //! must therefore be either implemented or declared unimplemented.
 
-use codeguards_mcp::guards::runner::{IMPLEMENTED_GUARDS, UNIMPLEMENTED_GUARDS, is_implemented};
-use codeguards_mcp::library::builtins::get_builtin_guard_tests;
+use slugrails::guards::runner::{IMPLEMENTED_GUARDS, UNIMPLEMENTED_GUARDS, is_implemented};
+use slugrails::library::builtins::get_builtin_guard_tests;
 
 /// Every guard offered in the catalog is accounted for one way or the other.
 #[test]

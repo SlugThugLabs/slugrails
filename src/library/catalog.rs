@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use std::path::PathBuf;
 
-/// Global catalog index stored at ~/.slugthug/codeguards/tests/catalog.json
+/// Global catalog index stored at ~/.slugthuglabs/slugrails/tests/catalog.json
 #[derive(Debug, Clone, Default, Serialize, Deserialize, JsonSchema)]
 pub struct GuardCatalog {
     pub version: String,

@@ -1,4 +1,4 @@
-use codeguards_mcp::cli::plan::{plan_architecture, run_plan};
+use slugrails::cli::plan::{plan_architecture, run_plan};
 use serde_json::Value;
 use std::fs;
 use std::process::ExitCode;

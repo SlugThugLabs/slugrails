@@ -1,4 +1,4 @@
-use codeguards_mcp::cli::scaffold_tests::{
+use slugrails::cli::scaffold_tests::{
     TEST_HARNESS_TEMPLATE, run_scaffold_tests, scaffold_tests_harness,
 };
 use std::fs;

@@ -26,7 +26,7 @@ missing_panics_doc = "warn"
 module_name_repetitions = "allow"  # Allow in test modules
 
 [lib]
-name = "codeguards_mcp"
+name = "slugrails"
 path = "src/lib.rs"
 
 [[bin]]

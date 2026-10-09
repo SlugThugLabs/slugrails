@@ -5,7 +5,7 @@ use std::io::IsTerminal as _;
 
 pub const MENU: &str = "\
 ┌─────────────────────────────────────────────┐
-│           CodeGuards setup                  │
+│           SlugRails setup                   │
 └─────────────────────────────────────────────┘
 
   ── Setup ───────────────────────────────────
@@ -14,10 +14,10 @@ pub const MENU: &str = "\
      A stable path for agents and MCP clients to launch.
 
   2) Connect to an AI agent
-     Register this binary as the `codeguards` MCP server in
+     Register this binary as the `slugrails` MCP server in
      Hermes, Claude Code, Grok, or Codex.
 
-  3) Add CodeGuards to another MCP client
+  3) Add SlugRails to another MCP client
      Print instructions + a config snippet for any other
      tool that supports MCP servers (OpenCode, Cursor, Zed, ...).
 
@@ -54,10 +54,10 @@ pub fn render_menu(style: Style) -> String {
             out.push_str(&style.dim(after));
         } else if trimmed.starts_with('┌') || trimmed.starts_with('└') {
             out.push_str(&style.dim(line));
-        } else if trimmed.contains("CodeGuards setup") {
+        } else if trimmed.contains("SlugRails setup") {
             out.push_str(&line.replace(
-                "CodeGuards setup",
-                &style.bold(&style.cyan("CodeGuards setup")),
+                "SlugRails setup",
+                &style.bold(&style.cyan("SlugRails setup")),
             ));
         } else if trimmed.starts_with("Choose an option") {
             out.push_str(&style.bold(&style.yellow(line)));

@@ -1,4 +1,4 @@
-use codeguards_mcp::analyzer::{LiteralKind, extract_literals};
+use slugrails::analyzer::{LiteralKind, extract_literals};
 
 #[test]
 fn numeric_and_string_literals_carry_line_and_context() {

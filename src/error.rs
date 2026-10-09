@@ -1,4 +1,4 @@
-//! `CodeGuards` error taxonomy.
+//! `SlugRails` error taxonomy.
 
 use std::path::PathBuf;
 use thiserror::Error;
@@ -41,9 +41,9 @@ pub enum MenuError {
     SubprocessFailed { command: String, reason: String },
 }
 
-/// Core error type for `CodeGuards` operations.
+/// Core error type for `SlugRails` operations.
 #[derive(Debug, Error)]
-pub enum CodeGuardsError {
+pub enum SlugRailsError {
     #[error("I/O error at {path}: {source}")]
     Io {
         path: PathBuf,
@@ -85,5 +85,8 @@ pub enum CodeGuardsError {
     Internal(String),
 }
 
+/// Backward compatibility alias for [`SlugRailsError`].
+pub type CodeGuardsError = SlugRailsError;
+
 /// Convenience result type alias.
-pub type Result<T> = std::result::Result<T, CodeGuardsError>;
+pub type Result<T> = std::result::Result<T, SlugRailsError>;

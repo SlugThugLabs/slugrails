@@ -16,7 +16,7 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::{Path, PathBuf};
 
-/// Project-specific exceptions registry stored at ~/.slugthug/codeguards/projects/<id>/exceptions.json
+/// Project-specific exceptions registry stored at ~/.slugthuglabs/slugrails/projects/<id>/exceptions.json
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct ProjectExceptions {
     pub project_path: PathBuf,

@@ -19,7 +19,7 @@ enum OutputFormat {
     Sarif,
 }
 
-/// Executes the `codeguards-mcp check` command.
+/// Executes the `slugrails check` command.
 pub fn run_check(args: impl Iterator<Item = String>) -> ExitCode {
     let args_vec: Vec<String> = args.collect();
     if crate::cli::args::has_help_flag(&args_vec) {

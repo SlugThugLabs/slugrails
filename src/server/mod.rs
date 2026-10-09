@@ -1,6 +1,6 @@
 //! MCP Server implementation for SlugRails and SlugPlan governance tools.
 
-mod handlers;
+pub mod handlers;
 mod types;
 
 pub use types::{

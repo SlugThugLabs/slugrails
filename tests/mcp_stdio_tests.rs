@@ -1,6 +1,6 @@
 //! End-to-end MCP stdio handshake test.
 //!
-//! Spawns the real `codeguards-mcp serve` binary in a hermetic environment
+//! Spawns the real `slugrails serve` binary in a hermetic environment
 //! (temp `SLUGTHUG_HOME` so nothing touches the live ~/.slugthug state) and
 //! verifies the full JSON-RPC 2.0 lifecycle over stdio:
 //!
@@ -27,14 +27,14 @@ mod helpers {
 
     /// Spawns the real binary in stdio mode with an isolated `SLUGTHUG_HOME`.
     pub(super) fn spawn_server(home: &std::path::Path) -> Child {
-        Command::new(env!("CARGO_BIN_EXE_codeguards-mcp"))
+        Command::new(env!("CARGO_BIN_EXE_slugrails"))
             .arg("serve")
             .env("SLUGTHUG_HOME", home)
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
             .spawn()
-            .expect("failed to spawn codeguards-mcp serve")
+            .expect("failed to spawn slugrails serve")
     }
 
     /// Sends one newline-delimited JSON-RPC message to the child's stdin.
@@ -127,8 +127,8 @@ fn mcp_stdio_full_handshake() {
         .get("result")
         .unwrap_or_else(|| panic!("initialize failed: {resp}"));
     assert_eq!(
-        result["serverInfo"]["name"], "codeguards-mcp",
-        "server identity must be codeguards-mcp"
+        result["serverInfo"]["name"], "slugrails-mcp",
+        "server identity must be slugrails-mcp"
     );
     assert!(
         result["capabilities"]["tools"].is_object(),
@@ -270,7 +270,7 @@ fn mcp_stdio_survives_garbage_lines_after_initialization() {
     // 1) + 2) Initialize first (required by MCP spec)
     let resp = handshake(&mut child, &mut reader, &mut next_id);
     assert_eq!(
-        resp["result"]["serverInfo"]["name"], "codeguards-mcp",
+        resp["result"]["serverInfo"]["name"], "slugrails-mcp",
         "initialization must succeed"
     );
 

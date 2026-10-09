@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use codeguards_mcp::storage::ProjectExceptions;
+    use slugrails::storage::ProjectExceptions;
     use std::path::Path;
     use tempfile::tempdir;
 

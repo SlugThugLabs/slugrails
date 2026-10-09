@@ -6,7 +6,7 @@ use std::io::{BufRead as _, Write as _};
 use std::path::PathBuf;
 
 pub fn running_binary() -> PathBuf {
-    std::env::current_exe().unwrap_or_else(|_| PathBuf::from("codeguards-mcp"))
+    std::env::current_exe().unwrap_or_else(|_| PathBuf::from("slugrails"))
 }
 
 pub fn install_step() {
@@ -30,7 +30,7 @@ pub fn install_step() {
                     let _ = std::fs::set_permissions(&target, perms);
                 }
             }
-            println!("Installed CodeGuards to {}", target.display());
+            println!("Installed SlugRails to {}", target.display());
             println!("Ensure {} is in your $PATH.", bin_dir.display());
         }
         Err(e) => eprintln!("Failed to copy binary to {}: {e}", target.display()),
@@ -73,16 +73,16 @@ where
     if which::which(cli).is_err() {
         println!("\n'{cli}' CLI was not found on your system PATH.");
         println!("Please install {name} first, or connect manually using:");
-        println!("  {cli} mcp add codeguards -- {} serve\n", exec_path.display());
+        println!("  {cli} mcp add slugrails -- {} serve\n", exec_path.display());
         return;
     }
 
-    println!("\nConnecting CodeGuards to {name}...");
+    println!("\nConnecting SlugRails to {name}...");
 
     // Remove existing with 5s timeout
     let mut remove_cmd = std::process::Command::new(cli);
     remove_cmd
-        .args(["mcp", "remove", "codeguards"])
+        .args(["mcp", "remove", "slugrails"])
         .stdout(std::process::Stdio::null())
         .stderr(std::process::Stdio::null());
     let _ = run_with_timeout(&mut remove_cmd, std::time::Duration::from_secs(5));
@@ -90,7 +90,7 @@ where
     // Add server with 5s timeout
     let mut add_cmd = std::process::Command::new(cli);
     add_cmd
-        .args(["mcp", "add", "codeguards", "--"])
+        .args(["mcp", "add", "slugrails", "--"])
         .arg(&exec_path)
         .arg("serve");
     let status = run_with_timeout(&mut add_cmd, std::time::Duration::from_secs(5));
@@ -101,7 +101,7 @@ where
         }
         _ => {
             println!("Could not connect automatically.");
-            println!("Manual command: {cli} mcp add codeguards -- {} serve", exec_path.display());
+            println!("Manual command: {cli} mcp add slugrails -- {} serve", exec_path.display());
         }
     }
 }
@@ -134,13 +134,13 @@ pub fn other_client_step() {
         running_binary()
     };
 
-    println!("CodeGuards is a standard stdio MCP server:");
-    println!("  Server name:  codeguards");
+    println!("SlugRails is a standard stdio MCP server:");
+    println!("  Server name:  slugrails");
     println!("  Command:      {}", exec_path.display());
     println!("  Arguments:    serve\n");
     println!("For clients reading .mcp.json (OpenCode, Claude, Cursor):");
     println!(
-        "{{\n  \"mcpServers\": {{\n    \"codeguards\": {{\n      \"command\": \"{}\",\n      \"args\": [\"serve\"]\n    }}\n  }}\n}}",
+        "{{\n  \"mcpServers\": {{\n    \"slugrails\": {{\n      \"command\": \"{}\",\n      \"args\": [\"serve\"]\n    }}\n  }}\n}}",
         exec_path.display()
     );
 }

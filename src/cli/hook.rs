@@ -10,8 +10,6 @@ if command -v slugrails >/dev/null 2>&1; then
     exec slugrails check
 elif command -v slugrails-mcp >/dev/null 2>&1; then
     exec slugrails-mcp check
-elif command -v codeguards-mcp >/dev/null 2>&1; then
-    exec codeguards-mcp check
 else
     echo "Error: slugrails not found in PATH. Architectural rails cannot be verified." >&2
     echo "Please install slugrails or commit with --no-verify if explicitly authorized." >&2
@@ -32,7 +30,7 @@ pub fn run_hook<I: Iterator<Item = String>>(mut args: I) -> ExitCode {
     }
 }
 
-/// Installs the CodeGuards pre-commit hook into `.git/hooks/pre-commit`.
+/// Installs the SlugRails pre-commit hook into `.git/hooks/pre-commit`.
 pub fn install_hook(repo_root: &Path) -> ExitCode {
     let git_dir = repo_root.join(".git");
     if !git_dir.exists() {
@@ -61,7 +59,7 @@ pub fn install_hook(repo_root: &Path) -> ExitCode {
     let hook_path = hooks_dir.join("pre-commit");
     if hook_path.exists() {
         if let Ok(content) = fs::read_to_string(&hook_path) {
-            if content.contains("codeguards-mcp") {
+            if content.contains("slugrails") {
                 println!("Pre-commit hook is already installed in {}", hook_path.display());
                 return ExitCode::SUCCESS;
             }
@@ -84,7 +82,7 @@ pub fn install_hook(repo_root: &Path) -> ExitCode {
     ExitCode::SUCCESS
 }
 
-/// Removes the CodeGuards hook if present.
+/// Removes the SlugRails hook if present.
 pub fn uninstall_hook(repo_root: &Path) -> ExitCode {
     let hook_path = repo_root.join(".git").join("hooks").join("pre-commit");
     if !hook_path.exists() {
@@ -93,16 +91,16 @@ pub fn uninstall_hook(repo_root: &Path) -> ExitCode {
     }
 
     match fs::read_to_string(&hook_path) {
-        Ok(content) if content.contains("codeguards-mcp") => {
+        Ok(content) if content.contains("slugrails") => {
             if let Err(e) = fs::remove_file(&hook_path) {
                 eprintln!("Error removing hook: {e}");
                 return ExitCode::from(1);
             }
-            println!("Successfully removed CodeGuards pre-commit hook.");
+            println!("Successfully removed SlugRails pre-commit hook.");
             ExitCode::SUCCESS
         }
         _ => {
-            println!("Pre-commit hook does not appear to be installed by CodeGuards; leaving intact.");
+            println!("Pre-commit hook does not appear to be installed by SlugRails; leaving intact.");
             ExitCode::SUCCESS
         }
     }

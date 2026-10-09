@@ -1,5 +1,5 @@
-use codeguards_mcp::cli::fix::auto_remediate_violations;
-use codeguards_mcp::types::{Severity, Violation};
+use slugrails::cli::fix::auto_remediate_violations;
+use slugrails::types::{Severity, Violation};
 use std::fs;
 use std::path::PathBuf;
 use tempfile::tempdir;

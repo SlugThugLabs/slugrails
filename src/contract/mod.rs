@@ -104,7 +104,7 @@ pub fn validate_contract(
         } else {
             missing_guards.push(enforce_item.clone());
             errors.push(format!(
-                "Required guard test '{enforce_item}' is not found in ~/.slugthug/codeguards/tests/. Use create_guard_test to generate it."
+                "Required guard test '{enforce_item}' is not found in ~/.slugthuglabs/slugrails/tests/. Use create_guard_test to generate it."
             ));
         }
     }

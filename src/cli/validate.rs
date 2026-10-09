@@ -5,7 +5,7 @@ use crate::contract::validate_architecture;
 use crate::library::ensure_test_library_seeded;
 use std::process::ExitCode;
 
-/// Executes the `codeguards-mcp validate` command.
+/// Executes the `slugrails validate` command.
 pub fn run_validate(args: impl Iterator<Item = String>) -> ExitCode {
     let args_vec: Vec<String> = args.collect();
     if super::args::has_help_flag(&args_vec) {

@@ -1,5 +1,5 @@
-use codeguards_mcp::library::GuardCatalog;
-use codeguards_mcp::types::GuardTestDefinition;
+use slugrails::library::GuardCatalog;
+use slugrails::types::GuardTestDefinition;
 use std::collections::BTreeMap;
 use std::path::PathBuf;
 

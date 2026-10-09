@@ -1,4 +1,4 @@
-use codeguards_mcp::analyzer::{has_test_module, is_test_path, test_region_lines};
+use slugrails::analyzer::{has_test_module, is_test_path, test_region_lines};
 
 const TEST_MODULE_SOURCE: &str = "\
 pub fn production() -> u8 {

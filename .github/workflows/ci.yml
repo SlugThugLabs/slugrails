@@ -1,0 +1,49 @@
+name: CI Matrix
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+    branches: [master, main]
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    name: ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+
+      - name: Verify repository invariants (Linux / macOS)
+        if: runner.os != 'Windows'
+        run: bash ./scripts/verify_invariants.sh
+
+      - name: Verify repository invariants (Windows)
+        if: runner.os == 'Windows'
+        run: pwsh ./scripts/verify_invariants.ps1
+
+      - name: Build & check
+        run: cargo check --all-targets
+
+      - name: Test run
+        run: cargo test --all-targets
+
+      - name: Clippy
+        run: cargo clippy --all-targets -- -D warnings

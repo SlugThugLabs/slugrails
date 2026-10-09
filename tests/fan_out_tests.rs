@@ -1,4 +1,4 @@
-use codeguards_mcp::analyzer::module_fan_out;
+use slugrails::analyzer::module_fan_out;
 
 #[test]
 fn fan_out_counts_imports_and_imported_by() {

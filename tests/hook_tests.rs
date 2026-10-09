@@ -1,12 +1,12 @@
 //! Integration tests for Git pre-commit hook installation and uninstallation.
 
-use codeguards_mcp::cli::{install_hook, uninstall_hook};
+use slugrails::cli::{install_hook, uninstall_hook};
 use std::fs;
 use std::process::ExitCode;
 
 #[test]
 fn test_hook_install_and_uninstall_lifecycle() {
-    let temp_dir = std::env::temp_dir().join(format!("codeguards_hook_test_{}", std::process::id()));
+    let temp_dir = std::env::temp_dir().join(format!("slugrails_hook_test_{}", std::process::id()));
     let _ = fs::remove_dir_all(&temp_dir);
     fs::create_dir_all(&temp_dir).unwrap();
 
@@ -24,7 +24,7 @@ fn test_hook_install_and_uninstall_lifecycle() {
     let hook_file = git_dir.join("hooks").join("pre-commit");
     assert!(hook_file.exists());
     let content = fs::read_to_string(&hook_file).unwrap();
-    assert!(content.contains("codeguards-mcp check"));
+    assert!(content.contains("slugrails check"));
 
     // 3. Idempotent install does not fail
     let status_idempotent = install_hook(&temp_dir);

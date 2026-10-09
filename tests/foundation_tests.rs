@@ -1,8 +1,8 @@
 #[cfg(test)]
 mod tests {
-    use codeguards_mcp::error::CodeGuardsError;
-    use codeguards_mcp::types::{GuardReport, Severity, Violation};
-    use codeguards_mcp::util::{compute_exception_token, hash_project_path, validate_safe_path};
+    use slugrails::error::CodeGuardsError;
+    use slugrails::types::{GuardReport, Severity, Violation};
+    use slugrails::util::{compute_exception_token, hash_project_path, validate_safe_path};
     use std::path::{Path, PathBuf};
 
     #[test]

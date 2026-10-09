@@ -1,4 +1,4 @@
-use codeguards_mcp::types::{GuardReport, Severity, Violation};
+use slugrails::types::{GuardReport, Severity, Violation};
 use std::path::PathBuf;
 
 #[test]

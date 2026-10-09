@@ -1,8 +1,8 @@
-//! CodeGuards CLI entrypoint and subcommand dispatch.
+//! SlugRails CLI entrypoint and subcommand dispatch.
 
 #![forbid(unsafe_code)]
 
-use codeguards_mcp::cli::{
+use slugrails::cli::{
     run_check, run_exception, run_hook, run_init, run_plan, run_scaffold_tests, run_serve,
     run_validate,
 };
@@ -42,7 +42,7 @@ async fn main() -> ExitCode {
 }
 
 async fn run_menu_cli() -> ExitCode {
-    match codeguards_mcp::run_menu() {
+    match slugrails::run_menu() {
         Ok(true) => run_serve(std::iter::empty()).await,
         Ok(false) => ExitCode::SUCCESS,
         Err(e) => {

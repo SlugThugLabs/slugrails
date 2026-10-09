@@ -1,6 +1,6 @@
 //! Unicode resilience, non-ASCII multi-byte slicing, and comment fuzzing tests.
 
-use codeguards_mcp::analyzer::tokenize_source;
+use slugrails::analyzer::tokenize_source;
 
 #[test]
 fn test_multibyte_utf8_tokenization_no_panic() {

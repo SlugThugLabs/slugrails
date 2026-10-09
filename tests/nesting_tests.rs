@@ -1,4 +1,4 @@
-use codeguards_mcp::analyzer::nesting_depth;
+use slugrails::analyzer::nesting_depth;
 
 #[test]
 fn brace_nesting_is_per_function() {

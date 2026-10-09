@@ -1,12 +1,12 @@
 #[cfg(test)]
 mod tests {
-    use codeguards_mcp::analyzer::{
+    use slugrails::analyzer::{
         collect_source_files, count_code_lines, find_debug_prints, find_unwrap_expect_calls,
     };
-    use codeguards_mcp::contract::ArchitectureContract;
-    use codeguards_mcp::guards::run_guard_checks;
-    use codeguards_mcp::library::catalog::GuardCatalog;
-    use codeguards_mcp::storage::ProjectExceptions;
+    use slugrails::contract::ArchitectureContract;
+    use slugrails::guards::run_guard_checks;
+    use slugrails::library::catalog::GuardCatalog;
+    use slugrails::storage::ProjectExceptions;
     use std::fs;
     use tempfile::tempdir;
 
@@ -72,7 +72,7 @@ fn run() {
             ..Default::default()
         };
 
-        let builtins = codeguards_mcp::library::builtins::get_builtin_guard_tests();
+        let builtins = slugrails::library::builtins::get_builtin_guard_tests();
         let catalog = GuardCatalog::from_definitions(
             &builtins
                 .into_iter()

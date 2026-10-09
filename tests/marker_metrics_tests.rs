@@ -1,4 +1,4 @@
-use codeguards_mcp::analyzer::{
+use slugrails::analyzer::{
     MarkerKind, find_action_markers, find_stub_markers, find_swallowed_errors,
 };
 

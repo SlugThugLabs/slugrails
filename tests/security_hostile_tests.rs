@@ -1,7 +1,7 @@
 //! Hostile security and adversary resistance tests.
 
-use codeguards_mcp::storage::ProjectExceptions;
-use codeguards_mcp::util::{compute_exception_token, validate_safe_path};
+use slugrails::storage::ProjectExceptions;
+use slugrails::util::{compute_exception_token, validate_safe_path};
 use std::path::Path;
 
 #[test]
@@ -52,7 +52,7 @@ fn test_exceptions_rejects_forged_tokens() {
     let guard_id = "complexity/source-limits";
 
     // Manually forge an exception entry with an unkeyed fake token
-    let fake_entry = codeguards_mcp::types::ExceptionEntry {
+    let fake_entry = slugrails::types::ExceptionEntry {
         token: "sr_tok_fake12345678".to_string(),
         file: file.to_path_buf(),
         guard_id: guard_id.to_string(),
@@ -77,7 +77,7 @@ fn test_exceptions_accepts_valid_hmac_token() {
 
     // Compute genuine token using secret salt
     let valid_token = compute_exception_token(file, guard_id, reason);
-    let entry = codeguards_mcp::types::ExceptionEntry {
+    let entry = slugrails::types::ExceptionEntry {
         token: valid_token.clone(),
         file: file.to_path_buf(),
         guard_id: guard_id.to_string(),

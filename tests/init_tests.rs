@@ -1,4 +1,4 @@
-use codeguards_mcp::cli::init::initialize_project;
+use slugrails::cli::init::initialize_project;
 use tempfile::tempdir;
 
 #[test]

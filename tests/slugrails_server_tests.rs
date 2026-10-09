@@ -1,7 +1,7 @@
 //! Integration tests for SlugRails MCP server tools.
 
-use codeguards_mcp::library::catalog::GuardCatalog;
-use codeguards_mcp::server::SlugRailsMcpServer;
+use slugrails::library::catalog::GuardCatalog;
+use slugrails::server::SlugRailsMcpServer;
 use rmcp::handler::server::ServerHandler;
 
 #[test]

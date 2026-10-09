@@ -1,9 +1,9 @@
-use codeguards_mcp::contract::{
+use slugrails::contract::{
     ArchitectureContract, load_architecture, parse_frontmatter, validate_architecture,
     validate_contract,
 };
-use codeguards_mcp::error::{CodeGuardsError, ContractError};
-use codeguards_mcp::library::catalog::GuardCatalog;
+use slugrails::error::{CodeGuardsError, ContractError};
+use slugrails::library::catalog::GuardCatalog;
 use std::fs;
 use tempfile::tempdir;
 

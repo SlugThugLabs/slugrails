@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests {
-    use codeguards_mcp::library::{create_custom_guard_test, load_all_tests_and_save_catalog};
-    use codeguards_mcp::types::GuardTestDefinition;
+    use slugrails::library::{create_custom_guard_test, load_all_tests_and_save_catalog};
+    use slugrails::types::GuardTestDefinition;
     use std::collections::BTreeMap;
     use tempfile::tempdir;
 
