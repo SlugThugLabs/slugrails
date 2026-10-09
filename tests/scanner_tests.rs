@@ -108,8 +108,12 @@ fn run() {
         fs::write(&huge_file, huge_data).unwrap();
 
         let collected = collect_source_files(dir.path()).unwrap();
-        assert!(collected.contains(&normal_file));
-        assert!(!collected.contains(&huge_file));
+        assert!(collected.files.contains(&normal_file));
+        assert!(
+            collected.files.contains(&huge_file),
+            "the walker collects oversized files; the runner records them as skipped"
+        );
+        assert!(!collected.truncated);
     }
 
     #[test]

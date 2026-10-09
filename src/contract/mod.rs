@@ -110,22 +110,7 @@ pub fn load_architecture(project_root: &Path) -> Result<ArchitectureContract> {
         source: e,
     })?;
 
-    let baseline_file = project_root
-        .join(".planning")
-        .join("slugrails")
-        .join("contract.baseline");
-    if baseline_file.exists() {
-        let stored_hash = fs::read_to_string(&baseline_file).map_err(|e| SlugRailsError::Io {
-            path: baseline_file,
-            source: e,
-        })?;
-        let current_hash = blake3::hash(content.as_bytes()).to_hex().to_string();
-        if stored_hash.trim() != current_hash {
-            return Err(SlugRailsError::Contract(ContractError::Malformed(
-                "ARCHITECTURE.md hash does not match approved baseline (.planning/slugrails/contract.baseline). Update baseline with authorized token or slugrails plan.",
-            )));
-        }
-    }
+    crate::storage::baseline::verify_contract_baseline(project_root, &content)?;
 
     let (contract, _) = parse_frontmatter(&content)?;
     Ok(contract)

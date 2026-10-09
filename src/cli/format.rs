@@ -14,12 +14,28 @@ pub fn print_text_report(report: &GuardReport) {
         }
     }
 
+    if report.truncated || report.unreadable_entries > 0 || !report.skipped.is_empty() {
+        println!(
+            "\x1b[33mwarning\x1b[0m: scan incomplete — {} file(s) skipped, {} unreadable entry(ies), truncated={}",
+            report.skipped.len(),
+            report.unreadable_entries,
+            report.truncated
+        );
+        for entry in &report.skipped {
+            println!("   - {:?}: {}", entry.reason, entry.file.display());
+        }
+    }
+
     if report.is_pass() {
         println!(
             "[SLUGRAILS-PASS] {} files verified across {} active guard rules in {}ms.",
             report.total_files_checked,
             report.passed_tests.len(),
             report.duration_ms
+        );
+    } else if report.violations.is_empty() {
+        println!(
+            "\n\x1b[1;31m[SLUGRAILS-INCOMPLETE]\x1b[0m no violations in the inspected files, but the scan was partial — not a verified pass."
         );
     } else {
         println!(

@@ -1,6 +1,6 @@
 //! SARIF 2.1.0 (Static Analysis Results Interchange Format) exporter.
 
-use crate::types::{GuardReport, Severity};
+use crate::types::{GuardReport, ScanOutcome, Severity};
 use serde_json::{Value, json};
 
 /// Converts a [`GuardReport`] into standard SARIF 2.1.0 JSON format.
@@ -53,6 +53,13 @@ pub fn format_sarif(report: &GuardReport) -> Value {
         })
         .collect();
 
+    let outcome = match report.outcome() {
+        ScanOutcome::Passed => "passed",
+        ScanOutcome::Violations => "violations",
+        ScanOutcome::Incomplete => "incomplete",
+        ScanOutcome::Failed => "failed",
+    };
+
     json!({
         "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
         "version": "2.1.0",
@@ -64,6 +71,12 @@ pub fn format_sarif(report: &GuardReport) -> Value {
                         "semanticVersion": env!("CARGO_PKG_VERSION"),
                         "informationUri": "https://github.com/SlugThugLabs/SlugRails"
                     }
+                },
+                "properties": {
+                    "scanOutcome": outcome,
+                    "skippedFiles": report.skipped.len(),
+                    "unreadableEntries": report.unreadable_entries,
+                    "truncated": report.truncated
                 },
                 "results": results
             }

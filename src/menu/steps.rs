@@ -28,7 +28,9 @@ pub fn install_step() {
                 use std::os::unix::fs::PermissionsExt;
                 if let Ok(mut perms) = std::fs::metadata(&target).map(|m| m.permissions()) {
                     perms.set_mode(0o755);
-                    let _ = std::fs::set_permissions(&target, perms);
+                    if let Err(e) = std::fs::set_permissions(&target, perms) {
+                        tracing::warn!("Failed to set permissions on {}: {e}", target.display());
+                    }
                 }
             }
             println!("Installed SlugRails to {}", target.display());
@@ -128,6 +130,7 @@ fn run_with_timeout(
         }
         if start.elapsed() >= timeout {
             let _ = child.kill();
+            let _ = child.wait();
             return None;
         }
         std::thread::sleep(std::time::Duration::from_millis(50));

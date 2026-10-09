@@ -34,7 +34,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 - **Cryptographic HMAC Exception Verification**: Recomputes BLAKE3 keyed hash using central salt in `storage::is_exception_valid_with_ttl`. Forged or unkeyed tokens are rejected.
-- **Autonomous Agent Guardrail Gate**: Added `human_confirmed: bool` check to `AddExceptionRequest` preventing autonomous agents from self-authorizing guardrail bypasses.
+- **Autonomous Agent Guardrail Gate (revised)**: `AddExceptionRequest.human_confirmed` is caller-controlled and is **not** proof of human approval. The MCP tool now refuses to authorize exceptions, and the `slugrails exception add` CLI requires an interactive terminal, so an autonomous agent cannot grant itself a bypass by setting a request field.
 - **Filesystem Sandbox Hardening**: `validate_safe_path` actively rejects Windows UNC network paths (`\\`, `//`), NTFS alternate streams (`:`), and MS-DOS device names.
 - **Subprocess Defense**: Added `-c core.fsmonitor=` and `-c core.hooksPath=/dev/null` to Git invocations in `collect_git_diff_files` to neutralize untrusted repository hooks.
 - **Permissions Hardening**: Key generation in `get_or_init_secret_salt` enforces Unix `0o600` file permissions.

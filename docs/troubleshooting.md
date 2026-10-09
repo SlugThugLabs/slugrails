@@ -175,7 +175,7 @@ slugrails exception add src/legacy.rs complexity/source-limits --reason="Legacy 
 
 ### Q: How secure are exception tokens?
 
-**A**: Tokens are HMAC-SHA256 signatures using a machine-private 256-bit key. They cannot be forged without access to `~/.slugthug/.secret.key`.
+**A**: Tokens are keyed-BLAKE3 MACs (`sr_tok_` + 32 hex chars) using a machine-local 256-bit salt at `~/.slugthuglabs/slugrails/.secret.key`. They cannot be forged without that salt — but any process running as the same user can read it, so treats exceptions as a user-scoped approval, not an agent-proof one.
 
 ### Q: What's the difference between `check --diff` and `check --all`?
 

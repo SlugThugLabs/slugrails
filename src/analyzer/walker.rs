@@ -1,6 +1,7 @@
 //! Fast, .gitignore-aware parallel file walker using Rayon and Ignore crates.
 
 use crate::error::{Result, SlugRailsError};
+use crate::types::ScanCollection;
 use ignore::{WalkBuilder, WalkState};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
@@ -38,12 +39,12 @@ fn is_path_ignored(path: &Path) -> bool {
 const MAX_DIRECTORY_DEPTH: usize = 32;
 const MAX_SCANNED_FILES: usize = 50_000;
 
-/// Collects all relevant source files in the project root.
+/// Collects candidate source files and reports whether the walk was complete.
 ///
 /// # Errors
 ///
 /// Returns [`SlugRailsError::Io`] if the project directory cannot be traversed.
-pub fn collect_source_files(project_root: &Path) -> Result<Vec<PathBuf>> {
+pub fn collect_source_files(project_root: &Path) -> Result<ScanCollection> {
     if let Err(e) = std::fs::metadata(project_root) {
         return Err(SlugRailsError::Io {
             path: project_root.to_path_buf(),
@@ -54,6 +55,8 @@ pub fn collect_source_files(project_root: &Path) -> Result<Vec<PathBuf>> {
     let (tx, rx) = mpsc::channel();
     let count = Arc::new(AtomicUsize::new(0));
     let budget_warned = Arc::new(AtomicBool::new(false));
+    let truncated = Arc::new(AtomicBool::new(false));
+    let unreadable_entries = Arc::new(AtomicUsize::new(0));
 
     let walker = WalkBuilder::new(project_root)
         .standard_filters(true)
@@ -66,15 +69,19 @@ pub fn collect_source_files(project_root: &Path) -> Result<Vec<PathBuf>> {
         let tx = tx.clone();
         let count = Arc::clone(&count);
         let budget_warned = Arc::clone(&budget_warned);
+        let truncated = Arc::clone(&truncated);
+        let unreadable_entries = Arc::clone(&unreadable_entries);
 
         Box::new(move |result| {
             if count.load(Ordering::Relaxed) >= MAX_SCANNED_FILES {
+                truncated.store(true, Ordering::Relaxed);
                 return WalkState::Quit;
             }
 
             let entry = match result {
                 Ok(entry) => entry,
                 Err(err) => {
+                    unreadable_entries.fetch_add(1, Ordering::Relaxed);
                     tracing::debug!(error = %err, "Skipping unreadable entry during traversal");
                     return WalkState::Continue;
                 }
@@ -88,21 +95,11 @@ pub fn collect_source_files(project_root: &Path) -> Result<Vec<PathBuf>> {
                 return WalkState::Continue;
             }
 
-            if path.is_file()
+            if entry.file_type().is_some_and(|ft| ft.is_file())
                 && let Some(ext) = path.extension().and_then(|e| e.to_str())
                 && matches!(ext, "rs" | "py" | "ts" | "js" | "go" | "toml")
             {
                 if is_path_ignored(path) {
-                    return WalkState::Continue;
-                }
-                if let Ok(meta) = entry.metadata()
-                    && meta.len() > MAX_FILE_SIZE_BYTES
-                {
-                    tracing::warn!(
-                        path = %path.display(),
-                        size = meta.len(),
-                        "Skipping file exceeding 2MB memory defense limit"
-                    );
                     return WalkState::Continue;
                 }
                 if count.fetch_add(1, Ordering::Relaxed) >= MAX_SCANNED_FILES {
@@ -111,6 +108,7 @@ pub fn collect_source_files(project_root: &Path) -> Result<Vec<PathBuf>> {
                             "Scan reached maximum file budget of {MAX_SCANNED_FILES} files"
                         );
                     }
+                    truncated.store(true, Ordering::Relaxed);
                     return WalkState::Quit;
                 }
                 if tx.send(path.to_path_buf()).is_err() {
@@ -126,9 +124,14 @@ pub fn collect_source_files(project_root: &Path) -> Result<Vec<PathBuf>> {
     let mut files: Vec<PathBuf> = rx.into_iter().collect();
     if files.len() > MAX_SCANNED_FILES {
         files.truncate(MAX_SCANNED_FILES);
+        truncated.store(true, Ordering::Relaxed);
     }
     files.sort();
-    Ok(files)
+    Ok(ScanCollection {
+        files,
+        truncated: truncated.load(Ordering::Relaxed),
+        unreadable_entries: unreadable_entries.load(Ordering::Relaxed),
+    })
 }
 
 /// Collects only files modified in the active git worktree.
@@ -137,13 +140,13 @@ pub fn collect_source_files(project_root: &Path) -> Result<Vec<PathBuf>> {
 ///
 /// Returns [`SlugRailsError::Io`] if git commands fail to execute or\
 /// if the project directory cannot be traversed as a fallback.
-pub fn collect_git_diff_files(project_root: &Path) -> Result<Vec<PathBuf>> {
+pub fn collect_git_diff_files(project_root: &Path) -> Result<ScanCollection> {
     if which::which("git").is_err() {
         tracing::debug!("'git' CLI not found on PATH; falling back to full repository scan");
         return collect_source_files(project_root);
     }
 
-    let output = std::process::Command::new("git")
+    let Ok(output) = std::process::Command::new("git")
         .args([
             "-c",
             "core.fsmonitor=",
@@ -153,12 +156,16 @@ pub fn collect_git_diff_files(project_root: &Path) -> Result<Vec<PathBuf>> {
             "--porcelain",
         ])
         .current_dir(project_root)
-        .output();
-
-    let Ok(output) = output else {
+        .output()
+    else {
         tracing::debug!("'git status' command failed; falling back to full repository scan");
         return collect_source_files(project_root);
     };
+
+    if !output.status.success() {
+        tracing::debug!("'git status' exited non-zero; falling back to full repository scan");
+        return collect_source_files(project_root);
+    }
 
     let mut files = Vec::new();
     let text = String::from_utf8_lossy(&output.stdout);
@@ -178,15 +185,14 @@ pub fn collect_git_diff_files(project_root: &Path) -> Result<Vec<PathBuf>> {
                 && let Some(ext) = full_path.extension().and_then(|e| e.to_str())
                 && matches!(ext, "rs" | "py" | "ts" | "js" | "go" | "toml")
             {
-                if let Ok(meta) = full_path.metadata()
-                    && meta.len() > MAX_FILE_SIZE_BYTES
-                {
-                    continue;
-                }
                 files.push(full_path);
             }
         }
     }
 
-    Ok(files)
+    Ok(ScanCollection {
+        files,
+        truncated: false,
+        unreadable_entries: 0,
+    })
 }

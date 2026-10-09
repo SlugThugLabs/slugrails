@@ -57,9 +57,53 @@ pub struct AddExceptionRequest {
 pub struct CheckProjectRequest {
     /// Absolute path to the target project directory (default: current dir)
     pub project_path: Option<String>,
-    /// Check all source files instead of only git modified files (default: false)
-    #[serde(default)]
+    /// Check all source files instead of only git modified files (default: true)
+    #[serde(default = "default_true")]
     pub check_all: bool,
+}
+
+const fn default_true() -> bool {
+    true
+}
+
+impl Default for CheckProjectRequest {
+    fn default() -> Self {
+        Self {
+            project_path: None,
+            check_all: true,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize, JsonSchema)]
+pub struct ListExceptionsRequest {
+    /// Absolute or relative path to target project directory (default: current dir)
+    #[serde(default)]
+    pub project_path: Option<String>,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize, JsonSchema)]
+pub struct ListExceptionsResponse {
+    pub exceptions: Vec<crate::types::ExceptionEntry>,
+    pub total: usize,
+    pub count: usize,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+pub struct RevokeExceptionRequest {
+    /// Absolute or relative path to target project directory (default: current dir)
+    #[serde(default)]
+    pub project_path: Option<String>,
+    /// Cryptographic token of the exception to revoke
+    pub token: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+pub struct RevokeExceptionResponse {
+    pub success: bool,
+    pub revoked: bool,
+    pub token: String,
+    pub message: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]

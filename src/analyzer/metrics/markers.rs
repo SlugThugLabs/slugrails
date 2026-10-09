@@ -47,7 +47,8 @@ static RE_ACTION: LazyRegex = LazyLock::new(|| Regex::new(r"\b(TODO|FIXME|HACK|A
 static RE_TODO: LazyRegex = LazyLock::new(|| Regex::new(r"\btodo!\s*\(").ok());
 static RE_UNIMPLEMENTED: LazyRegex = LazyLock::new(|| Regex::new(r"\bunimplemented!\s*\(").ok());
 static RE_UNREACHABLE: LazyRegex = LazyLock::new(|| Regex::new(r"\bunreachable!\s*\(").ok());
-static RE_PANIC_STR: LazyRegex = LazyLock::new(|| Regex::new(r#"panic!\s*\(\s*"([^"]*)""#).ok());
+static RE_PANIC_STR: LazyRegex =
+    LazyLock::new(|| Regex::new(r#"panic!\s*\(\s*"([^"]*)"\s*\)"#).ok());
 static RE_NOT_IMPLEMENTED: LazyRegex =
     LazyLock::new(|| Regex::new(r"\braise\s+NotImplementedError\b").ok());
 static RE_PLACEHOLDER_WORDS: LazyRegex = LazyLock::new(|| {

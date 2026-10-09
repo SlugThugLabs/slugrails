@@ -77,13 +77,16 @@ All guard tests live externally in `~/.slugthuglabs/slugrails/tests/`, keeping y
 When a genuine exception is needed, SlugRails uses cryptographic tokens to prevent agent self-authorization:
 
 1. **Agent hits boundary**: Check fails with specific instructions
-2. **User grants exception**: Runs `slugrails exception add ...`
-3. **Token generated**: 5-digit code bound to `(file, guard, reason)`
-4. **Verification**: Header comment validates against user's private key
+2. **User grants exception**: Runs `slugrails exception add ...` in an interactive terminal
+3. **Token generated**: `sr_tok_` + 32 hex chars (128-bit keyed-BLAKE3 MAC) bound to `(file, guard, reason, grant date)`
+4. **Verification**: the inline header token is re-derived from the stored entry and the local salt
 
 ```rust
-// slugrails-exception: token=40721; guard=languages/rust/no-unwrap; reason="Legacy module"
+// slugrails-exception: token=sr_tok_9f2a1c4b7e8d0a3f5c6b1e2d4a7f8c90; guard=languages/rust/no-unwrap; reason="Legacy module"
 ```
+
+Legacy 5-digit tokens are rejected; re-issue them with `slugrails exception add`.
+See `.planning/adr/0002-exception-token-contract.md`.
 
 ## Integration Points
 

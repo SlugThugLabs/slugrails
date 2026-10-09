@@ -52,63 +52,124 @@ pub fn normalize_path(path: &Path) -> PathBuf {
     components.into_iter().collect()
 }
 
-/// Validates that a path does not target sensitive system directories
-/// (e.g., `/proc`, `/sys`, `/dev`, `~/.ssh`, `~/.aws`).
-///
-/// # Errors
-///
-/// Returns [`SlugRailsError::SandboxViolation`] if the path escapes the sandbox or references forbidden resources.
-pub fn validate_safe_path(path: &Path) -> Result<PathBuf> {
+/// Rejects Windows path syntax that can escape a root: UNC paths, alternate data
+/// streams, and reserved DOS device names.
+fn reject_windows_path_syntax(path: &Path) -> Result<()> {
     let raw_str = path.to_string_lossy();
-    if raw_str.starts_with(r"\\") || raw_str.starts_with("//") {
-        return Err(SlugRailsError::SandboxViolation {
-            path: path.to_path_buf(),
-        });
-    }
-    if raw_str.chars().skip(2).any(|c| c == ':') {
-        return Err(SlugRailsError::SandboxViolation {
-            path: path.to_path_buf(),
-        });
-    }
-
-    if is_windows_dos_device(path) {
-        return Err(SlugRailsError::SandboxViolation {
-            path: path.to_path_buf(),
-        });
-    }
-
-    let canonical = match path.canonicalize() {
-        Ok(p) => p,
-        Err(_) => path.to_path_buf(),
+    let (target_path, check_str) = if let Some(rest) = raw_str.strip_prefix(r"\\?\") {
+        let b = rest.as_bytes();
+        if b.len() >= 2 && b[0].is_ascii_alphabetic() && b[1] == b':' {
+            (Path::new(rest), rest)
+        } else {
+            return Err(SlugRailsError::SandboxViolation {
+                path: path.to_path_buf(),
+            });
+        }
+    } else {
+        (path, raw_str.as_ref())
     };
 
-    if is_windows_dos_device(&canonical) {
-        return Err(SlugRailsError::SandboxViolation { path: canonical });
+    if check_str.starts_with(r"\\") || check_str.starts_with("//") {
+        return Err(SlugRailsError::SandboxViolation {
+            path: path.to_path_buf(),
+        });
     }
+    if check_str.chars().skip(2).any(|c| c == ':') {
+        return Err(SlugRailsError::SandboxViolation {
+            path: path.to_path_buf(),
+        });
+    }
+    if is_windows_dos_device(target_path) {
+        return Err(SlugRailsError::SandboxViolation {
+            path: path.to_path_buf(),
+        });
+    }
+    Ok(())
+}
 
-    let path_str = canonical.to_string_lossy();
-
+/// Rejects a resolved path that lives in a sensitive system location.
+fn reject_sensitive_location(canonical: &Path) -> Result<()> {
+    if is_windows_dos_device(canonical) {
+        return Err(SlugRailsError::SandboxViolation {
+            path: canonical.to_path_buf(),
+        });
+    }
     for comp in canonical.components() {
         if matches!(comp, Component::ParentDir) {
-            return Err(SlugRailsError::SandboxViolation { path: canonical });
+            return Err(SlugRailsError::SandboxViolation {
+                path: canonical.to_path_buf(),
+            });
         }
         if let Component::Normal(c) = comp {
             let name = c.to_string_lossy();
             if name == ".ssh" || name == ".aws" || name == ".gnupg" {
-                return Err(SlugRailsError::SandboxViolation { path: canonical });
+                return Err(SlugRailsError::SandboxViolation {
+                    path: canonical.to_path_buf(),
+                });
             }
         }
     }
-
-    if path_str.starts_with("/proc")
-        || path_str.starts_with("/sys")
-        || path_str.starts_with("/dev")
-        || path_str.starts_with("/etc/shadow")
-        || path_str.starts_with("/etc/sudoers")
+    if canonical.starts_with(Path::new("/proc"))
+        || canonical.starts_with(Path::new("/sys"))
+        || canonical.starts_with(Path::new("/dev"))
+        || canonical.starts_with(Path::new("/etc/shadow"))
+        || canonical.starts_with(Path::new("/etc/sudoers"))
     {
+        return Err(SlugRailsError::SandboxViolation {
+            path: canonical.to_path_buf(),
+        });
+    }
+    Ok(())
+}
+
+/// Resolves and validates an authorized project root against the deny-list.
+///
+/// This checks the *shape* of the root and rejects sensitive locations; it does
+/// **not** authorize the caller to choose that root (see IMPLEMENTATION_PROGRESS).
+///
+/// # Errors
+///
+/// Returns [`SlugRailsError::SandboxViolation`] for malformed or sensitive roots.
+pub fn resolve_root(root: &Path) -> Result<PathBuf> {
+    reject_windows_path_syntax(root)?;
+    let canonical = root.canonicalize().unwrap_or_else(|_| root.to_path_buf());
+    reject_sensitive_location(&canonical)?;
+    Ok(canonical)
+}
+
+/// Resolves `path` and requires it to stay inside the authorized `root`.
+///
+/// The root should be resolved first with [`resolve_root`]. Relative paths are
+/// resolved against the root; a non-existent target is resolved lexically (so an
+/// exception can be granted before a file exists) and must still stay inside the
+/// root. Existing paths are canonicalized, so a symlink that escapes is rejected.
+///
+/// # Errors
+///
+/// Returns [`SlugRailsError::SandboxViolation`] if the path escapes the root or
+/// references forbidden resources.
+pub fn validate_safe_path(root: &Path, path: &Path) -> Result<PathBuf> {
+    reject_windows_path_syntax(path)?;
+    let canonical_root = root.canonicalize().unwrap_or_else(|_| root.to_path_buf());
+
+    let canonical = match path.canonicalize() {
+        Ok(resolved) => resolved,
+        Err(_) => {
+            let normalized = normalize_path(path);
+            let joined = if normalized.is_absolute() {
+                normalized
+            } else {
+                canonical_root.join(normalized)
+            };
+            normalize_path(&joined)
+        }
+    };
+
+    reject_sensitive_location(&canonical)?;
+
+    if canonical != canonical_root && !canonical.starts_with(&canonical_root) {
         return Err(SlugRailsError::SandboxViolation { path: canonical });
     }
-
     Ok(canonical)
 }
 

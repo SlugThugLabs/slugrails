@@ -3,39 +3,11 @@
   "version": "",
   "exceptions": [
     {
-      "token": "21483",
-      "file": "src/test.rs",
-      "guard_id": "test-guard",
-      "reason": "reason 0",
-      "granted_at": "2026-10-09T10:42:48.902252549+00:00"
-    },
-    {
-      "token": "46579",
-      "file": "src/test.rs",
-      "guard_id": "test-guard",
-      "reason": "reason 1",
-      "granted_at": "2026-10-09T10:42:48.902605664+00:00"
-    },
-    {
-      "token": "96540",
-      "file": "src/test.rs",
-      "guard_id": "test-guard",
-      "reason": "reason 2",
-      "granted_at": "2026-10-09T10:42:48.902894913+00:00"
-    },
-    {
-      "token": "70206",
-      "file": "src/test.rs",
-      "guard_id": "test-guard",
-      "reason": "reason 3",
-      "granted_at": "2026-10-09T10:42:48.903222376+00:00"
-    },
-    {
-      "token": "13888",
-      "file": "src/test.rs",
-      "guard_id": "test-guard",
-      "reason": "reason 4",
-      "granted_at": "2026-10-09T10:42:48.903540731+00:00"
+      "token": "sr_tok_7662b37b047ccf9d29df0387f8a6eb37",
+      "file": "src/worker.rs",
+      "guard_id": "hygiene/swallowed-errors",
+      "reason": "Background task retry loop",
+      "granted_at": "2026-10-09T19:02:30.207038793+00:00"
     }
   ]
 }

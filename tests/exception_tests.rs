@@ -19,7 +19,8 @@ mod tests {
             .add_exception(file, "complexity/source-limits", "transport scaffolding")
             .unwrap();
 
-        assert_eq!(entry.token.len(), 5);
+        assert_eq!(entry.token.len(), 39, "canonical token is sr_tok_ + 32 hex");
+        assert!(entry.token.starts_with("sr_tok_"));
         assert_eq!(exceptions.exceptions.len(), 1);
 
         // Verify lookup
@@ -47,7 +48,8 @@ mod tests {
         let entry =
             exceptions.insert_exception(file, "languages/rust/no-unwrap", "domain invariant");
 
-        assert_eq!(entry.token.len(), 5);
+        assert_eq!(entry.token.len(), 39, "canonical token is sr_tok_ + 32 hex");
+        assert!(entry.token.starts_with("sr_tok_"));
         assert_eq!(exceptions.exceptions.len(), 1);
         assert!(exceptions.is_exception_valid(file, "languages/rust/no-unwrap", &entry.token));
 

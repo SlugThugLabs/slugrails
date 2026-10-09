@@ -4,7 +4,7 @@
 //! - `test_check_project_handler`: verifies `handle_check_project` runs against a sample project directory.
 //! - `test_slugplan_probe_handler`: verifies `handle_probe` returns architectural recommendations and layers.
 //! - `test_scaffold_test_harness_handler`: verifies `handle_scaffold_harness` creates `tests/slugrails.rs`.
-//! - `test_add_exception_handler`: verifies `handle_add_exception` grants valid token with human confirmation.
+//! - `test_add_exception_handler`: verifies `handle_add_exception` refuses (MCP cannot authorize).
 //! - `test_baseline_tamper_rejection`: verifies that modifying `ARCHITECTURE.md` without updating `contract.baseline` triggers tamper error.
 
 #![allow(warnings, clippy::all, clippy::pedantic)]
@@ -207,7 +207,8 @@ fn test_add_exception_handler() {
         "Autonomous exception without human confirmation must be rejected"
     );
 
-    // 2. With human confirmation -> GRANTS VALID TOKEN
+    // 2. Even with `human_confirmed: true` the request must be refused: the field is
+    //    caller-controlled and cannot stand in for verified human approval (SR-S03).
     let req_confirmed = AddExceptionRequest {
         project_path: project_root.to_string_lossy().to_string(),
         file: "src/legacy.rs".to_string(),
@@ -216,32 +217,22 @@ fn test_add_exception_handler() {
         human_confirmed: true,
     };
 
-    let ok_result = handle_add_exception(req_confirmed);
+    let confirmed_result = handle_add_exception(req_confirmed);
     assert!(
-        ok_result.is_ok(),
-        "Human confirmed exception must succeed: {:?}",
-        ok_result.err()
+        confirmed_result.is_err(),
+        "MCP must not grant an exception on a request field alone"
     );
 
-    let entry = ok_result.expect("unreachable").0;
-    assert_eq!(entry.file, PathBuf::from("src/legacy.rs"));
-    assert_eq!(entry.guard_id, "complexity/source-limits");
-    assert_eq!(entry.reason, "Legacy code undergoing phased refactor");
-    assert_eq!(entry.token.len(), 5, "token must be exactly 5 digits");
+    // 3. A refused request must not persist anything.
+    let store_file = project_root.join(".planning/slugrails/exceptions.json");
     assert!(
-        entry.token.chars().all(|c| c.is_ascii_digit()),
-        "token must be numeric digits"
+        !store_file.exists(),
+        "a refused exception request must not create an exception store"
     );
-
-    // 3. Verify persistence in project exceptions store
     let exceptions = ProjectExceptions::load(project_root).expect("failed to load exceptions");
     assert!(
-        exceptions.is_exception_valid(
-            Path::new("src/legacy.rs"),
-            "complexity/source-limits",
-            &entry.token
-        ),
-        "persisted exception must validate against matching file, guard, and token"
+        exceptions.exceptions.is_empty(),
+        "a refused exception request must not record an exception"
     );
 }
 

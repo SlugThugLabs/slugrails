@@ -1,6 +1,9 @@
 //! Execution handlers for `SlugRails` and `SlugPlan` MCP tools.
 
-pub use super::actions::{handle_add_exception, handle_create_guard_test, handle_scaffold_harness};
+pub use super::actions::{
+    handle_add_exception, handle_create_guard_test, handle_list_exceptions,
+    handle_revoke_exception, handle_scaffold_harness,
+};
 use crate::analyzer::walker::{collect_git_diff_files, collect_source_files};
 use crate::contract::{load_architecture, validate_architecture};
 use crate::guards::runner::run_guard_checks;
@@ -16,12 +19,25 @@ use std::sync::Arc;
 use tokio::sync::Mutex;
 
 pub(crate) fn resolve_safe_root(path_opt: Option<&str>) -> Result<PathBuf, ErrorData> {
-    let p = path_opt.unwrap_or(".");
+    let p = path_opt.filter(|s| !s.trim().is_empty()).unwrap_or(".");
     if p.len() > 1024 {
         return Err(ErrorData::invalid_params("Project path too long", None));
     }
-    crate::util::validate_safe_path(Path::new(p))
+    crate::util::resolve_root(Path::new(p))
         .map_err(|e| ErrorData::invalid_params(format!("Unsafe path: {e}"), None))
+}
+
+/// MCP error for a failed source-file collection (no files were inspected).
+pub(crate) fn collection_err(e: crate::error::SlugRailsError) -> ErrorData {
+    ErrorData::internal_error(
+        format!("Source collection failed; no files were inspected: {e}"),
+        None,
+    )
+}
+
+/// MCP error for a failed exception-store load.
+pub(crate) fn exception_store_err(e: crate::error::SlugRailsError) -> ErrorData {
+    ErrorData::internal_error(format!("Failed to load the exception store: {e}"), None)
 }
 
 /// Validates `.planning/ARCHITECTURE.md` against disk files and guard catalog.
@@ -63,17 +79,21 @@ pub async fn handle_check_project(
 
     let check_all = req.check_all;
     let root = project_root.clone();
-    let files = tokio::task::spawn_blocking(move || {
+    let collection = tokio::task::spawn_blocking(move || {
         if check_all {
-            collect_source_files(&root).unwrap_or_default()
+            collect_source_files(&root)
         } else {
-            collect_git_diff_files(&root).unwrap_or_default()
+            collect_git_diff_files(&root)
         }
     })
     .await
-    .map_err(|e| ErrorData::internal_error(format!("File collection task failed: {e}"), None))?;
+    .map_err(|e| ErrorData::internal_error(format!("File collection task failed: {e}"), None))?
+    .map_err(collection_err)?;
+    let truncated = collection.truncated;
+    let unreadable_entries = collection.unreadable_entries;
+    let files = collection.files;
 
-    let exceptions = ProjectExceptions::load(&project_root).unwrap_or_default();
+    let exceptions = ProjectExceptions::load(&project_root).map_err(exception_store_err)?;
     let cat = catalog.clone().lock_owned().await;
     let root = project_root.clone();
     let res = tokio::task::spawn_blocking(move || {
@@ -82,13 +102,11 @@ pub async fn handle_check_project(
     .await
     .map_err(|e| ErrorData::internal_error(format!("Scan task failed: {e}"), None))?;
 
-    match res {
-        Ok(report) => Ok(Json(report)),
-        Err(e) => Err(ErrorData::internal_error(
-            format!("Guard scan failed: {e}"),
-            None,
-        )),
-    }
+    let mut report =
+        res.map_err(|e| ErrorData::internal_error(format!("Guard scan failed: {e}"), None))?;
+    report.truncated = truncated;
+    report.unreadable_entries = unreadable_entries;
+    Ok(Json(report))
 }
 
 /// Inspects project structure and scaffolds proposed architecture.

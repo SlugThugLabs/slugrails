@@ -48,3 +48,12 @@ pub fn get_binary_name() -> &'static str {
 pub fn get_tests_dir() -> PathBuf {
     get_slugrails_home().join("tests")
 }
+
+/// Whether standard input is attached to an interactive terminal.
+///
+/// Gates actions that require a human at a terminal, such as authorizing an
+/// exception: an autonomous agent normally has no controlling terminal.
+#[must_use]
+pub fn has_interactive_terminal() -> bool {
+    std::io::IsTerminal::is_terminal(&std::io::stdin())
+}

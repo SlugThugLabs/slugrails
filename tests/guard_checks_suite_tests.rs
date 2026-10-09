@@ -3,8 +3,9 @@
 use slugrails::analyzer::test_region_lines;
 use slugrails::contract::ArchitectureContract;
 use slugrails::guards::checks::{
-    DeepNestingCheck, ManifestDependenciesCheck, NoSecretsCheck, SwallowedErrorsCheck,
-    UnsafePolicyCheck,
+    DebugPrintsCheck, DeepNestingCheck, FunctionLimitsCheck, ManifestDependenciesCheck,
+    NoPanicCheck, NoSecretsCheck, NoStubsCheck, NoStubsCheck as StubsCheck, SourceLimitsCheck,
+    SwallowedErrorsCheck, UnsafePolicyCheck,
 };
 use slugrails::guards::context::FileContext;
 use slugrails::guards::traits::GuardCheck;
@@ -812,4 +813,817 @@ actix-web = "4.0"
     assert_eq!(violations.len(), 1);
     assert_eq!(violations[0].guard_id, "structural/manifest-dependencies");
     assert!(violations[0].message.contains("actix-web"));
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 9. complexity/source-limits tests
+// ─────────────────────────────────────────────────────────────────────────────
+
+#[test]
+fn test_source_limits_flags_exceeded_lines_and_passes_under_limit() {
+    let dir = tempdir().expect("tempdir");
+
+    // Generate a file with 210 code lines
+    let mut large_lines = Vec::new();
+    for i in 0..210 {
+        large_lines.push(format!("pub fn func_{i}() {{ let _x = {i}; }}"));
+    }
+    let large_source = large_lines.join("\n");
+
+    let large_file = dir.path().join("src/large.rs");
+    fs::create_dir_all(large_file.parent().unwrap()).unwrap();
+    fs::write(&large_file, &large_source).unwrap();
+
+    let guard = build_catalog_entry("complexity/source-limits");
+    let exceptions = ProjectExceptions::default();
+    let rel_large = Path::new("src/large.rs");
+
+    let ctx = FileContext {
+        file: &large_file,
+        rel_file: rel_large,
+        rel_str: "src/large.rs",
+        content: &large_source,
+        is_test: false,
+        test_regions: &[],
+        rule_name: "complexity/source-limits",
+        guard: &guard,
+        exceptions: &exceptions,
+    };
+
+    let check = SourceLimitsCheck;
+    let contract = ArchitectureContract::default(); // default max_lines = 200
+    let violations = check.check(&ctx, &contract);
+
+    assert_eq!(
+        violations.len(),
+        1,
+        "File with 210 lines should be flagged: {violations:?}"
+    );
+    assert_eq!(violations[0].guard_id, "complexity/source-limits");
+    assert_eq!(violations[0].severity, Severity::Error);
+    assert!(violations[0].message.contains("210 code lines"));
+    assert!(violations[0].message.contains("exceeds limit of 200"));
+
+    // File with 50 lines should pass
+    let small_source = "pub fn small() {\n    let _x = 1;\n}\n";
+    let small_file = dir.path().join("src/small.rs");
+    fs::write(&small_file, small_source).unwrap();
+    let rel_small = Path::new("src/small.rs");
+
+    let small_ctx = FileContext {
+        file: &small_file,
+        rel_file: rel_small,
+        rel_str: "src/small.rs",
+        content: small_source,
+        is_test: false,
+        test_regions: &[],
+        rule_name: "complexity/source-limits",
+        guard: &guard,
+        exceptions: &exceptions,
+    };
+
+    let small_violations = check.check(&small_ctx, &contract);
+    assert!(
+        small_violations.is_empty(),
+        "Small file under 200 lines should pass: {small_violations:?}"
+    );
+}
+
+#[test]
+fn test_source_limits_custom_contract_threshold() {
+    let dir = tempdir().expect("tempdir");
+    let mut lines = Vec::new();
+    for i in 0..15 {
+        lines.push(format!("pub fn func_{i}() {{}}"));
+    }
+    let source = lines.join("\n");
+    let file = dir.path().join("src/custom.rs");
+    fs::create_dir_all(file.parent().unwrap()).unwrap();
+    fs::write(&file, &source).unwrap();
+
+    let guard = build_catalog_entry("complexity/source-limits");
+    let exceptions = ProjectExceptions::default();
+    let rel = Path::new("src/custom.rs");
+
+    let ctx = FileContext {
+        file: &file,
+        rel_file: rel,
+        rel_str: "src/custom.rs",
+        content: &source,
+        is_test: false,
+        test_regions: &[],
+        rule_name: "complexity/source-limits",
+        guard: &guard,
+        exceptions: &exceptions,
+    };
+
+    let check = SourceLimitsCheck;
+
+    // With default contract (200), 15 lines passes
+    let default_contract = ArchitectureContract::default();
+    assert!(check.check(&ctx, &default_contract).is_empty());
+
+    // With custom contract max_lines = 10
+    let mut custom_contract = ArchitectureContract::default();
+    custom_contract.guard_settings.insert(
+        "source_limits".to_string(),
+        serde_json::json!({ "max_lines": 10 }),
+    );
+
+    let violations = check.check(&ctx, &custom_contract);
+    assert_eq!(violations.len(), 1);
+    assert!(violations[0].message.contains("15 code lines"));
+    assert!(violations[0].message.contains("exceeds limit of 10"));
+}
+
+#[test]
+fn test_source_limits_ignores_test_files_and_respects_exceptions() {
+    let dir = tempdir().expect("tempdir");
+    let mut lines = Vec::new();
+    for i in 0..250 {
+        lines.push(format!("pub fn func_{i}() {{}}"));
+    }
+    let source = lines.join("\n");
+    let file = dir.path().join("tests/integration_test.rs");
+    fs::create_dir_all(file.parent().unwrap()).unwrap();
+    fs::write(&file, &source).unwrap();
+
+    let guard = build_catalog_entry("complexity/source-limits");
+    let exceptions = ProjectExceptions::default();
+    let rel = Path::new("tests/integration_test.rs");
+
+    // When is_test is true, source-limits skips checking
+    let test_ctx = FileContext {
+        file: &file,
+        rel_file: rel,
+        rel_str: "tests/integration_test.rs",
+        content: &source,
+        is_test: true,
+        test_regions: &[],
+        rule_name: "complexity/source-limits",
+        guard: &guard,
+        exceptions: &exceptions,
+    };
+
+    let check = SourceLimitsCheck;
+    let contract = ArchitectureContract::default();
+    assert!(
+        check.check(&test_ctx, &contract).is_empty(),
+        "Test file must be ignored by source-limits"
+    );
+
+    // Test with approved exception
+    let mut exceptions_mgr = ProjectExceptions::load(dir.path()).unwrap();
+    let rel_prod = Path::new("src/generated.rs");
+    let exc_entry = exceptions_mgr
+        .add_exception(
+            rel_prod,
+            "complexity/source-limits",
+            "Auto-generated parser",
+        )
+        .unwrap();
+
+    let exc_source = format!(
+        "// slugrails-exception: token={}; guard=complexity/source-limits;\n{}",
+        exc_entry.token, source
+    );
+    let prod_file = dir.path().join(rel_prod);
+    fs::create_dir_all(prod_file.parent().expect("prod file has a parent")).unwrap();
+    fs::write(&prod_file, &exc_source).unwrap();
+
+    let exc_ctx = FileContext {
+        file: &prod_file,
+        rel_file: rel_prod,
+        rel_str: "src/generated.rs",
+        content: &exc_source,
+        is_test: false,
+        test_regions: &[],
+        rule_name: "complexity/source-limits",
+        guard: &guard,
+        exceptions: &exceptions_mgr,
+    };
+
+    assert!(
+        check.check(&exc_ctx, &contract).is_empty(),
+        "Approved exception must suppress source-limits violation"
+    );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 10. complexity/function-limits tests
+// ─────────────────────────────────────────────────────────────────────────────
+
+#[test]
+fn test_function_limits_flags_long_functions_and_passes_short() {
+    let dir = tempdir().expect("tempdir");
+
+    // Create a 60-line function
+    let mut body_lines = Vec::new();
+    for i in 0..58 {
+        body_lines.push(format!("    let _v{i} = {i};"));
+    }
+    let long_func = format!("pub fn oversized_func() {{\n{}\n}}", body_lines.join("\n"));
+
+    let short_func = "pub fn short_func() {\n    let _x = 1;\n}\n";
+    let source = format!("{short_func}\n{long_func}\n");
+
+    let file = dir.path().join("src/handler.rs");
+    fs::create_dir_all(file.parent().unwrap()).unwrap();
+    fs::write(&file, &source).unwrap();
+
+    let guard = build_catalog_entry("complexity/function-limits");
+    let exceptions = ProjectExceptions::default();
+    let regions = test_region_lines(&source);
+    let rel = Path::new("src/handler.rs");
+
+    let ctx = FileContext {
+        file: &file,
+        rel_file: rel,
+        rel_str: "src/handler.rs",
+        content: &source,
+        is_test: false,
+        test_regions: &regions,
+        rule_name: "complexity/function-limits",
+        guard: &guard,
+        exceptions: &exceptions,
+    };
+
+    let check = FunctionLimitsCheck;
+    let contract = ArchitectureContract::default(); // default max_lines = 50
+    let violations = check.check(&ctx, &contract);
+
+    assert_eq!(
+        violations.len(),
+        1,
+        "Only oversized_func should be flagged: {violations:?}"
+    );
+    assert_eq!(violations[0].guard_id, "complexity/function-limits");
+    assert_eq!(violations[0].severity, Severity::Error);
+    assert!(violations[0].message.contains("oversized_func"));
+    assert!(violations[0].message.contains("exceeds limit of 50"));
+}
+
+#[test]
+fn test_function_limits_custom_contract_threshold() {
+    let dir = tempdir().expect("tempdir");
+    let source = r#"
+pub fn medium_func() {
+    let _a = 1;
+    let _b = 2;
+    let _c = 3;
+    let _d = 4;
+    let _e = 5;
+    let _f = 6;
+    let _g = 7;
+    let _h = 8;
+    let _i = 9;
+    let _j = 10;
+    let _k = 11;
+}
+"#;
+    let file = dir.path().join("src/service.rs");
+    fs::create_dir_all(file.parent().unwrap()).unwrap();
+    fs::write(&file, source).unwrap();
+
+    let guard = build_catalog_entry("complexity/function-limits");
+    let exceptions = ProjectExceptions::default();
+    let regions = test_region_lines(source);
+    let rel = Path::new("src/service.rs");
+
+    let ctx = FileContext {
+        file: &file,
+        rel_file: rel,
+        rel_str: "src/service.rs",
+        content: source,
+        is_test: false,
+        test_regions: &regions,
+        rule_name: "complexity/function-limits",
+        guard: &guard,
+        exceptions: &exceptions,
+    };
+
+    let check = FunctionLimitsCheck;
+    // Default 50 passes
+    let default_contract = ArchitectureContract::default();
+    assert!(check.check(&ctx, &default_contract).is_empty());
+
+    // Custom limit = 8 flags it
+    let mut custom_contract = ArchitectureContract::default();
+    custom_contract.guard_settings.insert(
+        "function_limits".to_string(),
+        serde_json::json!({ "max_lines": 8 }),
+    );
+
+    let violations = check.check(&ctx, &custom_contract);
+    assert_eq!(violations.len(), 1);
+    assert!(violations[0].message.contains("medium_func"));
+    assert!(violations[0].message.contains("exceeds limit of 8"));
+}
+
+#[test]
+fn test_function_limits_ignores_test_regions_and_respects_exceptions() {
+    let dir = tempdir().expect("tempdir");
+    let mut body_lines = Vec::new();
+    for i in 0..58 {
+        body_lines.push(format!("        let _v{i} = {i};"));
+    }
+    let test_source = format!(
+        "#[cfg(test)]\nmod tests {{\n    fn long_test_func() {{\n{}\n    }}\n}}\n",
+        body_lines.join("\n")
+    );
+
+    let file = dir.path().join("src/lib.rs");
+    fs::create_dir_all(file.parent().unwrap()).unwrap();
+    fs::write(&file, &test_source).unwrap();
+
+    let guard = build_catalog_entry("complexity/function-limits");
+    let exceptions = ProjectExceptions::default();
+    let regions = test_region_lines(&test_source);
+    let rel = Path::new("src/lib.rs");
+
+    let ctx = FileContext {
+        file: &file,
+        rel_file: rel,
+        rel_str: "src/lib.rs",
+        content: &test_source,
+        is_test: false,
+        test_regions: &regions,
+        rule_name: "complexity/function-limits",
+        guard: &guard,
+        exceptions: &exceptions,
+    };
+
+    let check = FunctionLimitsCheck;
+    let contract = ArchitectureContract::default();
+    assert!(
+        check.check(&ctx, &contract).is_empty(),
+        "Long function inside #[cfg(test)] must not trigger violation"
+    );
+
+    // Test with approved exception
+    let mut exceptions_mgr = ProjectExceptions::load(dir.path()).unwrap();
+    let exc_entry = exceptions_mgr
+        .add_exception(
+            rel,
+            "complexity/function-limits",
+            "Complex dispatch function",
+        )
+        .unwrap();
+
+    let prod_func = format!(
+        "// slugrails-exception: token={}; guard=complexity/function-limits;\npub fn long_prod() {{\n{}\n}}\n",
+        exc_entry.token,
+        body_lines.join("\n")
+    );
+
+    let exc_ctx = FileContext {
+        file: &file,
+        rel_file: rel,
+        rel_str: "src/lib.rs",
+        content: &prod_func,
+        is_test: false,
+        test_regions: &[],
+        rule_name: "complexity/function-limits",
+        guard: &guard,
+        exceptions: &exceptions_mgr,
+    };
+
+    assert!(
+        check.check(&exc_ctx, &contract).is_empty(),
+        "Approved exception must suppress function-limits violation"
+    );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 11. quality/no-stubs tests
+// ─────────────────────────────────────────────────────────────────────────────
+
+#[test]
+fn test_no_stubs_flags_todo_unimplemented_unreachable() {
+    let source = r#"
+pub fn stub_one() -> i32 {
+    todo!("implement feature one")
+}
+
+pub fn stub_two() -> String {
+    unimplemented!()
+}
+
+pub fn stub_three() {
+    unreachable!()
+}
+
+pub fn stub_four() {
+    panic!("TODO: finish this later");
+}
+"#;
+
+    let dir = tempdir().expect("tempdir");
+    let file = dir.path().join("src/stubs.rs");
+    fs::create_dir_all(file.parent().unwrap()).unwrap();
+    fs::write(&file, source).unwrap();
+
+    let guard = build_catalog_entry("quality/no-stubs");
+    let exceptions = ProjectExceptions::default();
+    let regions = test_region_lines(source);
+    let rel = Path::new("src/stubs.rs");
+
+    let ctx = FileContext {
+        file: &file,
+        rel_file: rel,
+        rel_str: "src/stubs.rs",
+        content: source,
+        is_test: false,
+        test_regions: &regions,
+        rule_name: "quality/no-stubs",
+        guard: &guard,
+        exceptions: &exceptions,
+    };
+
+    let check = StubsCheck;
+    let contract = ArchitectureContract::default();
+    let violations = check.check(&ctx, &contract);
+
+    assert_eq!(
+        violations.len(),
+        4,
+        "Expected 4 stub violations: {violations:?}"
+    );
+
+    for v in &violations {
+        assert_eq!(v.guard_id, "quality/no-stubs");
+        assert_eq!(v.severity, Severity::Error);
+        assert!(v.message.contains("Unimplemented stub detected"));
+    }
+
+    assert!(violations.iter().any(|v| v.message.contains("todo!()")));
+    assert!(
+        violations
+            .iter()
+            .any(|v| v.message.contains("unimplemented!()"))
+    );
+    assert!(
+        violations
+            .iter()
+            .any(|v| v.message.contains("unreachable!()"))
+    );
+    assert!(
+        violations
+            .iter()
+            .any(|v| v.message.contains("panic!(\"TODO: finish this later\")"))
+    );
+}
+
+#[test]
+fn test_no_stubs_ignores_test_regions_and_respects_exceptions() {
+    let source = r#"
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn test_mock() {
+        todo!("placeholder in test");
+        unimplemented!();
+    }
+}
+"#;
+
+    let dir = tempdir().expect("tempdir");
+    let file = dir.path().join("src/lib.rs");
+    fs::create_dir_all(file.parent().unwrap()).unwrap();
+    fs::write(&file, source).unwrap();
+
+    let guard = build_catalog_entry("quality/no-stubs");
+    let exceptions = ProjectExceptions::default();
+    let regions = test_region_lines(source);
+    let rel = Path::new("src/lib.rs");
+
+    let ctx = FileContext {
+        file: &file,
+        rel_file: rel,
+        rel_str: "src/lib.rs",
+        content: source,
+        is_test: false,
+        test_regions: &regions,
+        rule_name: "quality/no-stubs",
+        guard: &guard,
+        exceptions: &exceptions,
+    };
+
+    let check = StubsCheck;
+    let contract = ArchitectureContract::default();
+    assert!(
+        check.check(&ctx, &contract).is_empty(),
+        "Stubs inside #[cfg(test)] must be ignored"
+    );
+
+    // Test with approved exception
+    let mut exceptions_mgr = ProjectExceptions::load(dir.path()).unwrap();
+    let exc_entry = exceptions_mgr
+        .add_exception(rel, "quality/no-stubs", "Temporary prototype stub")
+        .unwrap();
+
+    let exc_source = format!(
+        "// slugrails-exception: token={}; guard=quality/no-stubs;\npub fn proto() {{\n    todo!();\n}}\n",
+        exc_entry.token
+    );
+
+    let exc_ctx = FileContext {
+        file: &file,
+        rel_file: rel,
+        rel_str: "src/lib.rs",
+        content: &exc_source,
+        is_test: false,
+        test_regions: &[],
+        rule_name: "quality/no-stubs",
+        guard: &guard,
+        exceptions: &exceptions_mgr,
+    };
+
+    assert!(
+        check.check(&exc_ctx, &contract).is_empty(),
+        "Approved exception must suppress no-stubs violation"
+    );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 12. languages/rust/no-panic tests
+// ─────────────────────────────────────────────────────────────────────────────
+
+#[test]
+fn test_no_panic_flags_panic_in_production_rust() {
+    let source = r#"
+pub fn divide(a: i32, b: i32) -> i32 {
+    // panic!("this comment should not trigger");
+    if b == 0 {
+        panic!("division by zero");
+    }
+    if a < 0 {
+        panic! ("negative numerator");
+    }
+    a / b
+}
+"#;
+
+    let dir = tempdir().expect("tempdir");
+    let file = dir.path().join("src/math.rs");
+    fs::create_dir_all(file.parent().unwrap()).unwrap();
+    fs::write(&file, source).unwrap();
+
+    let guard = build_catalog_entry("languages/rust/no-panic");
+    let exceptions = ProjectExceptions::default();
+    let regions = test_region_lines(source);
+    let rel = Path::new("src/math.rs");
+
+    let ctx = FileContext {
+        file: &file,
+        rel_file: rel,
+        rel_str: "src/math.rs",
+        content: source,
+        is_test: false,
+        test_regions: &regions,
+        rule_name: "languages/rust/no-panic",
+        guard: &guard,
+        exceptions: &exceptions,
+    };
+
+    let check = NoPanicCheck;
+    let contract = ArchitectureContract::default();
+    let violations = check.check(&ctx, &contract);
+
+    assert_eq!(
+        violations.len(),
+        2,
+        "Expected 2 panic violations: {violations:?}"
+    );
+
+    for v in &violations {
+        assert_eq!(v.guard_id, "languages/rust/no-panic");
+        assert_eq!(v.severity, Severity::Error);
+        assert_eq!(v.message, "Production code must not invoke panic!()");
+    }
+}
+
+#[test]
+fn test_no_panic_ignores_non_rs_files_and_test_regions_and_respects_exceptions() {
+    let dir = tempdir().expect("tempdir");
+
+    // Non-.rs file
+    let py_source = "def run():\n    panic!('not rust')\n";
+    let py_file = dir.path().join("src/helper.py");
+    fs::create_dir_all(py_file.parent().unwrap()).unwrap();
+    fs::write(&py_file, py_source).unwrap();
+
+    let guard = build_catalog_entry("languages/rust/no-panic");
+    let exceptions = ProjectExceptions::default();
+    let rel_py = Path::new("src/helper.py");
+
+    let py_ctx = FileContext {
+        file: &py_file,
+        rel_file: rel_py,
+        rel_str: "src/helper.py",
+        content: py_source,
+        is_test: false,
+        test_regions: &[],
+        rule_name: "languages/rust/no-panic",
+        guard: &guard,
+        exceptions: &exceptions,
+    };
+
+    let check = NoPanicCheck;
+    let contract = ArchitectureContract::default();
+    assert!(
+        check.check(&py_ctx, &contract).is_empty(),
+        "Non-rs files must be ignored by no-panic"
+    );
+
+    // Test inside #[cfg(test)]
+    let rs_source = r#"
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn test_panic() {
+        panic!("allowed in test");
+    }
+}
+"#;
+    let rs_file = dir.path().join("src/lib.rs");
+    fs::write(&rs_file, rs_source).unwrap();
+    let regions = test_region_lines(rs_source);
+    let rel_rs = Path::new("src/lib.rs");
+
+    let rs_ctx = FileContext {
+        file: &rs_file,
+        rel_file: rel_rs,
+        rel_str: "src/lib.rs",
+        content: rs_source,
+        is_test: false,
+        test_regions: &regions,
+        rule_name: "languages/rust/no-panic",
+        guard: &guard,
+        exceptions: &exceptions,
+    };
+
+    assert!(
+        check.check(&rs_ctx, &contract).is_empty(),
+        "Panics inside #[cfg(test)] must be ignored"
+    );
+
+    // Test with approved exception
+    let mut exceptions_mgr = ProjectExceptions::load(dir.path()).unwrap();
+    let exc_entry = exceptions_mgr
+        .add_exception(rel_rs, "languages/rust/no-panic", "Fatal hardware failure")
+        .unwrap();
+
+    let exc_source = format!(
+        "// slugrails-exception: token={}; guard=languages/rust/no-panic;\npub fn abort() {{\n    panic!(\"fatal\");\n}}\n",
+        exc_entry.token
+    );
+
+    let exc_ctx = FileContext {
+        file: &rs_file,
+        rel_file: rel_rs,
+        rel_str: "src/lib.rs",
+        content: &exc_source,
+        is_test: false,
+        test_regions: &[],
+        rule_name: "languages/rust/no-panic",
+        guard: &guard,
+        exceptions: &exceptions_mgr,
+    };
+
+    assert!(
+        check.check(&exc_ctx, &contract).is_empty(),
+        "Approved exception must suppress no-panic violation"
+    );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 13. hygiene/no-debug-prints tests
+// ─────────────────────────────────────────────────────────────────────────────
+
+#[test]
+fn test_debug_prints_flags_dbg_and_console_log() {
+    let source = r#"
+pub fn compute(val: i32) -> i32 {
+    // dbg!(val);
+    let msg = "dbg! should not match inside string";
+    dbg!(val);
+    console.log(val);
+    val * 2
+}
+"#;
+
+    let dir = tempdir().expect("tempdir");
+    let file = dir.path().join("src/calc.rs");
+    fs::create_dir_all(file.parent().unwrap()).unwrap();
+    fs::write(&file, source).unwrap();
+
+    let guard = build_catalog_entry("hygiene/no-debug-prints");
+    let exceptions = ProjectExceptions::default();
+    let regions = test_region_lines(source);
+    let rel = Path::new("src/calc.rs");
+
+    let ctx = FileContext {
+        file: &file,
+        rel_file: rel,
+        rel_str: "src/calc.rs",
+        content: source,
+        is_test: false,
+        test_regions: &regions,
+        rule_name: "hygiene/no-debug-prints",
+        guard: &guard,
+        exceptions: &exceptions,
+    };
+
+    let check = DebugPrintsCheck;
+    let contract = ArchitectureContract::default();
+    let violations = check.check(&ctx, &contract);
+
+    assert_eq!(
+        violations.len(),
+        2,
+        "Expected 2 debug print violations (dbg! and console.log): {violations:?}"
+    );
+
+    for v in &violations {
+        assert_eq!(v.guard_id, "hygiene/no-debug-prints");
+        assert_eq!(v.severity, Severity::Error);
+    }
+
+    assert!(violations.iter().any(|v| v.message.contains("dbg!")));
+    assert!(violations.iter().any(|v| v.message.contains("console.log")));
+}
+
+#[test]
+fn test_debug_prints_ignores_test_regions_and_respects_exceptions() {
+    let source = r#"
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn test_print() {
+        dbg!("debugging test");
+    }
+}
+"#;
+
+    let dir = tempdir().expect("tempdir");
+    let file = dir.path().join("src/lib.rs");
+    fs::create_dir_all(file.parent().unwrap()).unwrap();
+    fs::write(&file, source).unwrap();
+
+    let guard = build_catalog_entry("hygiene/no-debug-prints");
+    let exceptions = ProjectExceptions::default();
+    let regions = test_region_lines(source);
+    let rel = Path::new("src/lib.rs");
+
+    let ctx = FileContext {
+        file: &file,
+        rel_file: rel,
+        rel_str: "src/lib.rs",
+        content: source,
+        is_test: false,
+        test_regions: &regions,
+        rule_name: "hygiene/no-debug-prints",
+        guard: &guard,
+        exceptions: &exceptions,
+    };
+
+    let check = DebugPrintsCheck;
+    let contract = ArchitectureContract::default();
+    assert!(
+        check.check(&ctx, &contract).is_empty(),
+        "dbg! inside #[cfg(test)] must be ignored"
+    );
+
+    // Test with approved exception
+    let mut exceptions_mgr = ProjectExceptions::load(dir.path()).unwrap();
+    let exc_entry = exceptions_mgr
+        .add_exception(
+            rel,
+            "hygiene/no-debug-prints",
+            "Temporary logging for bug repro",
+        )
+        .unwrap();
+
+    let exc_source = format!(
+        "// slugrails-exception: token={}; guard=hygiene/no-debug-prints;\npub fn log_out() {{\n    dbg!(42);\n}}\n",
+        exc_entry.token
+    );
+
+    let exc_ctx = FileContext {
+        file: &file,
+        rel_file: rel,
+        rel_str: "src/lib.rs",
+        content: &exc_source,
+        is_test: false,
+        test_regions: &[],
+        rule_name: "hygiene/no-debug-prints",
+        guard: &guard,
+        exceptions: &exceptions_mgr,
+    };
+
+    assert!(
+        check.check(&exc_ctx, &contract).is_empty(),
+        "Approved exception must suppress no-debug-prints violation"
+    );
 }

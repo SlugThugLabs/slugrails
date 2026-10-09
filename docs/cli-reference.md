@@ -86,7 +86,7 @@ slugrails exception add <file> <guard> --reason="Justification"
 slugrails exception add src/server.rs complexity/source-limits --reason="Legacy module requires refactoring"
 ```
 
-**Output:** Generates a 5-digit verification token and shows the exact header comment to add to the file.
+**Output:** Generates a canonical `sr_tok_` (128-bit) verification token and shows the exact header comment to add to the file.
 
 #### `exception list`
 Lists all active exceptions for the current project.

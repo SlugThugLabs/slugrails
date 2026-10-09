@@ -8,15 +8,14 @@ pub use baseline::{
 
 use crate::error::{Result, SlugRailsError};
 use crate::types::ExceptionEntry;
-use crate::util::{
-    compute_exception_token, compute_exception_token_with_date, get_project_storage_dir,
-};
+use crate::util::crypto::{compute_exception_token, compute_exception_token_with_date};
+use crate::util::get_project_storage_dir;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::{Path, PathBuf};
 
-/// Project-specific exceptions registry stored at ~/.slugthuglabs/slugrails/projects/<id>/exceptions.json
+/// Project-specific exceptions registry stored at `<project>/.planning/slugrails/exceptions.json`.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct ProjectExceptions {
     pub project_path: PathBuf,
@@ -25,6 +24,18 @@ pub struct ProjectExceptions {
 }
 
 impl ProjectExceptions {
+    fn empty(project_path: &Path) -> Self {
+        Self {
+            project_path: project_path.to_path_buf(),
+            version: "1.0.0".to_string(),
+            exceptions: Vec::new(),
+        }
+    }
+
+    fn io_err(path: PathBuf, source: std::io::Error) -> SlugRailsError {
+        SlugRailsError::Io { path, source }
+    }
+
     /// Loads the exceptions registry for a given project, recovering if corrupt.
     ///
     /// # Errors
@@ -33,30 +44,21 @@ impl ProjectExceptions {
     pub fn load(project_path: &Path) -> Result<Self> {
         let storage_dir = get_project_storage_dir(project_path);
         let file_path = storage_dir.join("exceptions.json");
-
         if !file_path.exists() {
-            return Ok(Self {
-                project_path: project_path.to_path_buf(),
-                version: "1.0.0".to_string(),
-                exceptions: Vec::new(),
-            });
+            return Ok(Self::empty(project_path));
         }
 
-        let content = fs::read_to_string(&file_path).map_err(|e| SlugRailsError::Io {
-            path: file_path.clone(),
-            source: e,
-        })?;
+        let content =
+            fs::read_to_string(&file_path).map_err(|e| Self::io_err(file_path.clone(), e))?;
 
         if let Ok(registry) = serde_json::from_str::<Self>(&content) {
             Ok(registry)
         } else {
             let backup_name = format!("exceptions.json.corrupt.{}", Utc::now().timestamp());
-            let _ = fs::rename(&file_path, storage_dir.join(backup_name));
-            Ok(Self {
-                project_path: project_path.to_path_buf(),
-                version: "1.0.0".to_string(),
-                exceptions: Vec::new(),
-            })
+            if let Err(e) = fs::rename(&file_path, storage_dir.join(backup_name)) {
+                tracing::warn!("Failed to back up corrupt {}: {e}", file_path.display());
+            }
+            Ok(Self::empty(project_path))
         }
     }
 
@@ -66,32 +68,29 @@ impl ProjectExceptions {
     ///
     /// Returns [`SlugRailsError::Io`] if the exceptions file cannot be written to disk.
     pub fn save(&self) -> Result<PathBuf> {
+        if self.project_path.as_os_str().is_empty() {
+            return Err(SlugRailsError::Internal("empty project path".into()));
+        }
         let storage_dir = get_project_storage_dir(&self.project_path);
-        fs::create_dir_all(&storage_dir).map_err(|e| SlugRailsError::Io {
-            path: storage_dir.clone(),
-            source: e,
-        })?;
+        fs::create_dir_all(&storage_dir).map_err(|e| Self::io_err(storage_dir.clone(), e))?;
 
         let file_path = storage_dir.join("exceptions.json");
-        let tmp_path = storage_dir.join(format!(
-            "exceptions.json.tmp.{}.{}",
+        let tmp_name = format!(
+            "tmp.{}.{}",
             std::process::id(),
-            Utc::now().timestamp_nanos_opt().unwrap_or(0)
-        ));
+            Utc::now().timestamp_millis()
+        );
+        let tmp_path = storage_dir.join(tmp_name);
 
         let content = serde_json::to_string_pretty(self)?;
-        fs::write(&tmp_path, content).map_err(|e| SlugRailsError::Io {
-            path: tmp_path.clone(),
-            source: e,
-        })?;
+        fs::write(&tmp_path, content).map_err(|e| Self::io_err(tmp_path.clone(), e))?;
 
         #[cfg(windows)]
-        let _ = fs::remove_file(&file_path);
+        if file_path.exists() && fs::remove_file(&file_path).is_err() {
+            tracing::warn!("Failed to remove existing {}", file_path.display());
+        }
 
-        fs::rename(&tmp_path, &file_path).map_err(|e| SlugRailsError::Io {
-            path: file_path.clone(),
-            source: e,
-        })?;
+        fs::rename(&tmp_path, &file_path).map_err(|e| Self::io_err(file_path.clone(), e))?;
 
         Ok(file_path)
     }
@@ -104,7 +103,8 @@ impl ProjectExceptions {
         reason: &str,
     ) -> ExceptionEntry {
         let token = compute_exception_token(file, guard_id, reason);
-        self.exceptions.retain(|e| e.token != token);
+        self.exceptions
+            .retain(|e| e.file != file || e.guard_id != guard_id);
 
         let entry = ExceptionEntry {
             token,
@@ -172,8 +172,8 @@ impl ProjectExceptions {
         self.exceptions.iter().any(|e| {
             let norm_file = file.to_string_lossy().replace('\\', "/");
             let norm_e_file = e.file.to_string_lossy().replace('\\', "/");
-            let path_matches = norm_file == norm_e_file
-                || (norm_e_file.contains('/') && norm_file.ends_with(&norm_e_file));
+            let path_matches =
+                norm_file == norm_e_file || norm_file.ends_with(&format!("/{norm_e_file}"));
 
             if !path_matches
                 || !e.guard_id.eq_ignore_ascii_case(guard_id)
@@ -182,10 +182,13 @@ impl ProjectExceptions {
                 return false;
             }
 
-            let date_part = e.granted_at.get(..10).unwrap_or("");
-            let exp = compute_exception_token_with_date(&e.file, &e.guard_id, &e.reason, date_part);
-            let legacy_exp = compute_exception_token(&e.file, &e.guard_id, &e.reason);
-            e.token == token && (e.token == exp || e.token == legacy_exp)
+            // Canonical token only: keyed-BLAKE3 over (path, guard, reason, grant date).
+            // Legacy 5-digit tokens are deliberately rejected (ADR 0002); re-issue them
+            // with `slugrails exception add` in an interactive terminal.
+            let grant_date = e.granted_at.get(..10).unwrap_or("");
+            let expected =
+                compute_exception_token_with_date(&e.file, &e.guard_id, &e.reason, grant_date);
+            e.token == token && token == expected
         })
     }
 }

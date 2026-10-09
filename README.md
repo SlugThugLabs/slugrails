@@ -15,7 +15,7 @@ Linters (Clippy, ESLint, Ruff) enforce syntax conventions, formatting preference
 
 1. **Lays Down the Rails:** SlugRails establishes machine-enforceable boundaries at the repository level: layer isolation DAGs, file volume ceilings (≤ 200 LOC), control-flow depth, security policies, and unhandled errors. Once laid down, standard developer tools like `cargo test` trigger enforcement automatically.
 2. **Intent Stabilization:** Autonomous agents work best when human intent is established early and reinforced continuously. Through **SlugPlan**, SlugRails helps discover domain terms before coding starts, converging fuzzy design ideas into hard, verifiable contracts.
-3. **Tamper-Proof Invariance:** Agents cannot weaken, mock, or comment out in-repo unit assertions to pass checks. Guard definitions and verification run black-box outside agent-tamperable code paths with BLAKE3 HMAC cryptographic integrity.
+3. **Tamper-Resistant Invariance:** Agents cannot weaken, mock, or comment out in-repo unit assertions to pass checks. Guard definitions and verification run black-box outside agent-tamperable code paths, and exception tokens are keyed-BLAKE3 MACs. Note the trust boundary: an agent running as the same OS user can read the local salt, so exception authorization is user-scoped rather than agent-proof, and the CLI requires an interactive terminal to grant one.
 
 ---
 

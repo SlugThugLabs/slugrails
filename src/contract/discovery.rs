@@ -155,7 +155,9 @@ fn render_candidate_contract(
             .map(|t| format!("\"{t}\""))
             .collect::<Vec<_>>()
             .join(", ");
-        let _ = writeln!(deps_fmt, "{k} = [{targets}]");
+        if let Err(e) = writeln!(deps_fmt, "{k} = [{targets}]") {
+            tracing::warn!("Failed to format dependency rule for '{k}': {e}");
+        }
     }
 
     format!(

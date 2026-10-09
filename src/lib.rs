@@ -27,4 +27,7 @@ pub use menu::run_menu;
 pub use server::SlugRailsMcpServer;
 pub use storage::ProjectExceptions;
 pub use style::Style;
-pub use types::{ExceptionEntry, GuardReport, GuardTestDefinition, Severity, Violation};
+pub use types::{
+    ExceptionEntry, GuardReport, GuardTestDefinition, ScanCollection, ScanOutcome, Severity,
+    SkipReason, SkippedFile, Violation,
+};

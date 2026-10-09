@@ -6,9 +6,9 @@ use std::process::ExitCode;
 
 const HOOK_BLOCK: &str = r#"# >>> slugrails pre-commit gate >>>
 if command -v slugrails >/dev/null 2>&1; then
-    slugrails check || exit 1
+    slugrails check --diff || exit 1
 elif command -v slugrails-mcp >/dev/null 2>&1; then
-    slugrails-mcp check || exit 1
+    slugrails-mcp check --diff || exit 1
 else
     echo "Error: slugrails not found in PATH. Architectural rails cannot be verified." >&2
     echo "Please install slugrails or commit with --no-verify if explicitly authorized." >&2
@@ -18,15 +18,48 @@ fi
 "#;
 
 /// Entry point for `slugrails hook` subcommand.
-pub fn run_hook<I: Iterator<Item = String>>(mut args: I) -> ExitCode {
-    let sub = args.next().unwrap_or_else(|| "install".to_string());
-    match sub.as_str() {
-        "install" => install_hook(Path::new(".")),
-        "uninstall" => uninstall_hook(Path::new(".")),
+pub fn run_hook<I: Iterator<Item = String>>(args: I) -> ExitCode {
+    let args_vec: Vec<String> = args.collect();
+    if crate::cli::args::has_help_flag(&args_vec) {
+        println!("Usage: slugrails hook [install|uninstall] [--root <path>]");
+        return ExitCode::SUCCESS;
+    }
+    let root = crate::cli::args::extract_root(&args_vec);
+    let mut non_flags = Vec::new();
+    let mut skip_next = false;
+    for arg in &args_vec {
+        if skip_next {
+            skip_next = false;
+            continue;
+        }
+        if matches!(arg.as_str(), "--root" | "-r" | "--project" | "-p") {
+            skip_next = true;
+            continue;
+        }
+        if !arg.starts_with('-') {
+            non_flags.push(arg.as_str());
+        }
+    }
+    let sub = non_flags.first().copied().unwrap_or("install");
+    match sub {
+        "install" => install_hook(&root),
+        "uninstall" => uninstall_hook(&root),
         _ => {
             eprintln!("Usage: slugrails hook [install|uninstall]");
             ExitCode::from(2)
         }
+    }
+}
+
+/// Resolves the Git hooks directory, supporting normal repositories, worktrees, and submodules.
+fn resolve_hooks_dir(repo_root: &Path) -> Option<PathBuf> {
+    let git_dir = repo_root.join(".git");
+    if git_dir.is_dir() {
+        Some(git_dir.join("hooks"))
+    } else if git_dir.is_file() {
+        resolve_gitdir(&git_dir).map(|d| d.join("hooks"))
+    } else {
+        None
     }
 }
 
@@ -39,15 +72,9 @@ pub fn install_hook(repo_root: &Path) -> ExitCode {
         return ExitCode::from(1);
     }
 
-    let hooks_dir = if git_dir.is_dir() {
-        git_dir.join("hooks")
-    } else {
-        // Handle git worktree or submodule where .git is a file
-        let Some(dir) = resolve_gitdir(&git_dir) else {
-            eprintln!("Error: Unable to resolve gitdir for worktree/submodule.");
-            return ExitCode::from(1);
-        };
-        dir.join("hooks")
+    let Some(hooks_dir) = resolve_hooks_dir(repo_root) else {
+        eprintln!("Error: Unable to resolve gitdir for worktree/submodule.");
+        return ExitCode::from(1);
     };
 
     if let Err(e) = fs::create_dir_all(&hooks_dir) {
@@ -97,7 +124,11 @@ pub fn install_hook(repo_root: &Path) -> ExitCode {
 /// Removes the `SlugRails` hook if present.
 #[must_use]
 pub fn uninstall_hook(repo_root: &Path) -> ExitCode {
-    let hook_path = repo_root.join(".git").join("hooks").join("pre-commit");
+    let Some(hooks_dir) = resolve_hooks_dir(repo_root) else {
+        println!("No pre-commit hook found to uninstall.");
+        return ExitCode::SUCCESS;
+    };
+    let hook_path = hooks_dir.join("pre-commit");
     if !hook_path.exists() {
         println!("No pre-commit hook found to uninstall.");
         return ExitCode::SUCCESS;

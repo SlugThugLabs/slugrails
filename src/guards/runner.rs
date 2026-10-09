@@ -4,12 +4,13 @@
 
 use super::context::FileContext;
 use super::registry::DEFAULT_REGISTRY;
+use crate::analyzer::walker::MAX_FILE_SIZE_BYTES;
 use crate::analyzer::{is_test_path, test_region_lines};
 use crate::contract::ArchitectureContract;
 use crate::error::Result;
 use crate::library::catalog::GuardCatalog;
 use crate::storage::ProjectExceptions;
-use crate::types::{GuardReport, Violation};
+use crate::types::{GuardReport, SkipReason, SkippedFile, Violation};
 use rayon::prelude::*;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -59,10 +60,19 @@ pub fn run_guard_checks(
 ) -> Result<GuardReport> {
     let start = Instant::now();
 
-    let violations: Vec<Violation> = files
+    let results: Vec<(Vec<Violation>, Option<SkippedFile>)> = files
         .par_iter()
-        .flat_map(|file| evaluate_file_guards(project_root, file, contract, catalog, exceptions))
+        .map(|file| evaluate_file_guards(project_root, file, contract, catalog, exceptions))
         .collect();
+
+    let mut violations = Vec::new();
+    let mut skipped = Vec::new();
+    for (mut file_violations, file_skip) in results {
+        violations.append(&mut file_violations);
+        if let Some(entry) = file_skip {
+            skipped.push(entry);
+        }
+    }
 
     let duration_ms = u64::try_from(start.elapsed().as_millis()).unwrap_or(u64::MAX);
     let (passed_tests, unevaluated_tests) = classify_rules(contract, catalog);
@@ -82,6 +92,9 @@ pub fn run_guard_checks(
         unevaluated_tests,
         active_exceptions: exceptions.exceptions.clone(),
         duration_ms,
+        skipped,
+        truncated: false,
+        unreadable_entries: 0,
     })
 }
 
@@ -120,26 +133,23 @@ fn evaluate_file_guards(
     contract: &ArchitectureContract,
     catalog: &GuardCatalog,
     exceptions: &ProjectExceptions,
-) -> Vec<Violation> {
+) -> (Vec<Violation>, Option<SkippedFile>) {
     let mut violations = Vec::new();
 
     // Guard against reading oversized files (> 2 MiB) or non-regular files (FIFOs, device files).
     let Ok(meta) = fs::metadata(file) else {
-        return violations;
+        return (violations, skip(file, SkipReason::Unreadable));
     };
     if !meta.is_file() {
-        return violations;
+        return (violations, skip(file, SkipReason::NotRegularFile));
     }
-    if meta.len() > 2 * 1024 * 1024 {
-        tracing::warn!(
-            "Skipping oversized file exceeding 2MB limit: {}",
-            file.display()
-        );
-        return violations;
+    if meta.len() > MAX_FILE_SIZE_BYTES {
+        tracing::warn!("Skipping oversized file: {}", file.display());
+        return (violations, skip(file, SkipReason::Oversized));
     }
 
     let Ok(content) = fs::read_to_string(file) else {
-        return violations;
+        return (violations, skip(file, SkipReason::Unreadable));
     };
 
     let rel_file = file.strip_prefix(project_root).unwrap_or(file);
@@ -170,5 +180,13 @@ fn evaluate_file_guards(
         violations.extend(check.check(&ctx, contract));
     }
 
-    violations
+    (violations, None)
+}
+
+/// Records a discovered file that could not be inspected.
+fn skip(file: &Path, reason: SkipReason) -> Option<SkippedFile> {
+    Some(SkippedFile {
+        file: file.to_path_buf(),
+        reason,
+    })
 }

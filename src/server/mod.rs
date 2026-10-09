@@ -5,8 +5,10 @@ pub mod handlers;
 mod types;
 
 pub use types::{
-    AddExceptionRequest, CheckProjectRequest, CreateGuardTestRequest, ListGuardTestsRequest,
-    ProbeArchitectureRequest, ScaffoldHarnessRequest, ValidateArchitectureRequest,
+    AddExceptionRequest, CheckProjectRequest, CreateGuardTestRequest, ListExceptionsRequest,
+    ListExceptionsResponse, ListGuardTestsRequest, ProbeArchitectureRequest,
+    RevokeExceptionRequest, RevokeExceptionResponse, ScaffoldHarnessRequest,
+    ValidateArchitectureRequest,
 };
 
 use crate::library::catalog::GuardCatalog;
@@ -116,6 +118,26 @@ impl SlugRailsMcpServer {
         request: Parameters<ScaffoldHarnessRequest>,
     ) -> Result<Json<String>, ErrorData> {
         handlers::handle_scaffold_harness(request.0)
+    }
+
+    #[tool(
+        description = "Lists all active architectural exceptions in .planning/slugrails/exceptions.json."
+    )]
+    async fn list_exceptions(
+        &self,
+        request: Parameters<ListExceptionsRequest>,
+    ) -> Result<Json<ListExceptionsResponse>, ErrorData> {
+        handlers::handle_list_exceptions(request.0)
+    }
+
+    #[tool(
+        description = "Revokes an authorized exception token in .planning/slugrails/exceptions.json."
+    )]
+    async fn revoke_exception(
+        &self,
+        request: Parameters<RevokeExceptionRequest>,
+    ) -> Result<Json<RevokeExceptionResponse>, ErrorData> {
+        handlers::handle_revoke_exception(request.0)
     }
 }
 

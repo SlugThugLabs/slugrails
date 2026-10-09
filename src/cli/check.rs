@@ -80,19 +80,29 @@ fn execute_check_pipeline(
         ExitCode::from(2)
     })?;
 
-    let exceptions = ProjectExceptions::load(root).unwrap_or_default();
-    let files = if check_diff {
-        collect_git_diff_files(root).unwrap_or_default()
+    let exceptions = ProjectExceptions::load(root).map_err(|e| {
+        tracing::error!(error = %e, path = %root.display(), "Failed to load exception store");
+        eprintln!("[SLUGRAILS-ERROR] Failed to load exception store: {e}");
+        ExitCode::from(2)
+    })?;
+    let collection = if check_diff {
+        collect_git_diff_files(root)
     } else {
-        collect_source_files(root).unwrap_or_default()
-    };
+        collect_source_files(root)
+    }
+    .map_err(|e| {
+        tracing::error!(error = %e, path = %root.display(), "Failed to collect files for checking");
+        eprintln!("[SLUGRAILS-ERROR] Failed to collect files: {e}");
+        ExitCode::from(2)
+    })?;
+    let files = &collection.files;
 
     if files.is_empty() {
         return Ok(None);
     }
 
     let mut report =
-        run_guard_checks(root, &files, &contract, &catalog, &exceptions).map_err(|e| {
+        run_guard_checks(root, files, &contract, &catalog, &exceptions).map_err(|e| {
             eprintln!("[SLUGRAILS-ERROR] Check evaluation failed: {e}");
             ExitCode::from(2)
         })?;
@@ -100,12 +110,15 @@ fn execute_check_pipeline(
     if should_fix && !report.violations.is_empty() {
         let fixed = auto_remediate_violations(root, &report.violations);
         if fixed > 0 {
-            println!("[SLUGRAILS-FIX] Remediated {fixed} violation(s). Re-evaluating...");
-            if let Ok(rerun) = run_guard_checks(root, &files, &contract, &catalog, &exceptions) {
+            eprintln!("[SLUGRAILS-FIX] Remediated {fixed} violation(s). Re-evaluating...");
+            if let Ok(rerun) = run_guard_checks(root, files, &contract, &catalog, &exceptions) {
                 report = rerun;
             }
         }
     }
+
+    report.truncated = collection.truncated;
+    report.unreadable_entries = collection.unreadable_entries;
 
     Ok(Some(report))
 }

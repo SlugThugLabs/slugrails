@@ -10,6 +10,6 @@ pub use crypto::{
 };
 pub use paths::{
     RESERVED_DOS_NAMES, get_project_plan_dir, get_project_storage_dir, hash_project_path,
-    is_windows_dos_device, normalize_path, validate_safe_path,
+    is_windows_dos_device, normalize_path, resolve_root, validate_safe_path,
 };
 pub use platform::{get_binary_name, get_slugrails_home, get_slugthug_home, get_tests_dir};

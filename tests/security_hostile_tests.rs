@@ -10,13 +10,13 @@ use std::path::Path;
 fn test_sandbox_rejects_windows_unc_paths() {
     let unc_path = Path::new(r"\\attacker.evil.com\payload\exploit.rs");
     assert!(
-        validate_safe_path(unc_path).is_err(),
+        validate_safe_path(Path::new("/tmp"), unc_path).is_err(),
         "Must reject Windows UNC network path"
     );
 
     let forward_unc = Path::new("//attacker.evil.com/payload/exploit.rs");
     assert!(
-        validate_safe_path(forward_unc).is_err(),
+        validate_safe_path(Path::new("/tmp"), forward_unc).is_err(),
         "Must reject forward slash UNC path"
     );
 }
@@ -25,7 +25,7 @@ fn test_sandbox_rejects_windows_unc_paths() {
 fn test_sandbox_rejects_ntfs_alternate_data_streams() {
     let ads_path = Path::new("src/normal.rs:secret_stream");
     assert!(
-        validate_safe_path(ads_path).is_err(),
+        validate_safe_path(Path::new("/tmp"), ads_path).is_err(),
         "Must reject NTFS alternate data stream syntax"
     );
 }
@@ -36,12 +36,12 @@ fn test_sandbox_rejects_dos_reserved_device_names() {
     for name in dos_names {
         let path = Path::new(name);
         assert!(
-            validate_safe_path(path).is_err(),
+            validate_safe_path(Path::new("/tmp"), path).is_err(),
             "Must reject DOS device name {name}"
         );
         let ext_path = format!("src/{name}.rs");
         assert!(
-            validate_safe_path(Path::new(&ext_path)).is_err(),
+            validate_safe_path(Path::new("/tmp"), Path::new(&ext_path)).is_err(),
             "Must reject DOS device stem in {ext_path}"
         );
     }

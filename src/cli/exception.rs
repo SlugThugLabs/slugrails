@@ -14,10 +14,24 @@ pub fn run_exception(mut args: impl Iterator<Item = String>) -> ExitCode {
         return ExitCode::SUCCESS;
     }
     let root = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
-    let mut exceptions = ProjectExceptions::load(&root).unwrap_or_default();
+    let mut exceptions = match ProjectExceptions::load(&root) {
+        Ok(e) => e,
+        Err(e) => {
+            eprintln!("[SLUGRAILS-ERROR] Failed to load exception store: {e}");
+            return ExitCode::from(2);
+        }
+    };
 
     match sub.as_str() {
         "add" => {
+            if !crate::util::platform::has_interactive_terminal() {
+                eprintln!(
+                    "[SLUGRAILS-ERROR] Authorizing an exception requires an interactive \
+                     terminal. Autonomous agents must not grant themselves exceptions; \
+                     ask the user to run this command in a terminal."
+                );
+                return ExitCode::from(2);
+            }
             let Some(file_str) = args.next() else {
                 eprintln!("Usage: slugrails exception add <file> <guard> --reason=\"...\"");
                 return ExitCode::from(2);

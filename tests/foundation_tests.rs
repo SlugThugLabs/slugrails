@@ -9,12 +9,13 @@ mod tests {
 
     #[test]
     fn test_validate_safe_path() {
+        let root = Path::new("/tmp");
         let safe = Path::new("/tmp/test_project");
-        assert!(validate_safe_path(safe).is_ok());
+        assert!(validate_safe_path(root, safe).is_ok());
 
         let unsafe_path = Path::new("/root/.ssh/id_rsa");
         assert!(matches!(
-            validate_safe_path(unsafe_path),
+            validate_safe_path(root, unsafe_path),
             Err(SlugRailsError::SandboxViolation { .. })
         ));
     }
@@ -36,7 +37,13 @@ mod tests {
         let token2 =
             compute_exception_token(file, "complexity/source-limits", "transport scaffolding");
         assert_eq!(token1, token2);
-        assert_eq!(token1.len(), 5);
+        assert_eq!(token1.len(), 39, "canonical token is sr_tok_ + 32 hex chars");
+        assert!(
+            token1.strip_prefix("sr_tok_").is_some_and(|hex| {
+                hex.len() == 32 && hex.chars().all(|c| c.is_ascii_hexdigit())
+            }),
+            "token body must be 32 hexadecimal characters"
+        );
     }
 
     #[test]

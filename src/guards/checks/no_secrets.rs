@@ -9,16 +9,23 @@ use crate::types::{Severity, Violation};
 use regex::Regex;
 use std::sync::LazyLock;
 
+static RAW_PATTERNS: &[&str] = &[
+    r"-----BEGIN [A-Z0-9_-]+ PRIVATE KEY-----",
+    r"-----BEGIN PGP PRIVATE KEY BLOCK-----",
+    r"\bgh[pousr]_[A-Za-z0-9_]{36,}\b",
+    r"\bgithub_pat_[A-Za-z0-9_]{22,}\b",
+    r"\bAKIA[0-9A-Z]{16}\b",
+    r"\bASIA[0-9A-Z]{16}\b",
+    r"\b(?:sk|rk)_live_[0-9a-zA-Z]{24,}\b",
+    r"\bxox[baprs]-[0-9a-zA-Z]{10,}\b",
+    r"(?i)(?:api_key|apikey|secret_key|auth_token)\s*[:=]\s*['\x22][A-Za-z0-9_\-]{16,}['\x22]",
+];
+
 static RE_SECRETS: LazyLock<Vec<Regex>> = LazyLock::new(|| {
-    let patterns = [
-        r"-----BEGIN [A-Z0-9_-]+ PRIVATE KEY-----",
-        r"\bgh[pousr]_[A-Za-z0-9_]{36,}\b",
-        r"\bAKIA[0-9A-Z]{16}\b",
-        r"\b(?:sk|rk)_live_[0-9a-zA-Z]{24,}\b",
-        r"\bxox[baprs]-[0-9a-zA-Z]{10,}\b",
-        r"(?i)(?:api_key|apikey|secret_key|auth_token)\s*[:=]\s*['\x22][A-Za-z0-9_\-]{16,}['\x22]",
-    ];
-    patterns.iter().filter_map(|p| Regex::new(p).ok()).collect()
+    RAW_PATTERNS
+        .iter()
+        .filter_map(|p| Regex::new(p).ok())
+        .collect()
 });
 
 pub struct NoSecretsCheck;
@@ -33,6 +40,16 @@ impl GuardCheck for NoSecretsCheck {
         check_no_secrets(ctx, &mut violations);
         violations
     }
+}
+
+/// Checks if a string literal appears to define the rule regexes rather than being a secret.
+fn is_rule_definition(value: &str, context: &str) -> bool {
+    context.contains("RE_SECRETS")
+        || context.contains("RAW_PATTERNS")
+        || context.contains("(?:sk|rk)_live_")
+        || value.contains("(?:sk|rk)_live_")
+        || value.contains("api_key|apikey")
+        || RAW_PATTERNS.contains(&value)
 }
 
 /// Calculates Shannon entropy of a candidate string literal to detect high-entropy keys/tokens.
@@ -55,13 +72,21 @@ fn is_high_entropy_secret(s: &str) -> bool {
             entropy -= p * p.log2();
         }
     }
-    entropy > 4.5
+    let threshold = if s.chars().all(|c| c.is_ascii_hexdigit()) {
+        3.2
+    } else {
+        4.5
+    };
+    entropy > threshold
 }
 
 /// Scans source for hardcoded secrets, private keys, and known API token formats.
 pub fn check_no_secrets(ctx: &FileContext<'_>, violations: &mut Vec<Violation>) {
     for lit in extract_literals(ctx.content) {
-        if lit.kind != LiteralKind::String || ctx.is_test_line(lit.line) {
+        if lit.kind != LiteralKind::String
+            || ctx.is_test_line(lit.line)
+            || is_rule_definition(&lit.value, &lit.context)
+        {
             continue;
         }
 
