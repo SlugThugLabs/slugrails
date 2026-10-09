@@ -1,6 +1,6 @@
 # Security Policy
 
-SlugThug Labs takes the security of CodeGuards and the environments it monitors seriously.
+SlugThug Labs takes the security of SlugRails and the environments it monitors seriously.
 
 ---
 
@@ -17,7 +17,7 @@ Only the latest release receives active security patches.
 
 ## Reporting a Vulnerability
 
-If you discover a security vulnerability or sandbox escape in CodeGuards, **please do NOT report it via a public GitHub issue.**
+If you discover a security vulnerability or sandbox escape in SlugRails, **please do NOT report it via a public GitHub issue.**
 
 Instead, please send a responsible disclosure report via email to:
 
@@ -42,7 +42,7 @@ Instead, please send a responsible disclosure report via email to:
 
 ## Architectural Security Invariants
 
-CodeGuards enforces several built-in security baselines by design:
+SlugRails enforces several built-in security baselines by design:
 - `#![forbid(unsafe_code)]` at all crate roots.
 - Canonical path resolution with strict sandbox bounds to prevent path traversal outside workspace roots.
 - Bounded memory buffers (1MB maximum per source file read) to prevent denial-of-service via memory exhaustion.

@@ -1,5 +1,5 @@
 name: Bug Report
-description: File a bug report or unexpected behavior in CodeGuards.
+description: File a bug report or unexpected behavior in SlugRails.
 title: "[Bug]: "
 labels: ["bug"]
 body:
@@ -10,7 +10,7 @@ body:
   - type: input
     id: version
     attributes:
-      label: CodeGuards Version
+      label: SlugRails Version
       placeholder: e.g. 0.2.0 (or git commit hash)
     validations:
       required: true
@@ -37,7 +37,7 @@ body:
     attributes:
       label: Steps to Reproduce
       placeholder: |
-        1. Run `codeguards-mcp init`
+        1. Run `slugrails init`
         2. Execute `...`
     validations:
       required: true

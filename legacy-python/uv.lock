@@ -146,7 +146,7 @@ wheels = [
 ]
 
 [[package]]
-name = "codeguards-mcp"
+name = "slugrails"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [

@@ -2,7 +2,7 @@ use slugrails::contract::{
     ArchitectureContract, load_architecture, parse_frontmatter, validate_architecture,
     validate_contract,
 };
-use slugrails::error::{CodeGuardsError, ContractError};
+use slugrails::error::{ContractError, SlugRailsError};
 use slugrails::library::catalog::GuardCatalog;
 use std::fs;
 use tempfile::tempdir;
@@ -49,7 +49,7 @@ fn frontmatter_unclosed_fence_is_an_error() {
     let err = parse_frontmatter(content).expect_err("unclosed fence must fail");
     assert!(matches!(
         err,
-        CodeGuardsError::Contract(ContractError::UnclosedFrontmatter)
+        SlugRailsError::Contract(ContractError::UnclosedFrontmatter)
     ));
 }
 
@@ -57,7 +57,7 @@ fn frontmatter_unclosed_fence_is_an_error() {
 fn frontmatter_malformed_toml_is_an_error() {
     let content = "+++\nmodules = [\"unclosed\n+++\nbody\n";
     let err = parse_frontmatter(content).expect_err("malformed TOML must fail");
-    assert!(matches!(err, CodeGuardsError::TomlParse { .. }));
+    assert!(matches!(err, SlugRailsError::TomlParse { .. }));
 }
 
 #[test]
@@ -72,7 +72,7 @@ fn load_architecture_missing_file_errors() {
     let err = load_architecture(dir.path()).expect_err("no .planning dir");
     assert!(matches!(
         err,
-        CodeGuardsError::Contract(ContractError::MissingContract { .. })
+        SlugRailsError::Contract(ContractError::MissingContract { .. })
     ));
 }
 

@@ -6,7 +6,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Thank you for your interest in CodeGuards enterprise solutions!
+        Thank you for your interest in SlugRails enterprise solutions!
         You can also reach our team directly at **admin@slugthuglabs.dev**.
   - type: input
     id: organization

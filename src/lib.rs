@@ -20,11 +20,11 @@ pub use contract::{
     ArchitectureContract, ValidationResult, load_architecture, parse_frontmatter,
     validate_architecture, validate_contract,
 };
-pub use error::{CodeGuardsError, ContractError, MenuError, Result, SlugRailsError};
+pub use error::{ContractError, MenuError, Result, SlugRailsError};
 pub use guards::run_guard_checks;
 pub use library::catalog::GuardCatalog;
 pub use menu::run_menu;
-pub use server::{CodeGuardsMcpServer, SlugRailsMcpServer};
+pub use server::SlugRailsMcpServer;
 pub use storage::ProjectExceptions;
 pub use style::Style;
 pub use types::{ExceptionEntry, GuardReport, GuardTestDefinition, Severity, Violation};

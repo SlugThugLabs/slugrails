@@ -1,10 +1,10 @@
 //! Scaffolds a starter .planning/ARCHITECTURE.md contract for a project.
 
-use crate::error::{CodeGuardsError, Result};
+use crate::error::{Result, SlugRailsError};
 use std::fs;
 use std::path::Path;
 
-/// Initializes a CodeGuards architecture contract for the given project root.
+/// Initializes a SlugRails architecture contract for the given project root.
 ///
 /// # Errors
 ///
@@ -39,7 +39,7 @@ pub fn initialize_project(project_root: &Path) -> Result<String> {
         ));
     }
 
-    fs::create_dir_all(&plan_dir).map_err(|e| CodeGuardsError::Io {
+    fs::create_dir_all(&plan_dir).map_err(|e| SlugRailsError::Io {
         path: plan_dir.clone(),
         source: e,
     })?;
@@ -74,10 +74,10 @@ pub fn initialize_project(project_root: &Path) -> Result<String> {
          +++\n\n\
          # Architecture Contract\n\n\
          Define your architecture, layers, and boundaries here.\n\
-         CodeGuards will continuously verify that code matches this contract.\n"
+         SlugRails will continuously verify that code matches this contract.\n"
     );
 
-    fs::write(&arch_file, content).map_err(|e| CodeGuardsError::Io {
+    fs::write(&arch_file, content).map_err(|e| SlugRailsError::Io {
         path: arch_file.clone(),
         source: e,
     })?;

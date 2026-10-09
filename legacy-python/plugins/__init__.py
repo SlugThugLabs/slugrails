@@ -22,7 +22,7 @@ from pathlib import Path
 from typing import Callable
 
 
-_log = logging.getLogger("codeguards.plugins")
+_log = logging.getLogger("slugrails.plugins")
 
 
 class GuardRegistry:

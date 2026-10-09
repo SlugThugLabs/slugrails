@@ -3,7 +3,7 @@
 use crate::storage::ProjectExceptions;
 use std::path::Path;
 
-/// Checks for inline exception headers: `// codeguard-exception: token=...; guard=...;`
+/// Checks for inline exception headers: `// slugrails-exception: token=...; guard=...;`
 #[must_use]
 pub fn has_valid_exception(
     file: &Path,
@@ -13,7 +13,7 @@ pub fn has_valid_exception(
 ) -> bool {
     // Scan up to first 50 lines to account for long license headers
     for line in content.lines().take(50) {
-        if line.contains("codeguard-exception:")
+        if line.contains("slugrails-exception:")
             && line.contains("token=")
             && let Some(token_part) = line.split("token=").nth(1)
         {

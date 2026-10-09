@@ -1,7 +1,7 @@
 """Project planning — structured architecture + phased task plans.
 
 Creates .planning/ARCHITECTURE.md and .planning/PROJECT_PLAN.md
-with YAML frontmatter that CodeGuards tools can enforce against.
+with YAML frontmatter that SlugRails tools can enforce against.
 """
 
 import re

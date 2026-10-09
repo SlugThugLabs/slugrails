@@ -1,4 +1,4 @@
-# CodeGuards Enhanced Linting Improvement Plan
+# SlugRails Enhanced Linting Improvement Plan
 
 ## Phase 1: Critical Safety (COMPLETED ✅)
 - [x] Fix truncation casts (`u128`→`u64`, `u64`→`usize`)  

@@ -85,8 +85,5 @@ pub enum SlugRailsError {
     Internal(String),
 }
 
-/// Backward compatibility alias for [`SlugRailsError`].
-pub type CodeGuardsError = SlugRailsError;
-
 /// Convenience result type alias.
 pub type Result<T> = std::result::Result<T, SlugRailsError>;

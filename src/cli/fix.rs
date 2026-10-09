@@ -48,7 +48,7 @@ pub fn auto_remediate_violations(project_root: &Path, violations: &[Violation]) 
                     out.push('\n');
                 }
                 if fs::write(&full_path, out).is_ok() {
-                    println!("[CODEGUARD-FIX] Cleaned debug statements in {}", rel_file.display());
+                    println!("[SLUGRAILS-FIX] Cleaned debug statements in {}", rel_file.display());
                 }
             }
         }

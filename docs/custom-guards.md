@@ -1,6 +1,6 @@
 # Custom Guard-Test Authoring
 
-When your project has unique architectural or business rules not covered by built-in guards, you can create custom guard tests. These are stored globally in `~/.slugthug/codeguards/tests/custom/` and immediately available across all projects.
+When your project has unique architectural or business rules not covered by built-in guards, you can create custom guard tests. These are stored globally in `~/.slugthuglabs/slugrails/tests/custom/` and immediately available across all projects.
 
 ## When to Create Custom Guards
 
@@ -119,19 +119,19 @@ For advanced users who prefer manual control:
 
 1. **Create directory**:
    ```bash
-   mkdir -p ~/.slugthug/codeguards/tests/custom/your-project
+   mkdir -p ~/.slugthuglabs/slugrails/tests/custom/your-project
    ```
 
 2. **Create guard file**:
    ```bash
-   nano ~/.slugthug/codeguards/tests/custom/your-project/your-rule.guard.json
+   nano ~/.slugthuglabs/slugrails/tests/custom/your-project/your-rule.guard.json
    ```
 
 3. **Add valid JSON** using the schema above
 
 4. **Refresh catalog**:
    ```bash
-   codeguards-mcp validate --root /path/to/project
+   slugrails validate --root /path/to/project
    ```
 
 ### Method 3: CLI Creation
@@ -140,7 +140,7 @@ Use the command-line interface to create guards interactively:
 
 ```bash
 # This will prompt for all required fields
-codeguards-mcp create-guard-test --interactive
+slugrails create-guard-test --interactive
 ```
 
 > **Note**: The `create-guard-test` CLI command is planned for future releases. Currently, use AI agent creation or manual methods.
@@ -188,7 +188,7 @@ Runs user-provided Rust code (advanced).
 1. **Create test file** with intentional violation
 2. **Run validation**:
    ```bash
-   codeguards-mcp check --all --root /path/to/test-project
+   slugrails check --all --root /path/to/test-project
    ```
 3. **Verify output**: Check that violation message and remediation are clear
 4. **Test exception**: Ensure `exception add` works correctly
@@ -223,7 +223,7 @@ This guard ensures every payment handler struct that implements `PaymentHandler`
 
 ### Listing Custom Guards
 ```bash
-codeguards-mcp validate --root /path/to/project
+slugrails validate --root /path/to/project
 # Shows all available guards including custom ones
 ```
 
@@ -234,7 +234,7 @@ codeguards-mcp validate --root /path/to/project
 
 ### Deleting Custom Guards
 ```bash
-rm ~/.slugthug/codeguards/tests/custom/namespace/guard-name.guard.json
+rm ~/.slugthug/slugrails/tests/custom/namespace/guard-name.guard.json
 # Catalog automatically updates on next validation
 ```
 

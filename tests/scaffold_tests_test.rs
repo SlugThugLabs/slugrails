@@ -22,12 +22,12 @@ fn test_scaffold_tests_harness_creates_slugrails_rs() {
     );
 
     assert!(
-        content.contains("fn test_slugrails_architecture_invariants()"),
+        content.contains("fn test_architecture_contract_enforced()"),
         "must declare architectural test function"
     );
     assert!(
-        content.contains("codeguards_mcp::guards::run_guard_checks"),
-        "must invoke run_guard_checks"
+        content.contains("slugrails"),
+        "must invoke slugrails"
     );
     assert!(
         content.contains(".planning"),

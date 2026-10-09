@@ -6,7 +6,7 @@ pub use baseline::{
     verify_contract_baseline,
 };
 
-use crate::error::{CodeGuardsError, Result};
+use crate::error::{Result, SlugRailsError};
 use crate::types::ExceptionEntry;
 use crate::util::{
     compute_exception_token, compute_exception_token_with_date, get_project_storage_dir,
@@ -29,7 +29,7 @@ impl ProjectExceptions {
     ///
     /// # Errors
     ///
-    /// Returns [`CodeGuardsError::Io`] if the exceptions file cannot be read from disk.
+    /// Returns [`SlugRailsError::Io`] if the exceptions file cannot be read from disk.
     pub fn load(project_path: &Path) -> Result<Self> {
         let storage_dir = get_project_storage_dir(project_path);
         let file_path = storage_dir.join("exceptions.json");
@@ -42,7 +42,7 @@ impl ProjectExceptions {
             });
         }
 
-        let content = fs::read_to_string(&file_path).map_err(|e| CodeGuardsError::Io {
+        let content = fs::read_to_string(&file_path).map_err(|e| SlugRailsError::Io {
             path: file_path.clone(),
             source: e,
         })?;
@@ -65,10 +65,10 @@ impl ProjectExceptions {
     ///
     /// # Errors
     ///
-    /// Returns [`CodeGuardsError::Io`] if the exceptions file cannot be written to disk.
+    /// Returns [`SlugRailsError::Io`] if the exceptions file cannot be written to disk.
     pub fn save(&self) -> Result<PathBuf> {
         let storage_dir = get_project_storage_dir(&self.project_path);
-        fs::create_dir_all(&storage_dir).map_err(|e| CodeGuardsError::Io {
+        fs::create_dir_all(&storage_dir).map_err(|e| SlugRailsError::Io {
             path: storage_dir.clone(),
             source: e,
         })?;
@@ -79,7 +79,7 @@ impl ProjectExceptions {
         ));
 
         let content = serde_json::to_string_pretty(self)?;
-        fs::write(&tmp_path, content).map_err(|e| CodeGuardsError::Io {
+        fs::write(&tmp_path, content).map_err(|e| SlugRailsError::Io {
             path: tmp_path.clone(),
             source: e,
         })?;
@@ -87,7 +87,7 @@ impl ProjectExceptions {
         #[cfg(windows)]
         let _ = fs::remove_file(&file_path);
 
-        fs::rename(&tmp_path, &file_path).map_err(|e| CodeGuardsError::Io {
+        fs::rename(&tmp_path, &file_path).map_err(|e| SlugRailsError::Io {
             path: file_path.clone(),
             source: e,
         })?;
@@ -118,7 +118,7 @@ impl ProjectExceptions {
     ///
     /// # Errors
     ///
-    /// Returns [`CodeGuardsError::Io`] if the exceptions file cannot be written to disk.
+    /// Returns [`SlugRailsError::Io`] if the exceptions file cannot be written to disk.
     pub fn add_exception(
         &mut self, file: &Path, guard_id: &str, reason: &str,
     ) -> Result<ExceptionEntry> {
@@ -138,7 +138,7 @@ impl ProjectExceptions {
     ///
     /// # Errors
     ///
-    /// Returns [`CodeGuardsError::Io`] if the exceptions file cannot be written to disk.
+    /// Returns [`SlugRailsError::Io`] if the exceptions file cannot be written to disk.
     pub fn revoke(&mut self, token: &str) -> Result<bool> {
         let removed = self.remove_exception(token);
         if removed {

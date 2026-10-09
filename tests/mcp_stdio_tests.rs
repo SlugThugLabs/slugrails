@@ -84,7 +84,7 @@ mod helpers {
         let init_id = rpc_id(next_id);
         send(
             child,
-            r#"{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"codeguards-test","version":"0.0.1"}}}"#,
+            r#"{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"slugrails-test","version":"0.0.1"}}}"#,
         );
         let resp = wait_for_response(reader, init_id);
         send(

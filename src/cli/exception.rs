@@ -31,18 +31,18 @@ pub fn run_exception(mut args: impl Iterator<Item = String>) -> ExitCode {
 
             match exceptions.add_exception(Path::new(&file_str), &guard, &reason) {
                 Ok(entry) => {
-                    println!("[CODEGUARD-SUCCESS] Exception authorized.");
+                    println!("[SLUGRAILS-SUCCESS] Exception authorized.");
                     println!("  Token:   {}", entry.token);
                     println!("  File:    {}", entry.file.display());
                     println!("  Guard:   {}", entry.guard_id);
                     println!(
-                        "  Header:  // codeguard-exception: token={}; guard={}; reason=\"{}\"",
+                        "  Header:  // slugrails-exception: token={}; guard={}; reason=\"{}\"",
                         entry.token, entry.guard_id, entry.reason
                     );
                     ExitCode::SUCCESS
                 }
                 Err(e) => {
-                    eprintln!("[CODEGUARD-ERROR] Could not save exception: {e}");
+                    eprintln!("[SLUGRAILS-ERROR] Could not save exception: {e}");
                     ExitCode::from(1)
                 }
             }
@@ -71,15 +71,15 @@ pub fn run_exception(mut args: impl Iterator<Item = String>) -> ExitCode {
             };
             match exceptions.revoke(&token) {
                 Ok(true) => {
-                    println!("[CODEGUARD-SUCCESS] Exception token {token} revoked.");
+                    println!("[SLUGRAILS-SUCCESS] Exception token {token} revoked.");
                     ExitCode::SUCCESS
                 }
                 Ok(false) => {
-                    eprintln!("[CODEGUARD-ERROR] Token {token} not found.");
+                    eprintln!("[SLUGRAILS-ERROR] Token {token} not found.");
                     ExitCode::from(1)
                 }
                 Err(e) => {
-                    eprintln!("[CODEGUARD-ERROR] Revocation failed: {e}");
+                    eprintln!("[SLUGRAILS-ERROR] Revocation failed: {e}");
                     ExitCode::from(1)
                 }
             }

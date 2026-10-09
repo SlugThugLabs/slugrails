@@ -3,7 +3,7 @@
 import json
 from pathlib import Path
 
-INTENT_DIR = ".codeguards"
+INTENT_DIR = ".slugrails"
 INTENT_FILE = "intent.json"
 INTENT_SCHEMA_VERSION = 1
 
@@ -26,7 +26,7 @@ def load_intent(project_root: str) -> dict | None:
 
 
 def save_intent(project_root: str, intent: dict) -> Path:
-    """Save architectural intent, creating .codeguards/ if needed."""
+    """Save architectural intent, creating .slugrails/ if needed."""
     dir_path = Path(project_root) / INTENT_DIR
     dir_path.mkdir(parents=True, exist_ok=True)
     path = dir_path / INTENT_FILE

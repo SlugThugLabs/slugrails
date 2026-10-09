@@ -1,7 +1,7 @@
 //! CLI `serve` subcommand handler (starts stdio or TCP MCP server).
 
 use crate::library::ensure_test_library_seeded;
-use crate::server::CodeGuardsMcpServer;
+use crate::server::SlugRailsMcpServer;
 use rmcp::service::ServiceExt;
 use rmcp::transport::io::stdio;
 use std::process::ExitCode;
@@ -20,12 +20,12 @@ pub async fn run_serve(args: impl Iterator<Item = String>) -> ExitCode {
     let catalog = match ensure_test_library_seeded() {
         Ok(c) => c,
         Err(e) => {
-            eprintln!("[CODEGUARD-ERROR] Failed to seed test library: {e}");
+            eprintln!("[SLUGRAILS-ERROR] Failed to seed test library: {e}");
             return ExitCode::from(2);
         }
     };
 
-    let handler = CodeGuardsMcpServer::new(catalog);
+    let handler = SlugRailsMcpServer::new(catalog);
 
     if let Some(port_str) = super::args::extract_option(&args_vec, "--port", Some("-p")) {
         let port: u16 = match port_str.parse() {
@@ -41,7 +41,7 @@ pub async fn run_serve(args: impl Iterator<Item = String>) -> ExitCode {
     serve_stdio(handler).await
 }
 
-async fn serve_stdio(handler: CodeGuardsMcpServer) -> ExitCode {
+async fn serve_stdio(handler: SlugRailsMcpServer) -> ExitCode {
     tracing::info!("Starting SlugRails stdio MCP server");
     match handler.serve(stdio()).await {
         Ok(service) => match service.waiting().await {
@@ -61,7 +61,7 @@ async fn serve_stdio(handler: CodeGuardsMcpServer) -> ExitCode {
     }
 }
 
-async fn serve_tcp(handler: CodeGuardsMcpServer, port: u16) -> ExitCode {
+async fn serve_tcp(handler: SlugRailsMcpServer, port: u16) -> ExitCode {
     let addr = format!("127.0.0.1:{port}");
     let listener = match tokio::net::TcpListener::bind(&addr).await {
         Ok(l) => {

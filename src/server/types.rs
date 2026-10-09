@@ -1,4 +1,4 @@
-//! Request and parameter types for CodeGuards MCP tools.
+//! Request and parameter types for SlugRails MCP tools.
 
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};

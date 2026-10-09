@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use slugrails::error::CodeGuardsError;
+    use slugrails::error::SlugRailsError;
     use slugrails::types::{GuardReport, Severity, Violation};
     use slugrails::util::{compute_exception_token, hash_project_path, validate_safe_path};
     use std::path::{Path, PathBuf};
@@ -13,7 +13,7 @@ mod tests {
         let unsafe_path = Path::new("/root/.ssh/id_rsa");
         assert!(matches!(
             validate_safe_path(unsafe_path),
-            Err(CodeGuardsError::SandboxViolation { .. })
+            Err(SlugRailsError::SandboxViolation { .. })
         ));
     }
 

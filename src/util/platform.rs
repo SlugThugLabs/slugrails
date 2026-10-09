@@ -33,17 +33,6 @@ pub fn get_slugrails_home() -> PathBuf {
     }
 }
 
-/// Returns the global ~/.slugthuglabs/codeguards directory.
-///
-/// Inspects `CODEGUARDS_HOME`, falling back to `get_slugthug_home().join("codeguards")`.
-#[must_use]
-pub fn get_codeguards_home() -> PathBuf {
-    if let Ok(dir) = std::env::var("CODEGUARDS_HOME") {
-        PathBuf::from(dir)
-    } else {
-        get_slugthug_home().join("codeguards")
-    }
-}
 
 /// Returns the executable binary name for the current platform.
 #[must_use]

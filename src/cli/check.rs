@@ -57,7 +57,7 @@ pub fn run_check(args: impl Iterator<Item = String>) -> ExitCode {
         Ok(c) => c,
         Err(e) => {
             tracing::error!(error = %e, "Failed to seed test library");
-            eprintln!("[CODEGUARD-ERROR] Failed to seed test library: {e}");
+            eprintln!("[SLUGRAILS-ERROR] Failed to seed test library: {e}");
             return ExitCode::from(2);
         }
     };
@@ -66,7 +66,7 @@ pub fn run_check(args: impl Iterator<Item = String>) -> ExitCode {
         Ok(c) => c,
         Err(e) => {
             tracing::error!(error = %e, path = %root.display(), "Could not load ARCHITECTURE.md");
-            eprintln!("[CODEGUARD-ERROR] Could not load ARCHITECTURE.md: {e}");
+            eprintln!("[SLUGRAILS-ERROR] Could not load ARCHITECTURE.md: {e}");
             return ExitCode::from(2);
         }
     };
@@ -85,7 +85,7 @@ pub fn run_check(args: impl Iterator<Item = String>) -> ExitCode {
                 let empty = GuardReport::default();
                 println!("{}", serde_json::to_string_pretty(&format_sarif(&empty)).unwrap_or_default());
             }
-            OutputFormat::Text => println!("[CODEGUARD-PASS] No source files to check."),
+            OutputFormat::Text => println!("[SLUGRAILS-PASS] No source files to check."),
         }
         return ExitCode::SUCCESS;
     }
@@ -93,7 +93,7 @@ pub fn run_check(args: impl Iterator<Item = String>) -> ExitCode {
     let mut report = match run_guard_checks(&root, &files, &contract, &catalog, &exceptions) {
         Ok(r) => r,
         Err(e) => {
-            eprintln!("[CODEGUARD-ERROR] Check evaluation failed: {e}");
+            eprintln!("[SLUGRAILS-ERROR] Check evaluation failed: {e}");
             return ExitCode::from(2);
         }
     };
@@ -101,7 +101,7 @@ pub fn run_check(args: impl Iterator<Item = String>) -> ExitCode {
     if should_fix && !report.violations.is_empty() {
         let fixed = auto_remediate_violations(&root, &report.violations);
         if fixed > 0 {
-            println!("[CODEGUARD-FIX] Remediated {fixed} violation(s). Re-evaluating...");
+            println!("[SLUGRAILS-FIX] Remediated {fixed} violation(s). Re-evaluating...");
             if let Ok(rerun) = run_guard_checks(&root, &files, &contract, &catalog, &exceptions) {
                 report = rerun;
             }
@@ -136,7 +136,7 @@ fn parse_format(f: &str) -> OutputFormat {
 fn render_text_report(report: &GuardReport) {
     if !report.unevaluated_tests.is_empty() {
         println!(
-            "[CODEGUARD-WARNING] {} enabled rule(s) were NOT evaluated (no implementation):",
+            "[SLUGRAILS-WARNING] {} enabled rule(s) were NOT evaluated (no implementation):",
             report.unevaluated_tests.len()
         );
         for rule in &report.unevaluated_tests {
@@ -146,7 +146,7 @@ fn render_text_report(report: &GuardReport) {
 
     if report.is_pass() {
         println!(
-            "[CODEGUARD-PASS] {} files verified across {} active guard rules in {}ms.",
+            "[SLUGRAILS-PASS] {} files verified across {} active guard rules in {}ms.",
             report.total_files_checked,
             report.passed_tests.len(),
             report.duration_ms

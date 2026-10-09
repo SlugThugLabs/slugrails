@@ -25,7 +25,6 @@ pub struct SlugRailsMcpServer {
     tool_router: rmcp::handler::server::tool::ToolRouter<Self>,
 }
 
-pub type CodeGuardsMcpServer = SlugRailsMcpServer;
 
 impl SlugRailsMcpServer {
     #[must_use]

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Automated repository invariants verification for CodeGuards / SlugRails.
+# Automated repository invariants verification for SlugRails.
 #
 # Validates the four foundational architectural and quality invariants:
 # 1. Every file in `src/` has <= 200 LOC (hard ceiling).

@@ -17,7 +17,7 @@ pub fn run_validate(args: impl Iterator<Item = String>) -> ExitCode {
     let catalog = match ensure_test_library_seeded() {
         Ok(c) => c,
         Err(e) => {
-            eprintln!("[CODEGUARD-ERROR] Failed to seed test library: {e}");
+            eprintln!("[SLUGRAILS-ERROR] Failed to seed test library: {e}");
             return ExitCode::from(2);
         }
     };
@@ -25,19 +25,19 @@ pub fn run_validate(args: impl Iterator<Item = String>) -> ExitCode {
     let result = match validate_architecture(&root, &catalog) {
         Ok(r) => r,
         Err(e) => {
-            eprintln!("[CODEGUARD-ERROR] Validation error: {e}");
+            eprintln!("[SLUGRAILS-ERROR] Validation error: {e}");
             return ExitCode::from(2);
         }
     };
 
     if result.is_valid {
         println!(
-            "[CODEGUARD-PASS] .planning/ARCHITECTURE.md is valid and all required guards exist!"
+            "[SLUGRAILS-PASS] .planning/ARCHITECTURE.md is valid and all required guards exist!"
         );
         println!("  Active Guards: {:?}", result.ready_guards);
         ExitCode::SUCCESS
     } else {
-        eprintln!("[CODEGUARD-BLOCKED] Architecture validation failed:");
+        eprintln!("[SLUGRAILS-BLOCKED] Architecture validation failed:");
         for err in result.errors {
             eprintln!("  ❌ {err}");
         }

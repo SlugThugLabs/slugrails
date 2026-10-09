@@ -184,7 +184,7 @@ slugrails exception revoke <token>
 
 ```bash
 cargo build --release
-cp target/release/codeguards-mcp /root/.slugthug/bin/codeguards-mcp
+cp target/release/slugrails /root/.slugthug/bin/slugrails
 ```
 
 ---

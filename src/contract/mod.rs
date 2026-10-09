@@ -4,7 +4,7 @@ pub use discovery::{ProjectInspection, inspect_project};
 pub use scaffold::{plan_architecture, scaffold_tests_harness};
 pub use crate::storage::baseline::{save_contract_baseline, verify_contract_baseline};
 
-use crate::error::{CodeGuardsError, ContractError, Result};
+use crate::error::{ContractError, Result, SlugRailsError};
 use crate::library::catalog::GuardCatalog;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -55,8 +55,8 @@ pub struct ValidationResult {
 ///
 /// # Errors
 ///
-/// Returns [`CodeGuardsError::Contract`] if frontmatter fences are unbalanced,
-/// or [`CodeGuardsError::TomlParse`] if the TOML content is malformed.
+/// Returns [`SlugRailsError::Contract`] if frontmatter fences are unbalanced,
+/// or [`SlugRailsError::TomlParse`] if the TOML content is malformed.
 pub fn parse_frontmatter(content: &str) -> Result<(ArchitectureContract, &str)> {
     let trimmed = content.trim_start();
     if !trimmed.starts_with("+++") {
@@ -66,13 +66,13 @@ pub fn parse_frontmatter(content: &str) -> Result<(ArchitectureContract, &str)> 
     let rest = &trimmed[3..];
     let end_idx = rest
         .find("+++")
-        .ok_or_else(|| CodeGuardsError::Contract(ContractError::UnclosedFrontmatter))?;
+        .ok_or_else(|| SlugRailsError::Contract(ContractError::UnclosedFrontmatter))?;
 
     let toml_str = &rest[..end_idx];
     let body = &rest[end_idx + 3..];
 
     let contract: ArchitectureContract =
-        toml::from_str(toml_str).map_err(|e| CodeGuardsError::TomlParse {
+        toml::from_str(toml_str).map_err(|e| SlugRailsError::TomlParse {
             path: PathBuf::from(".planning/ARCHITECTURE.md"),
             source: e,
         })?;
@@ -129,30 +129,30 @@ pub fn validate_contract(
 ///
 /// # Errors
 ///
-/// Returns [`CodeGuardsError::Contract`] if missing, or [`CodeGuardsError::Io`] if unreadable.
+/// Returns [`SlugRailsError::Contract`] if missing, or [`SlugRailsError::Io`] if unreadable.
 pub fn load_architecture(project_root: &Path) -> Result<ArchitectureContract> {
     let arch_file = project_root.join(".planning").join("ARCHITECTURE.md");
     if !arch_file.exists() {
-        return Err(CodeGuardsError::Contract(ContractError::MissingContract {
+        return Err(SlugRailsError::Contract(ContractError::MissingContract {
             path: arch_file,
             hint: "Run 'slugrails init' to automatically scaffold one for this project.".to_string(),
         }));
     }
 
-    let content = fs::read_to_string(&arch_file).map_err(|e| CodeGuardsError::Io {
+    let content = fs::read_to_string(&arch_file).map_err(|e| SlugRailsError::Io {
         path: arch_file,
         source: e,
     })?;
 
     let baseline_file = project_root.join(".planning").join("slugrails").join("contract.baseline");
     if baseline_file.exists() {
-        let stored_hash = fs::read_to_string(&baseline_file).map_err(|e| CodeGuardsError::Io {
+        let stored_hash = fs::read_to_string(&baseline_file).map_err(|e| SlugRailsError::Io {
             path: baseline_file,
             source: e,
         })?;
         let current_hash = blake3::hash(content.as_bytes()).to_hex().to_string();
         if stored_hash.trim() != current_hash {
-            return Err(CodeGuardsError::Contract(ContractError::Malformed(
+            return Err(SlugRailsError::Contract(ContractError::Malformed(
                 "ARCHITECTURE.md hash does not match approved baseline (.planning/slugrails/contract.baseline). Update baseline with authorized token or slugrails plan.",
             )));
         }
@@ -166,7 +166,7 @@ pub fn load_architecture(project_root: &Path) -> Result<ArchitectureContract> {
 ///
 /// # Errors
 ///
-/// Returns [`CodeGuardsError::Contract`] if ARCHITECTURE.md is missing or malformed.
+/// Returns [`SlugRailsError::Contract`] if ARCHITECTURE.md is missing or malformed.
 pub fn validate_architecture(
     project_root: &Path,
     catalog: &GuardCatalog,

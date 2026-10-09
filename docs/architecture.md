@@ -1,18 +1,18 @@
 # Architecture & Workflow Integration
 
-CodeGuards enforces architectural boundaries through a decoupled governance model that separates **test creation** from **normal coding workflows**. This ensures AI agents can code freely while maintaining strict architectural integrity.
+SlugRails enforces architectural boundaries through a decoupled governance model that separates **test creation** from **normal coding workflows**. This ensures AI agents can code freely while maintaining strict architectural integrity.
 
 ## Core Philosophy
 
 > **"Agents code normally; guards enforce automatically."**
 
-- **Coding Phase**: AI agents write standard code in `src/` without any CodeGuards overhead
-- **Enforcement Phase**: Git hooks or CI pipelines automatically run `codeguards-mcp check`
+- **Coding Phase**: AI agents write standard code in `src/` without any SlugRails overhead
+- **Enforcement Phase**: Git hooks or CI pipelines automatically run `slugrails check`
 - **Planning Phase**: Agents and users collaborate on architecture using MCP authoring tools
 
 ## Project Structure
 
-CodeGuards follows the **SlugPlan** convention with strict separation of concerns:
+SlugRails follows the **SlugPlan** convention with strict separation of concerns:
 
 ```
 your-project/
@@ -20,7 +20,7 @@ your-project/
 ├── .planning/             # In-repo Confluence/Jira (architecture truth)
 │   └── ARCHITECTURE.md    # TOML frontmatter defines allowed layers, modules, and rules
 ├── docs/                  # Public documentation (this guide lives here)
-└── .git/hooks/            # Pre-commit hook runs codeguards-mcp check
+└── .git/hooks/            # Pre-commit hook runs slugrails check
 ```
 
 ### `.planning/ARCHITECTURE.md`
@@ -50,10 +50,10 @@ enforce = [
 
 ## Guard-Test Library
 
-All guard tests live externally in `~/.slugthug/codeguards/tests/`, keeping your project repositories clean:
+All guard tests live externally in `~/.slugthuglabs/slugrails/tests/`, keeping your project repositories clean:
 
 ```
-~/.slugthug/codeguards/tests/
+~/.slugthuglabs/slugrails/tests/
 ├── catalog.json              # Auto-generated search index
 ├── structural/               # Architecture & structure rules
 ├── complexity/               # Code volume & coupling limits  
@@ -74,15 +74,15 @@ All guard tests live externally in `~/.slugthug/codeguards/tests/`, keeping your
 
 ## Exception Token Mechanism
 
-When a genuine exception is needed, CodeGuards uses cryptographic tokens to prevent agent self-authorization:
+When a genuine exception is needed, SlugRails uses cryptographic tokens to prevent agent self-authorization:
 
 1. **Agent hits boundary**: Check fails with specific instructions
-2. **User grants exception**: Runs `codeguards-mcp exception add ...`
+2. **User grants exception**: Runs `slugrails exception add ...`
 3. **Token generated**: 5-digit code bound to `(file, guard, reason)`
 4. **Verification**: Header comment validates against user's private key
 
 ```rust
-// codeguard-exception: token=40721; guard=languages/rust/no-unwrap; reason="Legacy module"
+// slugrails-exception: token=40721; guard=languages/rust/no-unwrap; reason="Legacy module"
 ```
 
 ## Integration Points
@@ -92,11 +92,11 @@ Automatically validates staged changes before commit:
 
 ```bash
 #!/bin/sh
-codeguards-mcp check --diff
+slugrails check --diff
 ```
 
 ### AI Agent Workflow
-Your AI agent automatically integrates with CodeGuards during:
+Your AI agent automatically integrates with SlugRails during:
 
 - **Planning**: Validates `ARCHITECTURE.md` and creates custom guard tests
 - **Coding**: Requests exceptions when needed (requires user approval)
@@ -107,7 +107,7 @@ Full repository validation in continuous integration:
 
 ```yaml
 - name: Architectural Governance
-  run: codeguards-mcp check --all
+  run: slugrails check --all
 ```
 
 ## Performance Characteristics
@@ -117,4 +117,4 @@ Full repository validation in continuous integration:
 - **Full Scan**: <250ms for 200+ file repositories
 - **Memory**: <50MB peak usage
 
-CodeGuards is designed to be imperceptible in development workflows while providing comprehensive architectural enforcement.
+SlugRails is designed to be imperceptible in development workflows while providing comprehensive architectural enforcement.

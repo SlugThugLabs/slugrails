@@ -1,6 +1,6 @@
 //! Fast, .gitignore-aware parallel file walker using Rayon and Ignore crates.
 
-use crate::error::{CodeGuardsError, Result};
+use crate::error::{Result, SlugRailsError};
 use ignore::{WalkBuilder, WalkState};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
@@ -42,10 +42,10 @@ const MAX_SCANNED_FILES: usize = 50_000;
 ///
 /// # Errors
 ///
-/// Returns [`CodeGuardsError::Io`] if the project directory cannot be traversed.
+/// Returns [`SlugRailsError::Io`] if the project directory cannot be traversed.
 pub fn collect_source_files(project_root: &Path) -> Result<Vec<PathBuf>> {
     if let Err(e) = std::fs::metadata(project_root) {
-        return Err(CodeGuardsError::Io {
+        return Err(SlugRailsError::Io {
             path: project_root.to_path_buf(),
             source: e,
         });
@@ -135,7 +135,7 @@ pub fn collect_source_files(project_root: &Path) -> Result<Vec<PathBuf>> {
 ///
 /// # Errors
 ///
-/// Returns [`CodeGuardsError::Io`] if git commands fail to execute or\
+/// Returns [`SlugRailsError::Io`] if git commands fail to execute or\
 /// if the project directory cannot be traversed as a fallback.
 pub fn collect_git_diff_files(project_root: &Path) -> Result<Vec<PathBuf>> {
     if which::which("git").is_err() {

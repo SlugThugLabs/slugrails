@@ -1,6 +1,6 @@
 """Structural guards — responsibility detection, fan-out, layer enforcement.
 
-These move CodeGuards from "shape checker" to "structure checker":
+These move SlugRails from "shape checker" to "structure checker":
   - responsibility_clusters: how many distinct domains does this file touch
   - fan_out: how many unique modules does this file depend on
   - layer_enforcement: does this import go the wrong direction
@@ -25,7 +25,7 @@ _BASELINE_FILE = "structural_baseline.json"
 
 
 def _get_baseline_path(project_root: str) -> Path:
-    return Path(project_root) / ".codeguards" / _BASELINE_FILE
+    return Path(project_root) / ".slugrails" / _BASELINE_FILE
 
 
 def _load_baseline(project_root: str) -> dict:
@@ -130,7 +130,7 @@ def check_layer_enforcement(
 ) -> list[dict]:
     """Enforce architectural layer rules on imports.
 
-    Configured via .codeguards.yaml:
+    Configured via .slugrails.yaml:
         layer_enforcement:
           layers:
             repository: [domain]

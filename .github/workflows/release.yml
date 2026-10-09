@@ -22,19 +22,19 @@ jobs:
         include:
           - target: x86_64-pc-windows-msvc
             os: windows-latest
-            bin: codeguards-mcp.exe
+            bin: slugrails.exe
             archive: zip
           - target: x86_64-unknown-linux-gnu
             os: ubuntu-latest
-            bin: codeguards-mcp
+            bin: slugrails
             archive: tar.gz
           - target: x86_64-apple-darwin
             os: macos-13
-            bin: codeguards-mcp
+            bin: slugrails
             archive: tar.gz
           - target: aarch64-apple-darwin
             os: macos-latest
-            bin: codeguards-mcp
+            bin: slugrails
             archive: tar.gz
 
     steps:
@@ -59,7 +59,7 @@ jobs:
         shell: pwsh
         run: |
           $tag = if ($env:GITHUB_REF_NAME) { $env:GITHUB_REF_NAME } else { "latest" }
-          $archiveName = "codeguards-mcp-${tag}-${{ matrix.target }}.zip"
+          $archiveName = "slugrails-${tag}-${{ matrix.target }}.zip"
           Compress-Archive -Path "target/${{ matrix.target }}/release/${{ matrix.bin }}" -DestinationPath $archiveName
           $hash = (Get-FileHash -Path $archiveName -Algorithm SHA256).Hash.ToLower()
           "$hash  $archiveName" | Out-File -FilePath "${archiveName}.sha256" -Encoding ascii
@@ -70,7 +70,7 @@ jobs:
         if: matrix.os != 'windows-latest'
         run: |
           TAG="${GITHUB_REF_NAME:-latest}"
-          ARCHIVE_NAME="codeguards-mcp-${TAG}-${{ matrix.target }}.tar.gz"
+          ARCHIVE_NAME="slugrails-${TAG}-${{ matrix.target }}.tar.gz"
           tar -czvf "$ARCHIVE_NAME" -C "target/${{ matrix.target }}/release" "${{ matrix.bin }}"
           shasum -a 256 "$ARCHIVE_NAME" > "${ARCHIVE_NAME}.sha256"
           echo "ARCHIVE=$ARCHIVE_NAME" >> "$GITHUB_ENV"

@@ -1,6 +1,6 @@
 //! Path normalization, sandbox validation, and directory resolution.
 
-use crate::error::{CodeGuardsError, Result};
+use crate::error::{Result, SlugRailsError};
 use std::path::{Component, Path, PathBuf};
 
 /// Reserved Windows DOS device names.
@@ -58,22 +58,22 @@ pub fn normalize_path(path: &Path) -> PathBuf {
 ///
 /// # Errors
 ///
-/// Returns [`CodeGuardsError::SandboxViolation`] if the path escapes the sandbox or references forbidden resources.
+/// Returns [`SlugRailsError::SandboxViolation`] if the path escapes the sandbox or references forbidden resources.
 pub fn validate_safe_path(path: &Path) -> Result<PathBuf> {
     let raw_str = path.to_string_lossy();
     if raw_str.starts_with(r"\\") || raw_str.starts_with("//") {
-        return Err(CodeGuardsError::SandboxViolation {
+        return Err(SlugRailsError::SandboxViolation {
             path: path.to_path_buf(),
         });
     }
     if raw_str.chars().skip(2).any(|c| c == ':') {
-        return Err(CodeGuardsError::SandboxViolation {
+        return Err(SlugRailsError::SandboxViolation {
             path: path.to_path_buf(),
         });
     }
 
     if is_windows_dos_device(path) {
-        return Err(CodeGuardsError::SandboxViolation {
+        return Err(SlugRailsError::SandboxViolation {
             path: path.to_path_buf(),
         });
     }
@@ -84,7 +84,7 @@ pub fn validate_safe_path(path: &Path) -> Result<PathBuf> {
     };
 
     if is_windows_dos_device(&canonical) {
-        return Err(CodeGuardsError::SandboxViolation {
+        return Err(SlugRailsError::SandboxViolation {
             path: canonical,
         });
     }
@@ -93,14 +93,14 @@ pub fn validate_safe_path(path: &Path) -> Result<PathBuf> {
 
     for comp in canonical.components() {
         if matches!(comp, Component::ParentDir) {
-            return Err(CodeGuardsError::SandboxViolation {
+            return Err(SlugRailsError::SandboxViolation {
                 path: canonical,
             });
         }
         if let Component::Normal(c) = comp {
             let name = c.to_string_lossy();
             if name == ".ssh" || name == ".aws" || name == ".gnupg" {
-                return Err(CodeGuardsError::SandboxViolation {
+                return Err(SlugRailsError::SandboxViolation {
                     path: canonical,
                 });
             }
@@ -113,7 +113,7 @@ pub fn validate_safe_path(path: &Path) -> Result<PathBuf> {
         || path_str.starts_with("/etc/shadow")
         || path_str.starts_with("/etc/sudoers")
     {
-        return Err(CodeGuardsError::SandboxViolation {
+        return Err(SlugRailsError::SandboxViolation {
             path: canonical,
         });
     }

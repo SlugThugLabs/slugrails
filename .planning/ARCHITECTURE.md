@@ -209,7 +209,7 @@ When a project has unique semantic or business invariants that standard guards d
 ### The Solution: Cryptographic / Hash-Verified User Tokens
 1. **Agent Hits a Boundary:** If an exception is genuinely required, the check fails with exact instructions:
    ```text
-   [CODEGUARD-BLOCKED] complexity/source-limits
+   [SLUGRAILS-BLOCKED] complexity/source-limits
      File: src/server/transport.rs (450 code lines > max 400)
      Action Required: Ask user to run `slugrails exception add src/server/transport.rs complexity/source-limits --reason="..."`
    ```
@@ -238,7 +238,7 @@ When a project has unique semantic or business invariants that standard guards d
 
 SlugRails is built for first-class operation across Linux, macOS, and Windows:
 * **Central Directory Resolution:** `get_slugthug_home()` resolves `SLUGTHUG_HOME` -> `HOME` -> `USERPROFILE` with zero hardcoded Unix root assumptions.
-* **Binary Execution:** Platform-aware executable naming (`slugrails.exe` / `codeguards-mcp.exe` on Windows, `slugrails` on Unix) ensures install and connect CLI hooks work on all systems.
+* **Binary Execution:** Platform-aware executable naming (`slugrails.exe` on Windows, `slugrails` on Unix) ensures install and connect CLI hooks work on all systems.
 * **Path Canonicalization:** Safe path validation properly handles Windows drive letters, UNC paths, and extended-length prefixes (`\\?\`).
 
 ---

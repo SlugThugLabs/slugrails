@@ -1,6 +1,6 @@
 //! BLAKE3 architecture contract baseline recording and verification.
 
-use crate::error::{CodeGuardsError, ContractError, Result};
+use crate::error::{ContractError, Result, SlugRailsError};
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -48,22 +48,22 @@ pub fn save_contract_baseline(project_root: &Path, content: &str) -> std::io::Re
 ///
 /// # Errors
 ///
-/// Returns [`CodeGuardsError::Contract`] if the hash does not match,
-/// or [`CodeGuardsError::Io`] if reading the baseline file fails.
+/// Returns [`SlugRailsError::Contract`] if the hash does not match,
+/// or [`SlugRailsError::Io`] if reading the baseline file fails.
 pub fn verify_contract_baseline(project_root: &Path, content: &str) -> Result<()> {
     let baseline_path = get_contract_baseline_path(project_root);
     if !baseline_path.exists() {
         return Ok(());
     }
 
-    let stored = fs::read_to_string(&baseline_path).map_err(|e| CodeGuardsError::Io {
+    let stored = fs::read_to_string(&baseline_path).map_err(|e| SlugRailsError::Io {
         path: baseline_path.clone(),
         source: e,
     })?;
 
     let current = compute_contract_hash(content);
     if stored.trim() != current {
-        return Err(CodeGuardsError::Contract(ContractError::Malformed(TAMPER_ERROR_MSG)));
+        return Err(SlugRailsError::Contract(ContractError::Malformed(TAMPER_ERROR_MSG)));
     }
 
     Ok(())

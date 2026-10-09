@@ -1,9 +1,9 @@
 # CLI Reference
 
-CodeGuards provides a complete command-line interface for all governance operations. All commands follow the pattern:
+SlugRails provides a complete command-line interface for all governance operations. All commands follow the pattern:
 
 ```bash
-codeguards-mcp <command> [options]
+slugrails <command> [options]
 ```
 
 ## Global Options
@@ -18,12 +18,12 @@ codeguards-mcp <command> [options]
 Launches an interactive terminal menu for initial setup and management.
 
 ```bash
-codeguards-mcp menu
+slugrails menu
 ```
 
 **Menu Options:**
-1. **Install the binary** — Copies the running binary to `~/.slugthug/bin/codeguards-mcp`
-2. **Connect to an AI agent** — Registers CodeGuards with Hermes, Claude Code, Grok, or Codex
+1. **Install the binary** — Copies the running binary to `~/.slugthug/bin/slugrails`
+2. **Connect to an AI agent** — Registers SlugRails with Hermes, Claude Code, Grok, or Codex
 3. **Add to other MCP clients** — Shows configuration snippet for OpenCode, Cursor, Zed, etc.
 4. **Inspect guard-test library** — Lists all available modular tests
 5. **Run MCP server now** — Starts the server in the current terminal
@@ -35,13 +35,13 @@ Validates source code against rules defined in `.planning/ARCHITECTURE.md`.
 
 ```bash
 # Check only modified/unstaged files (default, fast)
-codeguards-mcp check
+slugrails check
 
 # Check all source files in the project
-codeguards-mcp check --all
+slugrails check --all
 
 # Check a different project directory
-codeguards-mcp check --root /path/to/project
+slugrails check --root /path/to/project
 ```
 
 **Exit Codes:**
@@ -50,8 +50,8 @@ codeguards-mcp check --root /path/to/project
 - `2`: Configuration or setup error
 
 **Output Format:**
-- `[CODEGUARD-PASS]` — Success message with timing
-- `[CODEGUARD-BLOCKED]` — Detailed violation report with file, line, rule, and fix suggestions
+- `[SLUGRAILS-PASS]` — Success message with timing
+- `[SLUGRAILS-BLOCKED]` — Detailed violation report with file, line, rule, and fix suggestions
 
 ### `validate` — Validate Architecture Contract
 
@@ -59,10 +59,10 @@ Checks if `.planning/ARCHITECTURE.md` is valid and all referenced guard tests ex
 
 ```bash
 # Validate current directory
-codeguards-mcp validate
+slugrails validate
 
 # Validate specific project
-codeguards-mcp validate --root /path/to/project
+slugrails validate --root /path/to/project
 ```
 
 **Exit Codes:**
@@ -78,12 +78,12 @@ Handles user-authorized exception tokens for approved rule violations.
 Authorizes an exception for a specific file and guard rule.
 
 ```bash
-codeguards-mcp exception add <file> <guard> --reason="Justification"
+slugrails exception add <file> <guard> --reason="Justification"
 ```
 
 **Example:**
 ```bash
-codeguards-mcp exception add src/server.rs complexity/source-limits --reason="Legacy module requires refactoring"
+slugrails exception add src/server.rs complexity/source-limits --reason="Legacy module requires refactoring"
 ```
 
 **Output:** Generates a 5-digit verification token and shows the exact header comment to add to the file.
@@ -92,14 +92,14 @@ codeguards-mcp exception add src/server.rs complexity/source-limits --reason="Le
 Lists all active exceptions for the current project.
 
 ```bash
-codeguards-mcp exception list
+slugrails exception list
 ```
 
 #### `exception revoke`
 Revokes an exception by its token.
 
 ```bash
-codeguards-mcp exception revoke <token>
+slugrails exception revoke <token>
 ```
 
 ### `serve` — Start MCP Server
@@ -108,13 +108,13 @@ Launches the Model Context Protocol server for integration with AI agents.
 
 ```bash
 # Start stdio server (default, for AI agent integration)
-codeguards-mcp serve
+slugrails serve
 
 # Start TCP server on specific port
-codeguards-mcp serve --port 8080
+slugrails serve --port 8080
 ```
 
-**Note:** This command is typically called automatically by your AI agent. Use `codeguards-mcp menu` option 5 to run it manually for testing.
+**Note:** This command is typically called automatically by your AI agent. Use `slugrails menu` option 5 to run it manually for testing.
 
 ## Environment Variables
 
@@ -127,14 +127,14 @@ codeguards-mcp serve --port 8080
 ```bash
 # Add to .git/hooks/pre-commit
 #!/bin/sh
-codeguards-mcp check --diff
+slugrails check --diff
 ```
 
 ### CI Pipeline
 ```yaml
 # GitHub Actions example
-- name: Run CodeGuards
-  run: codeguards-mcp check --all
+- name: Run SlugRails
+  run: slugrails check --all
 ```
 
 ### AI Agent Integration

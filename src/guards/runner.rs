@@ -49,7 +49,7 @@ pub fn is_implemented(guard_id: &str) -> bool {
 ///
 /// # Errors
 ///
-/// Returns [`crate::error::CodeGuardsError`] if critical evaluation fails.
+/// Returns [`crate::error::SlugRailsError`] if critical evaluation fails.
 pub fn run_guard_checks(
     project_root: &Path,
     files: &[PathBuf],

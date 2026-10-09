@@ -1,4 +1,4 @@
-# CodeGuards self-config — tuned for a multi-module Python project where
+# SlugRails self-config — tuned for a multi-module Python project where
 # orchestrator files (server.py, guards/__init__.py) legitimately touch
 # many internal domains.
 guards:

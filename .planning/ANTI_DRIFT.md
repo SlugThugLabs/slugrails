@@ -1,4 +1,4 @@
-# CodeGuards MCP — Design Notes & Anti-Drift Strategy
+# SlugRails MCP — Design Notes & Anti-Drift Strategy
 
 **Date**: 2026-06-30
 **Context**: Anti-detect browser codebase audit and remediation
@@ -60,15 +60,15 @@ CLAUDE.md
      finding, regardless of other test results
 
 4. **Deliberate changes**: When the human wants to change a guard:
-   - Run `codeguards-mcp rotate-token` to get the current token
+   - Run `slugrails rotate-token` to get the current token
    - Include `[GUARD-AUTH:<token>]` in the commit message
-   - After commit, run `codeguards-mcp rehash` to update baseline hashes
+   - After commit, run `slugrails rehash` to update baseline hashes
 
 ### Implementation files
 
-- `/opt/codeguards-mcp/auth.py` — Token generation, validation, hash management
-- `/opt/codeguards-mcp/.state/guard_hashes.json` — Baseline hashes (external, not in repo)
-- `/opt/codeguards-mcp/.state/auth_token` — Secret token (external, not in repo)
+- `/opt/slugrails/auth.py` — Token generation, validation, hash management
+- `/opt/slugrails/.state/guard_hashes.json` — Baseline hashes (external, not in repo)
+- `/opt/slugrails/.state/auth_token` — Secret token (external, not in repo)
 - `.git/hooks/pre-commit` — Hook script that validates protected file changes
 
 ### Hook script (sketch)
@@ -103,10 +103,10 @@ fi
 
 # Protected file changed — require auth token in commit message
 commit_msg=$(cat "$GIT_DIR/COMMIT_EDITMSG" 2>/dev/null || echo "")
-token_file="/opt/codeguards-mcp/.state/auth_token"
+token_file="/opt/slugrails/.state/auth_token"
 
 if [ ! -f "$token_file" ]; then
-  echo "ERROR: MCP auth token not found. Run 'codeguards-mcp init' first."
+  echo "ERROR: MCP auth token not found. Run 'slugrails init' first."
   exit 1
 fi
 
@@ -122,10 +122,10 @@ echo "ERROR: Protected architecture files were modified without authorization."
 echo "This commit changes guard or architecture files, which requires explicit"
 echo "authorization. Include [GUARD-AUTH:<token>] in your commit message."
 echo ""
-echo "To get the current token: codeguards-mcp auth-token"
+echo "To get the current token: slugrails auth-token"
 echo ""
 echo "If you are deliberately updating guards, run:"
-echo "  codeguards-mcp auth-token"
+echo "  slugrails auth-token"
 echo "  git commit -m 'your message [GUARD-AUTH:<token>]'"
 echo ""
 exit 1
@@ -134,14 +134,14 @@ exit 1
 ### MCP auth module (sketch)
 
 ```python
-# /opt/codeguards-mcp/auth.py
+# /opt/slugrails/auth.py
 import hashlib
 import json
 import os
 import secrets
 from pathlib import Path
 
-STATE_DIR = Path("/opt/codeguards-mcp/.state")
+STATE_DIR = Path("/opt/slugrails/.state")
 HASH_FILE = STATE_DIR / "guard_hashes.json"
 TOKEN_FILE = STATE_DIR / "auth_token"
 
@@ -181,7 +181,7 @@ def rehash(project_root: Path):
 def check_drift(project_root: Path) -> list[str]:
     """Check if any protected file has changed from baseline."""
     if not HASH_FILE.exists():
-        return ["MCP state not initialized — run 'codeguards-mcp init'"]
+        return ["MCP state not initialized — run 'slugrails init'"]
     baseline = json.loads(HASH_FILE.read_text())
     drift = []
     for rel, expected in baseline.items():

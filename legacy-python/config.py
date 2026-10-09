@@ -1,4 +1,4 @@
-"""CodeGuards config — loads .codeguards.yaml with smart defaults."""
+"""SlugRails config — loads .slugrails.yaml with smart defaults."""
 
 import os
 from pathlib import Path
@@ -59,10 +59,10 @@ DEFAULTS = {
 
 
 def load_config(project_root: str | None = None) -> dict:
-    """Load .codeguards.yaml from project root, merging with defaults."""
+    """Load .slugrails.yaml from project root, merging with defaults."""
     config = DEFAULTS
     if project_root:
-        path = Path(project_root) / ".codeguards.yaml"
+        path = Path(project_root) / ".slugrails.yaml"
         if path.exists():
             import yaml
             with open(path) as f:

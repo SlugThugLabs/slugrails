@@ -755,7 +755,7 @@ def check_entry_point_init(path: Path, content: str, cfg: dict) -> list[dict]:
     to initialize critical infrastructure (logging, config validation,
     panic hooks, etc.) before starting services.
 
-    Configured via .codeguards.yaml:
+    Configured via .slugrails.yaml:
 
         entry_point_init:
           required_calls:

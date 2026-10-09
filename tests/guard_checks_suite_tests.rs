@@ -176,7 +176,7 @@ fn test_swallowed_errors_respects_valid_exceptions() {
         .unwrap();
 
     let source = format!(
-        "// codeguard-exception: token={}; guard=hygiene/swallowed-errors;\n\
+        "// slugrails-exception: token={}; guard=hygiene/swallowed-errors;\n\
          pub fn cleanup() {{\n    let _ = std::fs::remove_file(\"/tmp/lock\");\n}}\n",
         entry.token
     );
@@ -391,7 +391,7 @@ mod tests {
         .unwrap();
 
     let exc_source = format!(
-        "// codeguard-exception: token={}; guard=complexity/deep-nesting;\n\
+        "// slugrails-exception: token={}; guard=complexity/deep-nesting;\n\
          pub fn legacy_parse() {{\n\
              if true {{ if true {{ if true {{ if true {{ if true {{ }} }} }} }} }}\n\
          }}\n",
@@ -552,7 +552,7 @@ fn test_unsafe_policy_respects_exceptions() {
         .unwrap();
 
     let source = format!(
-        "// codeguard-exception: token={}; guard=languages/rust/unsafe-policy;\n\
+        "// slugrails-exception: token={}; guard=languages/rust/unsafe-policy;\n\
          pub fn fast_copy() {{\n    unsafe {{ std::ptr::null::<u8>(); }}\n}}\n",
         entry.token
     );
@@ -709,7 +709,7 @@ fn test_no_secrets_ignores_test_lines_and_respects_exceptions() {
         .unwrap();
 
     let exc_source = format!(
-        "// codeguard-exception: token={}; guard=hygiene/no-secrets;\n\
+        "// slugrails-exception: token={}; guard=hygiene/no-secrets;\n\
          pub const KEY: &str = \"{mock_aws}\";\n",
         exc_entry.token
     );

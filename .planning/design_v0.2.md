@@ -1,4 +1,4 @@
-# CodeGuards v0.2 — Architecture-as-Source-of-Truth Design
+# SlugRails v0.2 — Architecture-as-Source-of-Truth Design
 
 > **Status:** 🚧 **PARKED** — not committed to a release. Implementation does not begin
 > until v0.1.1 hotfixes ship. This document is a captured design decision, not an
@@ -11,7 +11,7 @@
 **v0.1.0 ships** (this is already true):
 
 - `probe` blocks `plan` until intent is declared (the "confidence to build" gate).
-- `.codeguards/intent.json` exists and gates violations as `acceptable_per_intent`
+- `.slugrails/intent.json` exists and gates violations as `acceptable_per_intent`
   (proven live by the friend's session — 522 property-data magic numbers
   correctly reclassified).
 - Generic guard layer fires without language-plugin coverage (proven by the
@@ -66,8 +66,8 @@
 | File | Role | Owned by | Lifecycle |
 |------|------|----------|-----------|
 | `.planning/ARCHITECTURE.md` | The source of truth: goal + principles + architecture + quality goals | Project, often git-tracked | Read every check; written only by `plan` / explicit architecture update tool |
-| `.codeguards/checks.json` | Per-project session-scoped enforcement cache | Project, often gitignored | Loaded into `GuardRegistry` on session start; evicted on session end |
-| `.codeguards/intent_archive/<timestamp>.json` | Prior intent snapshots, only when Goal changes | Project, gitignored | Append-only archive |
+| `.slugrails/checks.json` | Per-project session-scoped enforcement cache | Project, often gitignored | Loaded into `GuardRegistry` on session start; evicted on session end |
+| `.slugrails/intent_archive/<timestamp>.json` | Prior intent snapshots, only when Goal changes | Project, gitignored | Append-only archive |
 
 `intent.json` is **gone** (absorbed into ARCHITECTURE.md's `## Goal` section).
 
@@ -196,13 +196,13 @@ This is the anti-bloat / anti-silent-edit guarantee.
 If `## Goal` exists and someone tries to write a different value:
 
 ```
-CodeGuards: The current goal is:
+SlugRails: The current goal is:
   "Create MCP server to help AI create better code and architecture"
 Attempted new goal:
   "Refactor the MCP for multi-tenant use"
 This changes the project's north star. Are you sure you want to change the goal?
 - A "no" leaves the goal unchanged.
-- A "yes" archives the old goal to .codeguards/intent_archive/<ts>.json
+- A "yes" archives the old goal to .slugrails/intent_archive/<ts>.json
   and replaces it.
 ```
 
@@ -246,7 +246,7 @@ Each entry in `## Quality Goals` is from a **fixed schema**. The schema is a
 closed set (see §6.1). Each field maps to either:
 
 - An **existing guard** whose threshold/scope becomes config-driven, OR
-- An entry in `.codeguards/checks.json` (session-scoped custom check), OR
+- An entry in `.slugrails/checks.json` (session-scoped custom check), OR
 - An informational field that affects guards' *severity* but not their
   *existence*.
 
@@ -318,7 +318,7 @@ config); v0.2 just relocates the config.
 
 ---
 
-## 7. `.codeguards/checks.json` — Session-Scoped Custom Checks
+## 7. `.slugrails/checks.json` — Session-Scoped Custom Checks
 
 What happens when the AI + user agree on a check that doesn't fit the
 schema? E.g., "no console.log after 4pm" or "this file has exactly 17
@@ -367,7 +367,7 @@ arbitrary predicate logic.
 ```
 MCP server starts
   → for each project_root in known set:
-    → load .codeguards/checks.json (if exists)
+    → load .slugrails/checks.json (if exists)
     → for each entry: register_guard(checks.json_entry)
     → GuardRegistry._global_registry now contains
       [global plugins] + [this project's checks]
@@ -393,7 +393,7 @@ project-specific checks fire on every file. Existing code path in
 ```
 MCP session ends
   → on exit: clear session-scoped guards from registry
-  → .codeguards/checks.json remains on disk for next session
+  → .slugrails/checks.json remains on disk for next session
 OR
 working directory changes (different project)
   → evict previous project's session guards
@@ -411,7 +411,7 @@ Three reasons:
 3. **`plugins/` loads at server start.** Per-project rules must load *per
    project*, on project-entry, not on server-boot.
 
-`.codeguards/checks.json` solves all three.
+`.slugrails/checks.json` solves all three.
 
 ### 7.5 Migration Note
 
@@ -427,15 +427,15 @@ This is the change surface for existing projects:
 
 | v0.1.0 | v0.2 | For existing projects |
 |--------|------|------------------------|
-| `.codeguards/intent.json` | absorbed into `ARCHITECTURE.md` `## Goal` | Migration tool: read intent.json, write one-paragraph `## Goal` section, archive the intent.json path |
+| `.slugrails/intent.json` | absorbed into `ARCHITECTURE.md` `## Goal` | Migration tool: read intent.json, write one-paragraph `## Goal` section, archive the intent.json path |
 | `intent.json` with `modules:`, `global:`, etc. | replaced by ARCHITECTURE.md sections | Migration tool: emit `## Modules` and `## Constraints` from intent.json's old structure |
 | `constants.py::FILE_LENGTH_MAX` | sourced from ARCHITECTURE.md, fallback to constants.py | No change for projects that don't declare `max_file_lines` |
 | `ARCHITECTURE.md` YAML frontmatter | YAML frontmatter exists alongside markdown body | Validator: frontmatter must agree with section bodies |
 | `plugins/rust.py` global rules | unchanged | No change for non-Rust projects |
-| no per-project checks | `.codeguards/checks.json` loaded on project entry | No-op for projects without the file |
+| no per-project checks | `.slugrails/checks.json` loaded on project entry | No-op for projects without the file |
 
 Migration is **non-destructive**. Existing projects upgrade at their own
-pace. `intent.json` is preserved (renamed to `.codeguards/intent_legacy.json`
+pace. `intent.json` is preserved (renamed to `.slugrails/intent_legacy.json`
 or moved to archive) so tools that still read it continue to work during the
 transition window.
 
@@ -473,7 +473,7 @@ quality goals."
 
    ```
    Note: 'deploy_only_on: thursday' is a deployment-time rule, not a
-   code-quality guard. To enforce, add to .codeguards/checks.json:
+   code-quality guard. To enforce, add to .slugrails/checks.json:
      type: temporal_forbid
      days_blocked: ["Wednesday"]
      forbidden_action: "deploy"
@@ -569,8 +569,8 @@ carefully:
 - `declare_intent` *behavior* changes (write-once + confirmation) but
   *output schema* stays the same.
 - New tool: `update_architecture` (writes ARCHITECTURE.md sections).
-- New tool: `list_custom_checks` (reads `.codeguards/checks.json`).
-- New behavior: `check_project` warns when `.codeguards/checks.json` has
+- New tool: `list_custom_checks` (reads `.slugrails/checks.json`).
+- New behavior: `check_project` warns when `.slugrails/checks.json` has
   unresolved entries.
 
 No tool is removed. v0.1.0 clients keep working against a v0.2 server

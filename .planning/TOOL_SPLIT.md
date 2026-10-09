@@ -1,4 +1,4 @@
-# TOOL_SPLIT.md — CodeGuards as two tools over one engine
+# TOOL_SPLIT.md — SlugRails as two tools over one engine
 
 > **Status:** DRAFT — design note, not a committed release decision.
 > Captured 2026-08-31 from discussion. Owner: user. Do not implement
@@ -11,7 +11,7 @@
 One shared engine, two thin MCP entrypoints. The boundary is
 **contract writer vs contract reader**; the files on disk
 (`intent.json`, `.planning/ARCHITECTURE.md`, `.planning/PROJECT_PLAN.md`,
-structural baseline, `.codeguards.yaml`) are the interface between them.
+structural baseline, `.slugrails.yaml`) are the interface between them.
 
 | Tool | Role | Handlers (current server.py) | Cadence |
 |---|---|---|---|

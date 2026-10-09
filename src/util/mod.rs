@@ -14,6 +14,5 @@ pub use paths::{
     RESERVED_DOS_NAMES,
 };
 pub use platform::{
-    get_binary_name, get_codeguards_home, get_slugrails_home, get_slugthug_home,
-    get_tests_dir,
+    get_binary_name, get_slugrails_home, get_slugthug_home, get_tests_dir,
 };

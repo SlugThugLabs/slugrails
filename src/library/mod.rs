@@ -3,7 +3,7 @@
 pub mod builtins;
 pub mod catalog;
 
-use crate::error::{CodeGuardsError, Result};
+use crate::error::{Result, SlugRailsError};
 use crate::library::builtins::get_builtin_guard_tests;
 pub use crate::library::catalog::GuardCatalog;
 use crate::types::GuardTestDefinition;
@@ -15,12 +15,12 @@ use std::path::{Path, PathBuf};
 ///
 /// # Errors
 ///
-/// Returns [`CodeGuardsError::Io`] if the tests directory cannot be created or\
-/// if built-in tests cannot be written to disk, or [`CodeGuardsError::TomlParse`]\
+/// Returns [`SlugRailsError::Io`] if the tests directory cannot be created or\
+/// if built-in tests cannot be written to disk, or [`SlugRailsError::TomlParse`]\
 /// if guard definitions cannot be serialized to JSON.
 pub fn ensure_test_library_seeded() -> Result<GuardCatalog> {
     let tests_root = get_tests_dir();
-    fs::create_dir_all(&tests_root).map_err(|e| CodeGuardsError::Io {
+    fs::create_dir_all(&tests_root).map_err(|e| SlugRailsError::Io {
         path: tests_root.clone(),
         source: e,
     })?;
@@ -69,8 +69,8 @@ pub fn ensure_test_library_seeded() -> Result<GuardCatalog> {
 ///
 /// # Errors
 ///
-/// Returns [`CodeGuardsError::Io`] if the catalog cannot be written to disk,\
-/// or [`CodeGuardsError::TomlParse`] if guard definitions cannot be serialized to JSON.
+/// Returns [`SlugRailsError::Io`] if the catalog cannot be written to disk,\
+/// or [`SlugRailsError::TomlParse`] if guard definitions cannot be serialized to JSON.
 pub fn load_all_tests_and_save_catalog(tests_root: &Path) -> Result<GuardCatalog> {
     let mut definitions = Vec::new();
 
@@ -94,7 +94,7 @@ pub fn load_all_tests_and_save_catalog(tests_root: &Path) -> Result<GuardCatalog
     let catalog = GuardCatalog::from_definitions(&definitions);
     let catalog_file = tests_root.join("catalog.json");
     let catalog_json = serde_json::to_string_pretty(&catalog)?;
-    fs::write(&catalog_file, catalog_json).map_err(|e| CodeGuardsError::Io {
+    fs::write(&catalog_file, catalog_json).map_err(|e| SlugRailsError::Io {
         path: catalog_file,
         source: e,
     })?;
@@ -106,9 +106,9 @@ pub fn load_all_tests_and_save_catalog(tests_root: &Path) -> Result<GuardCatalog
 ///
 /// # Errors
 ///
-/// Returns [`CodeGuardsError::Io`] if the test file cannot be written to disk,\
-/// [`CodeGuardsError::TomlParse`] if the definition cannot be serialized to JSON,\
-/// or [`CodeGuardsError::InvalidGuardTest`] if a duplicate is detected without --force.
+/// Returns [`SlugRailsError::Io`] if the test file cannot be written to disk,\
+/// [`SlugRailsError::TomlParse`] if the definition cannot be serialized to JSON,\
+/// or [`SlugRailsError::InvalidGuardTest`] if a duplicate is detected without --force.
 pub fn create_custom_guard_test(
     tests_root: &Path,
     def: &GuardTestDefinition,
@@ -116,7 +116,7 @@ pub fn create_custom_guard_test(
 ) -> Result<PathBuf> {
     let catalog_file = tests_root.join("catalog.json");
     let catalog = if catalog_file.exists() {
-        let content = fs::read_to_string(&catalog_file).map_err(|e| CodeGuardsError::Io {
+        let content = fs::read_to_string(&catalog_file).map_err(|e| SlugRailsError::Io {
             path: catalog_file.clone(),
             source: e,
         })?;
@@ -126,14 +126,14 @@ pub fn create_custom_guard_test(
     };
 
     if !force && let Some(reason) = catalog.find_potential_duplicate(&def.name, &def.tags) {
-        return Err(CodeGuardsError::InvalidGuardTest {
+        return Err(SlugRailsError::InvalidGuardTest {
             test_id: def.id.clone(),
             reason: format!("Duplicate guard prevented: {reason}. Use --force to override."),
         });
     }
 
     let target_dir = tests_root.join(&def.category);
-    fs::create_dir_all(&target_dir).map_err(|e| CodeGuardsError::Io {
+    fs::create_dir_all(&target_dir).map_err(|e| SlugRailsError::Io {
         path: target_dir.clone(),
         source: e,
     })?;
@@ -142,7 +142,7 @@ pub fn create_custom_guard_test(
     let target_file = target_dir.join(format!("{slug_name}.guard.json"));
 
     let json_str = serde_json::to_string_pretty(def)?;
-    fs::write(&target_file, json_str).map_err(|e| CodeGuardsError::Io {
+    fs::write(&target_file, json_str).map_err(|e| SlugRailsError::Io {
         path: target_file.clone(),
         source: e,
     })?;

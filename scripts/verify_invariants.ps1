@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    Automated repository invariants verification for CodeGuards / SlugRails.
+    Automated repository invariants verification for SlugRails.
 
 .DESCRIPTION
     Validates the four foundational architectural and quality invariants:

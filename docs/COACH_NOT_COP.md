@@ -15,7 +15,7 @@ The "Coach‑Not‑Cop" philosophy provides a tiered enforcement model that bala
 
 ### 3. Strict Mode – Comprehensive Gatekeeper
 * **Goal:** Guarantee architectural invariants before production deployment.
-* **Behavior:** Executes **all CodeGuards checks** on the full diff, failing the CI job on any violation.
+* **Behavior:** Executes **all SlugRails checks** on the full diff, failing the CI job on any violation.
 * **Use‑case:** Release branches, `main`/`master` merges, CI pipelines for production.
 
 ## Coaching Reports

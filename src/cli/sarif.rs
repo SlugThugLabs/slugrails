@@ -60,9 +60,9 @@ pub fn format_sarif(report: &GuardReport) -> Value {
             {
                 "tool": {
                     "driver": {
-                        "name": "CodeGuards",
+                        "name": "SlugRails",
                         "semanticVersion": env!("CARGO_PKG_VERSION"),
-                        "informationUri": "https://github.com/SlugThugLabs/CodeGuards-mcp"
+                        "informationUri": "https://github.com/SlugThugLabs/SlugRails"
                     }
                 },
                 "results": results

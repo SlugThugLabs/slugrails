@@ -3,8 +3,7 @@
   "version": "0.2.0",
   "description": "Architectural Guardrails & Governance for AI Coding Agents",
   "bin": {
-    "slugrails": "./bin/slugrails.js",
-    "codeguards": "./bin/slugrails.js"
+    "slugrails": "./bin/slugrails.js"
   },
   "keywords": [
     "mcp",

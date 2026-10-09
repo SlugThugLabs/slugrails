@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""CodeGuards MCP Server — code governance tools for any AI agent.
+"""SlugRails MCP Server — code governance tools for any AI agent.
 
 Usage:
     python server.py              # stdio mode (for local MCP clients)
     python server.py --port 8000  # HTTP SSE mode (for remote clients)
 
 Register with Hermes:
-    hermes mcp add codeguards --command "python /path/to/server.py"
+    hermes mcp add slugrails --command "python /path/to/server.py"
 
 Thinking Pause:
     When an operation will take noticeable time (>3s), the AI should signal
@@ -515,7 +515,7 @@ TOOL_DEFINITIONS: list[Tool] = [
 
 def create_app(registry: GuardRegistry):
     """Create an MCP server application with dispatch table."""
-    server = Server("codeguards")
+    server = Server("slugrails")
     server._guard_registry = registry
 
     @server.list_tools()
@@ -535,7 +535,7 @@ def create_app(registry: GuardRegistry):
 def format_report(path: str, violations: list[dict], languages: list[str], config: dict) -> str:
     """Format violations into a readable report."""
     lines = []
-    lines.append(f"CodeGuards Report — {path}")
+    lines.append(f"SlugRails Report — {path}")
     lines.append(f"Languages detected: {', '.join(languages) if languages else 'unknown'}")
     lines.append("")
 
@@ -566,11 +566,11 @@ def format_report(path: str, violations: list[dict], languages: list[str], confi
 
 
 def main():
-    parser = argparse.ArgumentParser(description="CodeGuards MCP Server")
+    parser = argparse.ArgumentParser(description="SlugRails MCP Server")
     parser.add_argument("--port", type=int, default=0, help="HTTP SSE port (0 = stdio mode)")
     args = parser.parse_args()
 
-    log = logging.getLogger("codeguards")
+    log = logging.getLogger("slugrails")
     registry = load_plugins()
 
     if not HAS_MCP:
@@ -598,7 +598,7 @@ def main():
                 Mount("/messages/", app=sse.handle_post_message),
             ]
         )
-        log.info("CodeGuards MCP server listening on port %d", args.port)
+        log.info("SlugRails MCP server listening on port %d", args.port)
         uvicorn.run(starlette_app, host="0.0.0.0", port=args.port)
     else:
         app = create_app(registry)

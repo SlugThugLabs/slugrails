@@ -1,5 +1,5 @@
 name: Feature Request or New Guard Proposal
-description: Suggest an idea, enhancement, or new guard rule for CodeGuards.
+description: Suggest an idea, enhancement, or new guard rule for SlugRails.
 title: "[Proposal]: "
 labels: ["enhancement"]
 body:

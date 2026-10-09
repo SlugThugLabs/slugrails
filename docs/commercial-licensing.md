@@ -1,6 +1,6 @@
-# CodeGuards Commercial & Enterprise Solutions
+# SlugRails Commercial & Enterprise Solutions
 
-CodeGuards provides continuous code governance and architectural enforcement designed specifically to prevent AI agent drift in production software engineering.
+SlugRails provides continuous code governance and architectural enforcement designed specifically to prevent AI agent drift in production software engineering.
 
 ---
 
@@ -46,7 +46,7 @@ Designed for engineering leaders who need to enforce consistent architecture acr
 
 ## 3. Commercial OEM & Platform Embedding
 
-Under the FSL-1.1 license, third-party AI platforms, cloud developer tools, IDE extensions, and SaaS vendors may not bundle, embed, or resell CodeGuards functionality as part of a commercial offering without a written OEM agreement.
+Under the FSL-1.1 license, third-party AI platforms, cloud developer tools, IDE extensions, and SaaS vendors may not bundle, embed, or resell SlugRails functionality as part of a commercial offering without a written OEM agreement.
 
 We partner with AI developer tool builders to provide:
 - Royalty-free commercial embedding rights.
@@ -61,4 +61,4 @@ For enterprise trials, custom compliance packs, or OEM embedding agreements:
 
 - **Email:** `admin@slugthuglabs.dev`
 - **Organization:** SlugThug Labs
-- **Website:** [github.com/SlugThugLabs/CodeGuards-mcp](https://github.com/SlugThugLabs/CodeGuards-mcp)
+- **Website:** [github.com/SlugThugLabs/slugrails-mcp](https://github.com/SlugThugLabs/slugrails-mcp)
