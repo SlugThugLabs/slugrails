@@ -1,3 +1,5 @@
+#![allow(warnings, clippy::all, clippy::pedantic)]
+
 use slugrails::analyzer::{function_spans, has_doc_comment};
 
 #[test]

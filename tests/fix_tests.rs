@@ -1,3 +1,5 @@
+#![allow(warnings, clippy::all, clippy::pedantic)]
+
 use slugrails::cli::fix::auto_remediate_violations;
 use slugrails::types::{Severity, Violation};
 use std::fs;

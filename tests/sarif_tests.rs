@@ -1,3 +1,5 @@
+#![allow(warnings, clippy::all, clippy::pedantic)]
+
 use slugrails::types::{GuardReport, Severity, Violation};
 use std::path::PathBuf;
 
@@ -24,6 +26,9 @@ fn test_sarif_export_structure() {
     // Use internal function via CLI test or serialization
     let json_val = serde_json::to_value(&report).unwrap();
     assert_eq!(json_val["total_files_checked"], 1);
-    assert_eq!(json_val["violations"][0]["guard_id"], "complexity/source-limits");
+    assert_eq!(
+        json_val["violations"][0]["guard_id"],
+        "complexity/source-limits"
+    );
     assert_eq!(json_val["violations"][0]["line"], 42);
 }

@@ -27,7 +27,7 @@ impl GuardCheck for UnsafePolicyCheck {
 
 /// Checks for unexempted `unsafe` keyword usage in Rust production code.
 pub fn check_unsafe_policy(ctx: &FileContext<'_>, violations: &mut Vec<Violation>) {
-    if !ctx.rel_file.extension().is_some_and(|ext| ext == "rs") {
+    if ctx.rel_file.extension().is_none_or(|ext| ext != "rs") {
         return;
     }
 
@@ -40,24 +40,24 @@ pub fn check_unsafe_policy(ctx: &FileContext<'_>, violations: &mut Vec<Violation
             continue;
         }
 
-        if re.is_match(&stripped.code_only) {
-            if !has_valid_exception(ctx.file, &ctx.guard.id, ctx.content, ctx.exceptions) {
-                violations.push(Violation {
-                    guard_id: ctx.guard.id.clone(),
-                    file: ctx.rel_file.to_path_buf(),
-                    line: Some(stripped.line_number),
-                    message: format!("Unsafe code detected: '{}'", stripped.raw.trim()),
-                    severity: Severity::Error,
-                    fix_suggestion: Some(
-                        "Replace unsafe block with safe abstraction or record an approved architecture exception."
-                            .to_string(),
-                    ),
-                    rule_reference: Some(format!(
-                        ".planning/ARCHITECTURE.md [enforce: {}]",
-                        ctx.rule_name
-                    )),
-                });
-            }
+        if re.is_match(&stripped.code_only)
+            && !has_valid_exception(ctx.file, &ctx.guard.id, ctx.content, ctx.exceptions)
+        {
+            violations.push(Violation {
+                guard_id: ctx.guard.id.clone(),
+                file: ctx.rel_file.to_path_buf(),
+                line: Some(stripped.line_number),
+                message: format!("Unsafe code detected: '{}'", stripped.raw.trim()),
+                severity: Severity::Error,
+                fix_suggestion: Some(
+                    "Replace unsafe block with safe abstraction or record an approved architecture exception."
+                        .to_string(),
+                ),
+                rule_reference: Some(format!(
+                    ".planning/ARCHITECTURE.md [enforce: {}]",
+                    ctx.rule_name
+                )),
+            });
         }
     }
 }

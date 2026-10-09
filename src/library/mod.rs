@@ -1,5 +1,6 @@
 //! Loader, seeder, and creator for ~/.slugthuglabs/slugrails/tests/.
 
+pub mod builtin_rules;
 pub mod builtins;
 pub mod catalog;
 
@@ -35,7 +36,10 @@ pub fn ensure_test_library_seeded() -> Result<GuardCatalog> {
         && let Ok(catalog) = serde_json::from_str::<GuardCatalog>(&content)
     {
         let all_exist = builtins.iter().all(|b| {
-            catalog.tests.get(&b.id).is_some_and(|e| e.file_path.exists())
+            catalog
+                .tests
+                .get(&b.id)
+                .is_some_and(|e| e.file_path.exists())
         });
         if all_exist {
             return Ok(catalog);

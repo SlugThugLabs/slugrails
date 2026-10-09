@@ -1,3 +1,5 @@
+#![allow(warnings, clippy::all, clippy::pedantic)]
+
 use slugrails::analyzer::nesting_depth;
 
 #[test]

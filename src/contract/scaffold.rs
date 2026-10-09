@@ -1,6 +1,7 @@
 //! Scaffolding and architectural planning orchestration.
 
 use crate::contract::discovery::inspect_project;
+use std::fmt::Write;
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -60,8 +61,11 @@ fn test_architecture_contract_enforced() {
 }
 "#;
 
-
-/// Discovers domain architecture, validates parameters, generates TOML contract, and scaffolds tests.
+/// Discovers domain architecture, validates parameters, and generates TOML contract.
+///
+/// # Errors
+///
+/// Returns an I/O error if creating directories or writing contract files fails.
 pub fn plan_architecture(
     root: &Path,
     intent_desc: Option<&str>,
@@ -80,23 +84,47 @@ pub fn plan_architecture(
 
     // Validate inputs against malicious characters (TOML injection defense)
     for layer in &layers {
-        if !layer.chars().all(|c| c.is_alphanumeric() || c == '_' || c == '-') {
-            return Err(std::io::Error::new(std::io::ErrorKind::InvalidInput, "Invalid layer name"));
+        if !layer
+            .chars()
+            .all(|c| c.is_alphanumeric() || c == '_' || c == '-')
+        {
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::InvalidInput,
+                "Invalid layer name",
+            ));
         }
     }
     for rule in &enforce {
-        if !rule.chars().all(|c| c.is_alphanumeric() || c == '_' || c == '-' || c == '/') {
-            return Err(std::io::Error::new(std::io::ErrorKind::InvalidInput, "Invalid rule name"));
+        if !rule
+            .chars()
+            .all(|c| c.is_alphanumeric() || c == '_' || c == '-' || c == '/')
+        {
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::InvalidInput,
+                "Invalid rule name",
+            ));
         }
     }
 
-    let layers_str = layers.iter().map(|l| format!("\"{l}\"")).collect::<Vec<_>>().join(", ");
-    let enforce_str = enforce.iter().map(|e| format!("\"{e}\"")).collect::<Vec<_>>().join(", ");
+    let layers_str = layers
+        .iter()
+        .map(|l| format!("\"{l}\""))
+        .collect::<Vec<_>>()
+        .join(", ");
+    let enforce_str = enforce
+        .iter()
+        .map(|e| format!("\"{e}\""))
+        .collect::<Vec<_>>()
+        .join(", ");
 
     let mut deps_str = String::new();
     for (k, v) in &inspection.allowed_dependencies {
-        let targets = v.iter().map(|t| format!("\"{t}\"")).collect::<Vec<_>>().join(", ");
-        deps_str.push_str(&format!("{k} = [{targets}]\n"));
+        let targets = v
+            .iter()
+            .map(|t| format!("\"{t}\""))
+            .collect::<Vec<_>>()
+            .join(", ");
+        let _ = writeln!(deps_str, "{k} = [{targets}]");
     }
 
     let arch_path = plan_dir.join("ARCHITECTURE.md");
@@ -125,7 +153,10 @@ pub fn plan_architecture(
         "enforced_guards": enforce,
         "created_by": "slugplan"
     });
-    fs::write(&intent_json_path, serde_json::to_string_pretty(&intent_data)?)?;
+    fs::write(
+        &intent_json_path,
+        serde_json::to_string_pretty(&intent_data)?,
+    )?;
 
     let harness_path = scaffold_tests_harness(root)?;
     let _ = crate::library::ensure_test_library_seeded();
@@ -145,6 +176,10 @@ pub fn plan_architecture(
 }
 
 /// Generates tests/slugrails.rs in the specified project directory.
+///
+/// # Errors
+///
+/// Returns an I/O error if creating directories or writing the harness fails.
 pub fn scaffold_tests_harness(root: &Path) -> std::io::Result<PathBuf> {
     let tests_dir = root.join("tests");
     if !tests_dir.exists() {

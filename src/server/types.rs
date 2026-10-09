@@ -1,4 +1,4 @@
-//! Request and parameter types for SlugRails MCP tools.
+//! Request and parameter types for `SlugRails` MCP tools.
 
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -17,7 +17,7 @@ pub struct ListGuardTestsRequest {
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct CreateGuardTestRequest {
-    /// Unique test name (e.g. 'auth_required')
+    /// Unique test name (e.g. `auth_required`)
     pub name: String,
     /// Category (structural, complexity, hygiene, quality, languages/rust, custom/<ns>)
     pub category: String,
@@ -88,4 +88,3 @@ pub struct ScaffoldHarnessRequest {
     /// Absolute path to target project directory (default: current dir)
     pub project_path: Option<String>,
 }
-

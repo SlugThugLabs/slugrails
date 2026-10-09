@@ -5,6 +5,7 @@ use crate::util::{get_slugthug_home, get_tests_dir};
 use std::io::{BufRead as _, Write as _};
 use std::path::PathBuf;
 
+#[must_use]
 pub fn running_binary() -> PathBuf {
     std::env::current_exe().unwrap_or_else(|_| PathBuf::from("slugrails"))
 }
@@ -62,7 +63,9 @@ where
         }
     };
 
-    let bin_path = get_slugthug_home().join("bin").join(crate::util::get_binary_name());
+    let bin_path = get_slugthug_home()
+        .join("bin")
+        .join(crate::util::get_binary_name());
     let exec_path = if bin_path.exists() {
         bin_path
     } else {
@@ -73,7 +76,10 @@ where
     if which::which(cli).is_err() {
         println!("\n'{cli}' CLI was not found on your system PATH.");
         println!("Please install {name} first, or connect manually using:");
-        println!("  {cli} mcp add slugrails -- {} serve\n", exec_path.display());
+        println!(
+            "  {cli} mcp add slugrails -- {} serve\n",
+            exec_path.display()
+        );
         return;
     }
 
@@ -101,7 +107,10 @@ where
         }
         _ => {
             println!("Could not connect automatically.");
-            println!("Manual command: {cli} mcp add slugrails -- {} serve", exec_path.display());
+            println!(
+                "Manual command: {cli} mcp add slugrails -- {} serve",
+                exec_path.display()
+            );
         }
     }
 }
@@ -127,7 +136,9 @@ fn run_with_timeout(
 
 pub fn other_client_step() {
     println!();
-    let bin_path = get_slugthug_home().join("bin").join(crate::util::get_binary_name());
+    let bin_path = get_slugthug_home()
+        .join("bin")
+        .join(crate::util::get_binary_name());
     let exec_path = if bin_path.exists() {
         bin_path
     } else {
@@ -166,6 +177,11 @@ pub fn guard_catalog_step() {
     }
 }
 
+/// Prompts user to confirm starting the MCP server.
+///
+/// # Errors
+///
+/// Returns [`MenuError::Io`] if stdin or stdout encounters an I/O failure.
 pub fn confirm_serve() -> Result<bool, MenuError> {
     println!();
     println!("The MCP server (`serve`) is normally started automatically by your AI agent.");

@@ -1,3 +1,5 @@
+#![allow(warnings, clippy::all, clippy::pedantic)]
+
 #[cfg(test)]
 mod tests {
     use slugrails::contract::ArchitectureContract;

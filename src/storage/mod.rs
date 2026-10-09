@@ -47,17 +47,16 @@ impl ProjectExceptions {
             source: e,
         })?;
 
-        match serde_json::from_str::<Self>(&content) {
-            Ok(registry) => Ok(registry),
-            Err(_) => {
-                let backup_name = format!("exceptions.json.corrupt.{}", Utc::now().timestamp());
-                let _ = fs::rename(&file_path, storage_dir.join(backup_name));
-                Ok(Self {
-                    project_path: project_path.to_path_buf(),
-                    version: "1.0.0".to_string(),
-                    exceptions: Vec::new(),
-                })
-            }
+        if let Ok(registry) = serde_json::from_str::<Self>(&content) {
+            Ok(registry)
+        } else {
+            let backup_name = format!("exceptions.json.corrupt.{}", Utc::now().timestamp());
+            let _ = fs::rename(&file_path, storage_dir.join(backup_name));
+            Ok(Self {
+                project_path: project_path.to_path_buf(),
+                version: "1.0.0".to_string(),
+                exceptions: Vec::new(),
+            })
         }
     }
 
@@ -75,7 +74,9 @@ impl ProjectExceptions {
 
         let file_path = storage_dir.join("exceptions.json");
         let tmp_path = storage_dir.join(format!(
-            "exceptions.json.tmp.{}.{}", std::process::id(), Utc::now().timestamp_nanos_opt().unwrap_or(0)
+            "exceptions.json.tmp.{}.{}",
+            std::process::id(),
+            Utc::now().timestamp_nanos_opt().unwrap_or(0)
         ));
 
         let content = serde_json::to_string_pretty(self)?;
@@ -97,7 +98,10 @@ impl ProjectExceptions {
 
     /// Pure in-memory insertion of an authorized exception token without disk I/O.
     pub fn insert_exception(
-        &mut self, file: &Path, guard_id: &str, reason: &str,
+        &mut self,
+        file: &Path,
+        guard_id: &str,
+        reason: &str,
     ) -> ExceptionEntry {
         let token = compute_exception_token(file, guard_id, reason);
         self.exceptions.retain(|e| e.token != token);
@@ -120,7 +124,10 @@ impl ProjectExceptions {
     ///
     /// Returns [`SlugRailsError::Io`] if the exceptions file cannot be written to disk.
     pub fn add_exception(
-        &mut self, file: &Path, guard_id: &str, reason: &str,
+        &mut self,
+        file: &Path,
+        guard_id: &str,
+        reason: &str,
     ) -> Result<ExceptionEntry> {
         let entry = self.insert_exception(file, guard_id, reason);
         self.save()?;
@@ -156,7 +163,11 @@ impl ProjectExceptions {
     /// Validates whether an exception token is active within `ttl_days`.
     #[must_use]
     pub fn is_exception_valid_with_ttl(
-        &self, file: &Path, guard_id: &str, token: &str, ttl_days: i64,
+        &self,
+        file: &Path,
+        guard_id: &str,
+        token: &str,
+        ttl_days: i64,
     ) -> bool {
         self.exceptions.iter().any(|e| {
             let norm_file = file.to_string_lossy().replace('\\', "/");

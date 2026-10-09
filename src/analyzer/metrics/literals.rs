@@ -41,4 +41,3 @@ pub struct LiteralSite {
 pub fn extract_literals(source: &str) -> Vec<LiteralSite> {
     scan(source).literals
 }
-

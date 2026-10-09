@@ -9,7 +9,9 @@ use std::process::ExitCode;
 pub fn run_validate(args: impl Iterator<Item = String>) -> ExitCode {
     let args_vec: Vec<String> = args.collect();
     if super::args::has_help_flag(&args_vec) {
-        println!("Usage: slugrails validate [--root <path>]\n\nValidates .planning/ARCHITECTURE.md against tests and source disk reality.");
+        println!(
+            "Usage: slugrails validate [--root <path>]\n\nValidates .planning/ARCHITECTURE.md against tests and source disk reality."
+        );
         return ExitCode::SUCCESS;
     }
     let root = extract_root(&args_vec);

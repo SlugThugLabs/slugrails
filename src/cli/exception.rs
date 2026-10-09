@@ -8,7 +8,9 @@ use std::process::ExitCode;
 pub fn run_exception(mut args: impl Iterator<Item = String>) -> ExitCode {
     let sub = args.next().unwrap_or_else(|| "list".to_string());
     if sub == "--help" || sub == "-h" || sub == "help" {
-        println!("Usage: slugrails exception [add|list|revoke] [OPTIONS]\n\nCommands:\n  add <file> <guard> --reason=\"...\"   Authorizes a cryptographic exception\n  list                                Lists all active exceptions\n  revoke <token>                      Revokes an authorized exception");
+        println!(
+            "Usage: slugrails exception [add|list|revoke] [OPTIONS]\n\nCommands:\n  add <file> <guard> --reason=\"...\"   Authorizes a cryptographic exception\n  list                                Lists all active exceptions\n  revoke <token>                      Revokes an authorized exception"
+        );
         return ExitCode::SUCCESS;
     }
     let root = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
@@ -25,9 +27,10 @@ pub fn run_exception(mut args: impl Iterator<Item = String>) -> ExitCode {
                 return ExitCode::from(2);
             };
             let args_vec: Vec<String> = args.collect();
-            let reason = super::args::extract_option(&args_vec, "--reason", None)
-                .map(|r| r.trim_matches('"').to_string())
-                .unwrap_or_else(|| "User authorized exception".to_string());
+            let reason = super::args::extract_option(&args_vec, "--reason", None).map_or_else(
+                || "User authorized exception".to_string(),
+                |r| r.trim_matches('"').to_string(),
+            );
 
             match exceptions.add_exception(Path::new(&file_str), &guard, &reason) {
                 Ok(entry) => {

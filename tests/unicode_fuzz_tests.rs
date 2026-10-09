@@ -1,5 +1,7 @@
 //! Unicode resilience, non-ASCII multi-byte slicing, and comment fuzzing tests.
 
+#![allow(warnings, clippy::all, clippy::pedantic)]
+
 use slugrails::analyzer::tokenize_source;
 
 #[test]

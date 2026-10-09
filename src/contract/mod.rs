@@ -1,55 +1,16 @@
 pub mod discovery;
 pub mod scaffold;
+pub mod types;
+
+pub use crate::storage::baseline::{save_contract_baseline, verify_contract_baseline};
 pub use discovery::{ProjectInspection, inspect_project};
 pub use scaffold::{plan_architecture, scaffold_tests_harness};
-pub use crate::storage::baseline::{save_contract_baseline, verify_contract_baseline};
+pub use types::{ArchitectureContract, InvariantDeclaration, ValidationResult};
 
 use crate::error::{ContractError, Result, SlugRailsError};
 use crate::library::catalog::GuardCatalog;
-use schemars::JsonSchema;
-use serde::{Deserialize, Serialize};
-use std::collections::BTreeMap;
 use std::fs;
 use std::path::{Path, PathBuf};
-
-/// A formal behavioral invariant declared in the architecture contract.
-#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq, JsonSchema)]
-pub struct InvariantDeclaration {
-    pub id: String,
-    #[serde(default)]
-    pub component: String,
-    pub contract: String,
-    #[serde(default)]
-    pub enforcement: String,
-}
-
-/// TOML frontmatter extracted from .planning/ARCHITECTURE.md.
-#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, JsonSchema)]
-pub struct ArchitectureContract {
-    #[serde(default)]
-    pub modules: Vec<String>,
-    #[serde(default)]
-    pub layers: Vec<String>,
-    #[serde(default)]
-    pub allowed_dependencies: BTreeMap<String, Vec<String>>,
-    #[serde(default)]
-    pub enforce: Vec<String>,
-    #[serde(default)]
-    pub guard_settings: BTreeMap<String, serde_json::Value>,
-    #[serde(default)]
-    pub invariants: Vec<InvariantDeclaration>,
-}
-
-/// Validation verdict returned by `validate_architecture`.
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-pub struct ValidationResult {
-    pub is_valid: bool,
-    pub contract: Option<ArchitectureContract>,
-    pub ready_guards: Vec<String>,
-    pub missing_guards: Vec<String>,
-    pub errors: Vec<String>,
-    pub warnings: Vec<String>,
-}
 
 /// Extracts TOML frontmatter delimited by `+++` fences from markdown content.
 ///
@@ -66,7 +27,7 @@ pub fn parse_frontmatter(content: &str) -> Result<(ArchitectureContract, &str)> 
     let rest = &trimmed[3..];
     let end_idx = rest
         .find("+++")
-        .ok_or_else(|| SlugRailsError::Contract(ContractError::UnclosedFrontmatter))?;
+        .ok_or(SlugRailsError::Contract(ContractError::UnclosedFrontmatter))?;
 
     let toml_str = &rest[..end_idx];
     let body = &rest[end_idx + 3..];
@@ -94,7 +55,9 @@ pub fn validate_contract(
 
     for module in &contract.modules {
         if !existing_modules.contains(module) {
-            warnings.push(format!("Declared module '{module}' does not exist on disk under src/"));
+            warnings.push(format!(
+                "Declared module '{module}' does not exist on disk under src/"
+            ));
         }
     }
 
@@ -103,7 +66,9 @@ pub fn validate_contract(
             ready_guards.push(entry.id.clone());
         } else if let Some(b) = crate::library::builtins::get_builtin_guard_tests()
             .into_iter()
-            .find(|b| b.id == *enforce_item || b.name == *enforce_item || b.aliases.contains(enforce_item))
+            .find(|b| {
+                b.id == *enforce_item || b.name == *enforce_item || b.aliases.contains(enforce_item)
+            })
         {
             ready_guards.push(b.id);
         } else {
@@ -135,7 +100,8 @@ pub fn load_architecture(project_root: &Path) -> Result<ArchitectureContract> {
     if !arch_file.exists() {
         return Err(SlugRailsError::Contract(ContractError::MissingContract {
             path: arch_file,
-            hint: "Run 'slugrails init' to automatically scaffold one for this project.".to_string(),
+            hint: "Run 'slugrails init' to automatically scaffold one for this project."
+                .to_string(),
         }));
     }
 
@@ -144,7 +110,10 @@ pub fn load_architecture(project_root: &Path) -> Result<ArchitectureContract> {
         source: e,
     })?;
 
-    let baseline_file = project_root.join(".planning").join("slugrails").join("contract.baseline");
+    let baseline_file = project_root
+        .join(".planning")
+        .join("slugrails")
+        .join("contract.baseline");
     if baseline_file.exists() {
         let stored_hash = fs::read_to_string(&baseline_file).map_err(|e| SlugRailsError::Io {
             path: baseline_file,
@@ -173,14 +142,16 @@ pub fn validate_architecture(
 ) -> Result<ValidationResult> {
     let contract = match load_architecture(project_root) {
         Ok(c) => c,
-        Err(e) => return Ok(ValidationResult {
-            is_valid: false,
-            contract: None,
-            ready_guards: Vec::new(),
-            missing_guards: Vec::new(),
-            errors: vec![format!("Failed to load ARCHITECTURE.md: {e}")],
-            warnings: Vec::new(),
-        }),
+        Err(e) => {
+            return Ok(ValidationResult {
+                is_valid: false,
+                contract: None,
+                ready_guards: Vec::new(),
+                missing_guards: Vec::new(),
+                errors: vec![format!("Failed to load ARCHITECTURE.md: {e}")],
+                warnings: Vec::new(),
+            });
+        }
     };
 
     let mut existing_modules = Vec::new();

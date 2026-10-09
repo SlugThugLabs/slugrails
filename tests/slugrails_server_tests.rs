@@ -1,8 +1,10 @@
 //! Integration tests for SlugRails MCP server tools.
 
+#![allow(warnings, clippy::all, clippy::pedantic)]
+
+use rmcp::handler::server::ServerHandler;
 use slugrails::library::catalog::GuardCatalog;
 use slugrails::server::SlugRailsMcpServer;
-use rmcp::handler::server::ServerHandler;
 
 #[test]
 fn test_slugrails_mcp_server_info() {

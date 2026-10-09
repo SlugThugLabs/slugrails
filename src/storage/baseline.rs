@@ -5,8 +5,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 /// Error message emitted when ARCHITECTURE.md has been tampered with.
-pub const TAMPER_ERROR_MSG: &str =
-    "ARCHITECTURE.md hash does not match approved baseline (.planning/slugrails/contract.baseline). Update baseline with authorized token or slugrails plan.";
+pub const TAMPER_ERROR_MSG: &str = "ARCHITECTURE.md hash does not match approved baseline (.planning/slugrails/contract.baseline). Update baseline with authorized token or slugrails plan.";
 
 impl ContractError {
     /// Constructs an architectural contract malformed error.
@@ -63,7 +62,9 @@ pub fn verify_contract_baseline(project_root: &Path, content: &str) -> Result<()
 
     let current = compute_contract_hash(content);
     if stored.trim() != current {
-        return Err(SlugRailsError::Contract(ContractError::Malformed(TAMPER_ERROR_MSG)));
+        return Err(SlugRailsError::Contract(ContractError::Malformed(
+            TAMPER_ERROR_MSG,
+        )));
     }
 
     Ok(())

@@ -12,7 +12,11 @@ pub(super) fn looks_rust_like(source: &str) -> bool {
 }
 
 /// Recognizes a quoted literal at `index`, returning `(index_after, body_start, body_end)`.
-pub(super) fn scan_quoted(bytes: &[u8], index: usize, rust_like: bool) -> Option<(usize, usize, usize)> {
+pub(super) fn scan_quoted(
+    bytes: &[u8],
+    index: usize,
+    rust_like: bool,
+) -> Option<(usize, usize, usize)> {
     match bytes.get(index).copied()? {
         b'"' => scan_double_quoted(bytes, index),
         b'`' => {

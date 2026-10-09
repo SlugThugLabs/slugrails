@@ -1,5 +1,6 @@
-//! MCP Server implementation for SlugRails and SlugPlan governance tools.
+//! MCP Server implementation for `SlugRails` and `SlugPlan` governance tools.
 
+pub mod actions;
 pub mod handlers;
 mod types;
 
@@ -24,7 +25,6 @@ pub struct SlugRailsMcpServer {
     pub catalog: Arc<Mutex<GuardCatalog>>,
     tool_router: rmcp::handler::server::tool::ToolRouter<Self>,
 }
-
 
 impl SlugRailsMcpServer {
     #[must_use]

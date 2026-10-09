@@ -167,4 +167,3 @@ pub fn is_test_path(path: &str) -> bool {
         .iter()
         .any(|suffix| name.ends_with(suffix))
 }
-

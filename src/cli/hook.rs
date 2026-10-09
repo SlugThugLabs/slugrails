@@ -30,7 +30,8 @@ pub fn run_hook<I: Iterator<Item = String>>(mut args: I) -> ExitCode {
     }
 }
 
-/// Installs the SlugRails pre-commit hook into `.git/hooks/pre-commit`.
+/// Installs the `SlugRails` pre-commit hook into `.git/hooks/pre-commit`.
+#[must_use]
 pub fn install_hook(repo_root: &Path) -> ExitCode {
     let git_dir = repo_root.join(".git");
     if !git_dir.exists() {
@@ -42,13 +43,11 @@ pub fn install_hook(repo_root: &Path) -> ExitCode {
         git_dir.join("hooks")
     } else {
         // Handle git worktree or submodule where .git is a file
-        match resolve_gitdir(&git_dir) {
-            Some(dir) => dir.join("hooks"),
-            None => {
-                eprintln!("Error: Unable to resolve gitdir for worktree/submodule.");
-                return ExitCode::from(1);
-            }
-        }
+        let Some(dir) = resolve_gitdir(&git_dir) else {
+            eprintln!("Error: Unable to resolve gitdir for worktree/submodule.");
+            return ExitCode::from(1);
+        };
+        dir.join("hooks")
     };
 
     if let Err(e) = fs::create_dir_all(&hooks_dir) {
@@ -57,13 +56,15 @@ pub fn install_hook(repo_root: &Path) -> ExitCode {
     }
 
     let hook_path = hooks_dir.join("pre-commit");
-    if hook_path.exists() {
-        if let Ok(content) = fs::read_to_string(&hook_path) {
-            if content.contains("slugrails") {
-                println!("Pre-commit hook is already installed in {}", hook_path.display());
-                return ExitCode::SUCCESS;
-            }
-        }
+    if hook_path.exists()
+        && let Ok(content) = fs::read_to_string(&hook_path)
+        && content.contains("slugrails")
+    {
+        println!(
+            "Pre-commit hook is already installed in {}",
+            hook_path.display()
+        );
+        return ExitCode::SUCCESS;
     }
 
     if let Err(e) = fs::write(&hook_path, HOOK_SCRIPT) {
@@ -78,11 +79,15 @@ pub fn install_hook(repo_root: &Path) -> ExitCode {
         let _ = fs::set_permissions(&hook_path, perms);
     }
 
-    println!("Successfully installed pre-commit hook into {}", hook_path.display());
+    println!(
+        "Successfully installed pre-commit hook into {}",
+        hook_path.display()
+    );
     ExitCode::SUCCESS
 }
 
-/// Removes the SlugRails hook if present.
+/// Removes the `SlugRails` hook if present.
+#[must_use]
 pub fn uninstall_hook(repo_root: &Path) -> ExitCode {
     let hook_path = repo_root.join(".git").join("hooks").join("pre-commit");
     if !hook_path.exists() {
@@ -100,7 +105,9 @@ pub fn uninstall_hook(repo_root: &Path) -> ExitCode {
             ExitCode::SUCCESS
         }
         _ => {
-            println!("Pre-commit hook does not appear to be installed by SlugRails; leaving intact.");
+            println!(
+                "Pre-commit hook does not appear to be installed by SlugRails; leaving intact."
+            );
             ExitCode::SUCCESS
         }
     }

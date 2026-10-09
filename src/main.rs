@@ -1,4 +1,4 @@
-//! SlugRails CLI entrypoint and subcommand dispatch.
+//! `SlugRails` CLI entrypoint and subcommand dispatch.
 
 #![forbid(unsafe_code)]
 
@@ -27,7 +27,10 @@ async fn main() -> ExitCode {
         "serve" => run_serve(args).await,
 
         "--version" | "-v" | "-V" => {
-            println!("slugrails {} (Rust 2024 Edition)", env!("CARGO_PKG_VERSION"));
+            println!(
+                "slugrails {} (Rust 2024 Edition)",
+                env!("CARGO_PKG_VERSION")
+            );
             ExitCode::SUCCESS
         }
         "--help" | "-h" | "help" => {

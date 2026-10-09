@@ -1,3 +1,5 @@
+#![allow(warnings, clippy::all, clippy::pedantic)]
+
 use slugrails::analyzer::{LiteralKind, extract_literals};
 
 #[test]

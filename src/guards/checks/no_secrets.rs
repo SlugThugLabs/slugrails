@@ -44,11 +44,14 @@ fn is_high_entropy_secret(s: &str) -> bool {
     for &b in s.as_bytes() {
         freq[b as usize] += 1;
     }
-    let len = s.len() as f64;
+    let Ok(len_u32) = u32::try_from(s.len()) else {
+        return false;
+    };
+    let len = f64::from(len_u32);
     let mut entropy = 0.0;
     for &count in &freq {
         if count > 0 {
-            let p = count as f64 / len;
+            let p = f64::from(count) / len;
             entropy -= p * p.log2();
         }
     }

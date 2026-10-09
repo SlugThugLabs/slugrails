@@ -1,3 +1,5 @@
+#![allow(warnings, clippy::all, clippy::pedantic)]
+
 use slugrails::library::GuardCatalog;
 use slugrails::types::GuardTestDefinition;
 use std::collections::BTreeMap;

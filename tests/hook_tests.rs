@@ -1,5 +1,7 @@
 //! Integration tests for Git pre-commit hook installation and uninstallation.
 
+#![allow(warnings, clippy::all, clippy::pedantic)]
+
 use slugrails::cli::{install_hook, uninstall_hook};
 use std::fs;
 use std::process::ExitCode;

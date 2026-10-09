@@ -160,4 +160,3 @@ fn resolve_module(import: &[String], modules: &[(String, Vec<String>)]) -> Optio
     }
     best.map(|(name, _)| name)
 }
-

@@ -131,7 +131,10 @@ fn evaluate_file_guards(
         return violations;
     }
     if meta.len() > 2 * 1024 * 1024 {
-        tracing::warn!("Skipping oversized file exceeding 2MB limit: {}", file.display());
+        tracing::warn!(
+            "Skipping oversized file exceeding 2MB limit: {}",
+            file.display()
+        );
         return violations;
     }
 

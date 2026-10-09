@@ -28,12 +28,9 @@ pub async fn run_serve(args: impl Iterator<Item = String>) -> ExitCode {
     let handler = SlugRailsMcpServer::new(catalog);
 
     if let Some(port_str) = super::args::extract_option(&args_vec, "--port", Some("-p")) {
-        let port: u16 = match port_str.parse() {
-            Ok(p) => p,
-            Err(_) => {
-                eprintln!("[SLUGRAILS-ERROR] Invalid port number: '{port_str}'");
-                return ExitCode::from(2);
-            }
+        let Ok(port) = port_str.parse::<u16>() else {
+            eprintln!("[SLUGRAILS-ERROR] Invalid port number: '{port_str}'");
+            return ExitCode::from(2);
         };
         return serve_tcp(handler, port).await;
     }

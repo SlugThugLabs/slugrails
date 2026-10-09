@@ -3,6 +3,7 @@
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
+use std::fmt::Write;
 use std::fs;
 use std::path::Path;
 
@@ -26,7 +27,12 @@ pub fn inspect_project(root: &Path, intent: &str, style_hint: Option<&str>) -> P
 
     let (layers, deps) = match style_hint.unwrap_or("layered").to_lowercase().as_str() {
         "hexagonal" | "ports-and-adapters" => (
-            vec!["domain".into(), "ports".into(), "adapters".into(), "driver".into()],
+            vec![
+                "domain".into(),
+                "ports".into(),
+                "adapters".into(),
+                "driver".into(),
+            ],
             BTreeMap::from([
                 ("adapters".into(), vec!["ports".into(), "domain".into()]),
                 ("driver".into(), vec!["adapters".into(), "ports".into()]),
@@ -40,10 +46,17 @@ pub fn inspect_project(root: &Path, intent: &str, style_hint: Option<&str>) -> P
             ]),
         ),
         _ => (
-            vec!["domain".into(), "application".into(), "infrastructure".into()],
+            vec![
+                "domain".into(),
+                "application".into(),
+                "infrastructure".into(),
+            ],
             BTreeMap::from([
                 ("application".into(), vec!["domain".into()]),
-                ("infrastructure".into(), vec!["application".into(), "domain".into()]),
+                (
+                    "infrastructure".into(),
+                    vec!["application".into(), "domain".into()],
+                ),
             ]),
         ),
     };
@@ -64,7 +77,8 @@ pub fn inspect_project(root: &Path, intent: &str, style_hint: Option<&str>) -> P
 
     let prompts = vec![
         "What are the core domain entities vs external adapters (databases, APIs, network)?".into(),
-        "What are the non-negotiable failure modes—should functions fail-closed with Result/Error?".into(),
+        "What are the non-negotiable failure modes—should functions fail-closed with Result/Error?"
+            .into(),
         "Should strict file-size limits (<= 200 LOC) apply to enforce high modularity?".into(),
         "Are there special prohibited dependencies (e.g. infrastructure cannot touch UI)?".into(),
     ];
@@ -104,12 +118,13 @@ fn discover_modules(root: &Path) -> Vec<String> {
     if let Ok(entries) = fs::read_dir(search_dir) {
         for entry in entries.flatten() {
             let path = entry.path();
-            if path.is_dir() {
-                if let Some(name) = path.file_name().and_then(|n| n.to_str()) {
-                    if !name.starts_with('.') && name != "target" && name != "node_modules" {
-                        modules.push(name.to_string());
-                    }
-                }
+            if path.is_dir()
+                && let Some(name) = path.file_name().and_then(|n| n.to_str())
+                && !name.starts_with('.')
+                && name != "target"
+                && name != "node_modules"
+            {
+                modules.push(name.to_string());
             }
         }
     }
@@ -123,12 +138,24 @@ fn render_candidate_contract(
     rules: &[String],
     intent: &str,
 ) -> String {
-    let layers_fmt = layers.iter().map(|l| format!("\"{l}\"")).collect::<Vec<_>>().join(", ");
-    let rules_fmt = rules.iter().map(|r| format!("\"{r}\"")).collect::<Vec<_>>().join(", ");
+    let layers_fmt = layers
+        .iter()
+        .map(|l| format!("\"{l}\""))
+        .collect::<Vec<_>>()
+        .join(", ");
+    let rules_fmt = rules
+        .iter()
+        .map(|r| format!("\"{r}\""))
+        .collect::<Vec<_>>()
+        .join(", ");
     let mut deps_fmt = String::new();
     for (k, v) in deps {
-        let targets = v.iter().map(|t| format!("\"{t}\"")).collect::<Vec<_>>().join(", ");
-        deps_fmt.push_str(&format!("{k} = [{targets}]\n"));
+        let targets = v
+            .iter()
+            .map(|t| format!("\"{t}\""))
+            .collect::<Vec<_>>()
+            .join(", ");
+        let _ = writeln!(deps_fmt, "{k} = [{targets}]");
     }
 
     format!(

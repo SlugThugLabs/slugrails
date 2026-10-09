@@ -111,4 +111,3 @@ fn python_nesting(raw_lines: &[&str], span: &FunctionSpan) -> NestingSite {
         line: maximum_line,
     }
 }
-

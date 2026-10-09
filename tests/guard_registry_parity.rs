@@ -5,6 +5,8 @@
 //! this test existed, the run reported it as *passed*. Any new catalog entry
 //! must therefore be either implemented or declared unimplemented.
 
+#![allow(warnings, clippy::all, clippy::pedantic)]
+
 use slugrails::guards::runner::{IMPLEMENTED_GUARDS, UNIMPLEMENTED_GUARDS, is_implemented};
 use slugrails::library::builtins::get_builtin_guard_tests;
 

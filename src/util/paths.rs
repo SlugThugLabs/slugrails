@@ -5,9 +5,8 @@ use std::path::{Component, Path, PathBuf};
 
 /// Reserved Windows DOS device names.
 pub const RESERVED_DOS_NAMES: &[&str] = &[
-    "CON", "PRN", "AUX", "NUL", "COM1", "COM2", "COM3", "COM4",
-    "COM5", "COM6", "COM7", "COM8", "COM9", "LPT1", "LPT2", "LPT3",
-    "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9",
+    "CON", "PRN", "AUX", "NUL", "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8",
+    "COM9", "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9",
 ];
 
 /// Checks if a path or any of its components matches a Windows DOS reserved device name.
@@ -84,25 +83,19 @@ pub fn validate_safe_path(path: &Path) -> Result<PathBuf> {
     };
 
     if is_windows_dos_device(&canonical) {
-        return Err(SlugRailsError::SandboxViolation {
-            path: canonical,
-        });
+        return Err(SlugRailsError::SandboxViolation { path: canonical });
     }
 
     let path_str = canonical.to_string_lossy();
 
     for comp in canonical.components() {
         if matches!(comp, Component::ParentDir) {
-            return Err(SlugRailsError::SandboxViolation {
-                path: canonical,
-            });
+            return Err(SlugRailsError::SandboxViolation { path: canonical });
         }
         if let Component::Normal(c) = comp {
             let name = c.to_string_lossy();
             if name == ".ssh" || name == ".aws" || name == ".gnupg" {
-                return Err(SlugRailsError::SandboxViolation {
-                    path: canonical,
-                });
+                return Err(SlugRailsError::SandboxViolation { path: canonical });
             }
         }
     }
@@ -113,9 +106,7 @@ pub fn validate_safe_path(path: &Path) -> Result<PathBuf> {
         || path_str.starts_with("/etc/shadow")
         || path_str.starts_with("/etc/sudoers")
     {
-        return Err(SlugRailsError::SandboxViolation {
-            path: canonical,
-        });
+        return Err(SlugRailsError::SandboxViolation { path: canonical });
     }
 
     Ok(canonical)

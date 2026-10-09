@@ -33,7 +33,6 @@ pub fn get_slugrails_home() -> PathBuf {
     }
 }
 
-
 /// Returns the executable binary name for the current platform.
 #[must_use]
 pub fn get_binary_name() -> &'static str {

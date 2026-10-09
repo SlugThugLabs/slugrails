@@ -38,7 +38,10 @@ fn load_or_generate_secret_salt() -> [u8; 32] {
     let key_bytes = *hasher.finalize().as_bytes();
 
     if let Err(e) = fs::write(&key_path, key_bytes) {
-        tracing::warn!("Failed to persist secret salt to {}: {e}", key_path.display());
+        tracing::warn!(
+            "Failed to persist secret salt to {}: {e}",
+            key_path.display()
+        );
     }
     #[cfg(unix)]
     {

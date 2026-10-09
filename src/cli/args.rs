@@ -55,7 +55,7 @@ pub fn extract_option(args: &[String], long: &str, short: Option<&str>) -> Optio
         if (arg == long || short.is_some_and(|s| s == arg))
             && let Some(next) = iter.next()
         {
-            return Some(next.to_string());
+            return Some(next.clone());
         }
     }
     None
@@ -79,4 +79,3 @@ pub fn validate_known_flags(args: &[String], known: &[&str]) -> Result<(), Strin
     }
     Ok(())
 }
-

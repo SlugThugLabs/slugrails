@@ -54,7 +54,7 @@ pub fn tokenize_source(source: &str) -> Vec<StrippedLine<'_>> {
 
             match state {
                 LexState::Normal => {
-                    let is_rust_attr = c == '#' && matches!(next, Some('[') | Some('!'));
+                    let is_rust_attr = c == '#' && matches!(next, Some('[' | '!'));
                     if (c == '/' && next == Some('/')) || (c == '#' && !is_rust_attr) {
                         state = LexState::LineComment;
                         break;
@@ -64,7 +64,6 @@ pub fn tokenize_source(source: &str) -> Vec<StrippedLine<'_>> {
                     } else if c == '/' && next == Some('*') {
                         state = LexState::BlockComment;
                         chars.next();
-                        continue;
                     } else if c == '"' {
                         state = LexState::StringLiteral { escaped: false };
                         has_code = true;
@@ -83,7 +82,6 @@ pub fn tokenize_source(source: &str) -> Vec<StrippedLine<'_>> {
                     if c == '*' && next == Some('/') {
                         state = LexState::Normal;
                         chars.next();
-                        continue;
                     }
                 }
                 LexState::StringLiteral { escaped } => {
@@ -167,6 +165,5 @@ pub fn find_debug_prints(source: &str) -> Vec<(usize, String)> {
 
     results
 }
-
 
 pub use super::imports::extract_imported_modules;

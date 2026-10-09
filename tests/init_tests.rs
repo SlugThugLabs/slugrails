@@ -1,3 +1,5 @@
+#![allow(warnings, clippy::all, clippy::pedantic)]
+
 use slugrails::cli::init::initialize_project;
 use tempfile::tempdir;
 

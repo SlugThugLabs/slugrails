@@ -1,3 +1,5 @@
+#![allow(warnings, clippy::all, clippy::pedantic)]
+
 use slugrails::contract::{
     ArchitectureContract, load_architecture, parse_frontmatter, validate_architecture,
     validate_contract,
@@ -125,7 +127,10 @@ fn validate_declared_module_warning_when_absent() {
 fn test_validate_contract_pure_in_memory() {
     let mut contract = ArchitectureContract::default();
     contract.modules = vec!["core".to_string(), "ghost".to_string()];
-    contract.enforce = vec!["complexity/source-limits".to_string(), "unknown/rule".to_string()];
+    contract.enforce = vec![
+        "complexity/source-limits".to_string(),
+        "unknown/rule".to_string(),
+    ];
 
     let catalog = GuardCatalog::default();
     let existing_modules = vec!["core".to_string()];

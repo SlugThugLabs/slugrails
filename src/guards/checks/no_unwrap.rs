@@ -23,7 +23,7 @@ impl GuardCheck for NoUnwrapCheck {
 
 /// Checks for bare unwrap/expect invocations in production Rust code.
 pub fn check_no_unwrap(ctx: &FileContext<'_>, violations: &mut Vec<Violation>) {
-    if !ctx.rel_file.extension().is_some_and(|ext| ext == "rs") {
+    if ctx.rel_file.extension().is_none_or(|ext| ext != "rs") {
         return;
     }
 

@@ -1,3 +1,5 @@
+#![allow(warnings, clippy::all, clippy::pedantic)]
+
 #[cfg(test)]
 mod tests {
     use slugrails::library::{create_custom_guard_test, load_all_tests_and_save_catalog};

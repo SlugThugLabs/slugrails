@@ -1,3 +1,5 @@
+#![allow(warnings, clippy::all, clippy::pedantic)]
+
 use slugrails::analyzer::{has_test_module, is_test_path, test_region_lines};
 
 const TEST_MODULE_SOURCE: &str = "\

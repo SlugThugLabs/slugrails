@@ -8,6 +8,7 @@ use std::path::Path;
 /// Automatically remediates supported violations (e.g. hygiene/no-debug-prints).
 ///
 /// Returns the number of fixed violations.
+#[must_use]
 pub fn auto_remediate_violations(project_root: &Path, violations: &[Violation]) -> usize {
     let mut fixed_count = 0;
     let mut affected_files: HashSet<&Path> = HashSet::new();
@@ -48,7 +49,10 @@ pub fn auto_remediate_violations(project_root: &Path, violations: &[Violation]) 
                     out.push('\n');
                 }
                 if fs::write(&full_path, out).is_ok() {
-                    println!("[SLUGRAILS-FIX] Cleaned debug statements in {}", rel_file.display());
+                    println!(
+                        "[SLUGRAILS-FIX] Cleaned debug statements in {}",
+                        rel_file.display()
+                    );
                 }
             }
         }

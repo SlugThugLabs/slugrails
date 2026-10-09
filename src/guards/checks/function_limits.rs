@@ -40,27 +40,28 @@ pub fn check_function_limits(
 
     for span in function_spans(ctx.content) {
         let length = span.end_line.saturating_sub(span.start_line) + 1;
-        if length > max_lines && !ctx.is_test_line(span.start_line) {
-            if !has_valid_exception(ctx.file, &ctx.guard.id, ctx.content, ctx.exceptions) {
-                violations.push(Violation {
-                    guard_id: ctx.guard.id.clone(),
-                    file: ctx.rel_file.to_path_buf(),
-                    line: Some(span.start_line),
-                    message: format!(
-                        "Function '{}' has {length} lines (exceeds limit of {max_lines})",
-                        span.name
-                    ),
-                    severity: Severity::Error,
-                    fix_suggestion: Some(
-                        "Refactor function into smaller, single-responsibility helper functions."
-                            .to_string(),
-                    ),
-                    rule_reference: Some(format!(
-                        ".planning/ARCHITECTURE.md [enforce: {}]",
-                        ctx.rule_name
-                    )),
-                });
-            }
+        if length > max_lines
+            && !ctx.is_test_line(span.start_line)
+            && !has_valid_exception(ctx.file, &ctx.guard.id, ctx.content, ctx.exceptions)
+        {
+            violations.push(Violation {
+                guard_id: ctx.guard.id.clone(),
+                file: ctx.rel_file.to_path_buf(),
+                line: Some(span.start_line),
+                message: format!(
+                    "Function '{}' has {length} lines (exceeds limit of {max_lines})",
+                    span.name
+                ),
+                severity: Severity::Error,
+                fix_suggestion: Some(
+                    "Refactor function into smaller, single-responsibility helper functions."
+                        .to_string(),
+                ),
+                rule_reference: Some(format!(
+                    ".planning/ARCHITECTURE.md [enforce: {}]",
+                    ctx.rule_name
+                )),
+            });
         }
     }
 }

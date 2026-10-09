@@ -1,3 +1,5 @@
+#![allow(warnings, clippy::all, clippy::pedantic)]
+
 #[cfg(test)]
 mod tests {
     use slugrails::storage::ProjectExceptions;
@@ -42,7 +44,8 @@ mod tests {
     fn test_exception_pure_in_memory() {
         let mut exceptions = ProjectExceptions::default();
         let file = Path::new("src/domain.rs");
-        let entry = exceptions.insert_exception(file, "languages/rust/no-unwrap", "domain invariant");
+        let entry =
+            exceptions.insert_exception(file, "languages/rust/no-unwrap", "domain invariant");
 
         assert_eq!(entry.token.len(), 5);
         assert_eq!(exceptions.exceptions.len(), 1);
@@ -59,7 +62,17 @@ mod tests {
         let entry = exceptions.insert_exception(file, "hygiene/no-debug-prints", "temporary debug");
 
         // Valid under standard 30-day TTL and 60-day TTL
-        assert!(exceptions.is_exception_valid_with_ttl(file, "hygiene/no-debug-prints", &entry.token, 30));
-        assert!(exceptions.is_exception_valid_with_ttl(file, "hygiene/no-debug-prints", &entry.token, 60));
+        assert!(exceptions.is_exception_valid_with_ttl(
+            file,
+            "hygiene/no-debug-prints",
+            &entry.token,
+            30
+        ));
+        assert!(exceptions.is_exception_valid_with_ttl(
+            file,
+            "hygiene/no-debug-prints",
+            &entry.token,
+            60
+        ));
     }
 }

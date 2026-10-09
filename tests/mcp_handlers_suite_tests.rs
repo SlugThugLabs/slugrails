@@ -7,6 +7,8 @@
 //! - `test_add_exception_handler`: verifies `handle_add_exception` grants valid token with human confirmation.
 //! - `test_baseline_tamper_rejection`: verifies that modifying `ARCHITECTURE.md` without updating `contract.baseline` triggers tamper error.
 
+#![allow(warnings, clippy::all, clippy::pedantic)]
+
 use slugrails::contract::{load_architecture, save_contract_baseline, verify_contract_baseline};
 use slugrails::library::catalog::GuardCatalog;
 use slugrails::server::handlers::{
@@ -84,11 +86,8 @@ async fn test_slugplan_probe_handler() {
 
     let src_dir = project_root.join("src");
     fs::create_dir_all(&src_dir).expect("failed to create src dir");
-    fs::write(
-        src_dir.join("lib.rs"),
-        "pub mod auth;\npub mod storage;\n",
-    )
-    .expect("failed to write src/lib.rs");
+    fs::write(src_dir.join("lib.rs"), "pub mod auth;\npub mod storage;\n")
+        .expect("failed to write src/lib.rs");
 
     // Probe without auto-scaffolding
     let req = ProbeArchitectureRequest {
@@ -102,7 +101,11 @@ async fn test_slugplan_probe_handler() {
     };
 
     let result = handle_probe(req).await;
-    assert!(result.is_ok(), "handle_probe should succeed: {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "handle_probe should succeed: {:?}",
+        result.err()
+    );
 
     let val = result.expect("unreachable").0;
     assert_eq!(val["status"], "ready_to_scaffold");
@@ -130,10 +133,7 @@ async fn test_slugplan_probe_handler() {
     let prompts = val["interview_prompts"]
         .as_array()
         .expect("interview_prompts should be an array");
-    assert!(
-        !prompts.is_empty(),
-        "interview_prompts must not be empty"
-    );
+    assert!(!prompts.is_empty(), "interview_prompts must not be empty");
 
     // Auto-scaffold probe
     let req_scaffold = ProbeArchitectureRequest {
@@ -150,7 +150,12 @@ async fn test_slugplan_probe_handler() {
     assert!(result_scaffold.is_ok(), "handle_probe auto_scaffold failed");
     let val_scaffold = result_scaffold.expect("unreachable").0;
     assert_eq!(val_scaffold["status"], "scaffolded");
-    assert!(project_root.join(".planning").join("ARCHITECTURE.md").exists());
+    assert!(
+        project_root
+            .join(".planning")
+            .join("ARCHITECTURE.md")
+            .exists()
+    );
 }
 
 #[test]
@@ -314,7 +319,8 @@ async fn test_baseline_tamper_rejection() {
         Ok(_) => panic!("expected error"),
     };
     assert!(
-        handler_err_msg.contains("contract.baseline") || handler_err_msg.contains("Missing or invalid contract"),
+        handler_err_msg.contains("contract.baseline")
+            || handler_err_msg.contains("Missing or invalid contract"),
         "handler error message must describe baseline or contract invalidity: {handler_err_msg}"
     );
 }

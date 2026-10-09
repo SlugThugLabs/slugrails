@@ -1,4 +1,4 @@
-//! SlugPlan: Intent Convergence Engine & Architectural Advisor.
+//! `SlugPlan`: Intent Convergence Engine & Architectural Advisor.
 //!
 //! Conducts architectural interviews, discovers domain terms and layers,
 //! generates ARCHITECTURE.md contracts, and scaffolds tests/slugrails.rs.
@@ -19,8 +19,12 @@ pub fn run_plan(args: impl Iterator<Item = String>) -> ExitCode {
     let root = extract_root(&args_vec);
     let intent_input = extract_option(&args_vec, "--intent", Some("-i"));
     let style_input = extract_option(&args_vec, "--style", Some("-s"));
-    let layers_input = extract_option(&args_vec, "--layers", Some("-l"))
-        .map(|s| s.split(',').map(|p| p.trim().to_string()).filter(|p| !p.is_empty()).collect());
+    let layers_input = extract_option(&args_vec, "--layers", Some("-l")).map(|s| {
+        s.split(',')
+            .map(|p| p.trim().to_string())
+            .filter(|p| !p.is_empty())
+            .collect()
+    });
 
     match plan_architecture(
         &root,
@@ -40,6 +44,11 @@ pub fn run_plan(args: impl Iterator<Item = String>) -> ExitCode {
     }
 }
 
+/// Converges and plans architecture contract.
+///
+/// # Errors
+///
+/// Returns an I/O error if writing the contract or baseline fails.
 pub fn plan_architecture(
     root: &Path,
     intent_desc: Option<&str>,

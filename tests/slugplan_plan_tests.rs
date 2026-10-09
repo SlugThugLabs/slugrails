@@ -1,5 +1,7 @@
-use slugrails::cli::plan::{plan_architecture, run_plan};
+#![allow(warnings, clippy::all, clippy::pedantic)]
+
 use serde_json::Value;
+use slugrails::cli::plan::{plan_architecture, run_plan};
 use std::fs;
 use std::process::ExitCode;
 use tempfile::tempdir;
@@ -9,7 +11,8 @@ fn test_plan_architecture_default_layered() {
     let dir = tempdir().expect("failed to create temp dir");
     let root = dir.path();
 
-    let output = plan_architecture(root, None, None, None, None).expect("plan_architecture should succeed");
+    let output =
+        plan_architecture(root, None, None, None, None).expect("plan_architecture should succeed");
     assert!(output.contains("SlugPlan successfully converged architectural intent"));
 
     // 1. Verify .planning/ARCHITECTURE.md
@@ -31,7 +34,10 @@ fn test_plan_architecture_default_layered() {
     let intent_json: Value = serde_json::from_str(&intent_raw).expect("parse intent.json");
 
     assert_eq!(intent_json["style"], "discovered");
-    assert_eq!(intent_json["intent"], "Define system boundaries and human intent here.");
+    assert_eq!(
+        intent_json["intent"],
+        "Define system boundaries and human intent here."
+    );
     assert_eq!(intent_json["created_by"], "slugplan");
     let layers = intent_json["layers"]
         .as_array()
@@ -121,8 +127,15 @@ fn test_plan_architecture_custom_agreed_terms_from_chat() {
     let root = dir.path();
 
     // Simulate custom terms agreed between developer and AI in chat
-    let agreed_layers = vec!["core_models".to_string(), "query_engine".to_string(), "rest_api".to_string()];
-    let agreed_rules = vec!["complexity/source-limits".to_string(), "hygiene/no-secrets".to_string()];
+    let agreed_layers = vec![
+        "core_models".to_string(),
+        "query_engine".to_string(),
+        "rest_api".to_string(),
+    ];
+    let agreed_rules = vec![
+        "complexity/source-limits".to_string(),
+        "hygiene/no-secrets".to_string(),
+    ];
 
     plan_architecture(
         root,
@@ -136,7 +149,9 @@ fn test_plan_architecture_custom_agreed_terms_from_chat() {
     let arch_file = root.join(".planning").join("ARCHITECTURE.md");
     let arch_content = fs::read_to_string(&arch_file).expect("read ARCHITECTURE.md");
     assert!(arch_content.contains("layers = [\"core_models\", \"query_engine\", \"rest_api\"]"));
-    assert!(arch_content.contains("enforce = [\"complexity/source-limits\", \"hygiene/no-secrets\"]"));
+    assert!(
+        arch_content.contains("enforce = [\"complexity/source-limits\", \"hygiene/no-secrets\"]")
+    );
 }
 
 #[test]
@@ -159,6 +174,11 @@ fn test_run_plan_cli_entrypoint() {
     assert_eq!(exit_code, ExitCode::SUCCESS);
 
     assert!(root.join(".planning").join("ARCHITECTURE.md").exists());
-    assert!(root.join(".planning").join("slugplan").join("intent.json").exists());
+    assert!(
+        root.join(".planning")
+            .join("slugplan")
+            .join("intent.json")
+            .exists()
+    );
     assert!(root.join("tests").join("slugrails.rs").exists());
 }

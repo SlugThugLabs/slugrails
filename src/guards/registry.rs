@@ -1,4 +1,4 @@
-//! Registry of all available GuardCheck implementations.
+//! Registry of all available `GuardCheck` implementations.
 
 use super::checks::{
     DebugPrintsCheck, DeepNestingCheck, FunctionLimitsCheck, LayerDependenciesCheck, NoPanicCheck,

@@ -4,6 +4,7 @@ pub mod args;
 pub mod check;
 pub mod exception;
 pub mod fix;
+pub mod format;
 pub mod hook;
 pub mod init;
 pub mod plan;
@@ -22,4 +23,3 @@ pub use sarif::format_sarif;
 pub use scaffold_tests::{run_scaffold_tests, scaffold_tests_harness};
 pub use serve::run_serve;
 pub use validate::run_validate;
-

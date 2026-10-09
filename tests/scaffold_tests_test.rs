@@ -1,3 +1,5 @@
+#![allow(warnings, clippy::all, clippy::pedantic)]
+
 use slugrails::cli::scaffold_tests::{
     TEST_HARNESS_TEMPLATE, run_scaffold_tests, scaffold_tests_harness,
 };
@@ -13,7 +15,10 @@ fn test_scaffold_tests_harness_creates_slugrails_rs() {
     let target_path = scaffold_tests_harness(root).expect("scaffold_tests_harness should succeed");
 
     assert_eq!(target_path, root.join("tests").join("slugrails.rs"));
-    assert!(target_path.exists(), "tests/slugrails.rs must exist on disk");
+    assert!(
+        target_path.exists(),
+        "tests/slugrails.rs must exist on disk"
+    );
 
     let content = fs::read_to_string(&target_path).expect("failed to read slugrails.rs");
     assert_eq!(
@@ -25,10 +30,7 @@ fn test_scaffold_tests_harness_creates_slugrails_rs() {
         content.contains("fn test_architecture_contract_enforced()"),
         "must declare architectural test function"
     );
-    assert!(
-        content.contains("slugrails"),
-        "must invoke slugrails"
-    );
+    assert!(content.contains("slugrails"), "must invoke slugrails");
     assert!(
         content.contains(".planning"),
         "must reference .planning directory"

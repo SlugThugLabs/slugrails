@@ -25,4 +25,3 @@ pub use source_limits::{SourceLimitsCheck, check_source_limits};
 pub use stubs::{NoStubsCheck, check_no_stubs};
 pub use swallowed_errors::{SwallowedErrorsCheck, check_swallowed_errors};
 pub use unsafe_policy::{UnsafePolicyCheck, check_unsafe_policy};
-

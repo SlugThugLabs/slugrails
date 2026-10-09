@@ -4,7 +4,7 @@ use crate::error::{Result, SlugRailsError};
 use ignore::{WalkBuilder, WalkState};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
-use std::sync::{mpsc, Arc};
+use std::sync::{Arc, mpsc};
 
 /// Maximum file size (2 MB) scanned into memory to protect against buffer exhaustion.
 pub const MAX_FILE_SIZE_BYTES: u64 = 2 * 1024 * 1024;
@@ -95,15 +95,15 @@ pub fn collect_source_files(project_root: &Path) -> Result<Vec<PathBuf>> {
                 if is_path_ignored(path) {
                     return WalkState::Continue;
                 }
-                if let Ok(meta) = entry.metadata() {
-                    if meta.len() > MAX_FILE_SIZE_BYTES {
-                        tracing::warn!(
-                            path = %path.display(),
-                            size = meta.len(),
-                            "Skipping file exceeding 2MB memory defense limit"
-                        );
-                        return WalkState::Continue;
-                    }
+                if let Ok(meta) = entry.metadata()
+                    && meta.len() > MAX_FILE_SIZE_BYTES
+                {
+                    tracing::warn!(
+                        path = %path.display(),
+                        size = meta.len(),
+                        "Skipping file exceeding 2MB memory defense limit"
+                    );
+                    return WalkState::Continue;
                 }
                 if count.fetch_add(1, Ordering::Relaxed) >= MAX_SCANNED_FILES {
                     if !budget_warned.swap(true, Ordering::Relaxed) {
@@ -144,7 +144,14 @@ pub fn collect_git_diff_files(project_root: &Path) -> Result<Vec<PathBuf>> {
     }
 
     let output = std::process::Command::new("git")
-        .args(["-c", "core.fsmonitor=", "-c", "core.hooksPath=/dev/null", "status", "--porcelain"])
+        .args([
+            "-c",
+            "core.fsmonitor=",
+            "-c",
+            "core.hooksPath=/dev/null",
+            "status",
+            "--porcelain",
+        ])
         .current_dir(project_root)
         .output();
 
@@ -171,10 +178,10 @@ pub fn collect_git_diff_files(project_root: &Path) -> Result<Vec<PathBuf>> {
                 && let Some(ext) = full_path.extension().and_then(|e| e.to_str())
                 && matches!(ext, "rs" | "py" | "ts" | "js" | "go" | "toml")
             {
-                if let Ok(meta) = full_path.metadata() {
-                    if meta.len() > MAX_FILE_SIZE_BYTES {
-                        continue;
-                    }
+                if let Ok(meta) = full_path.metadata()
+                    && meta.len() > MAX_FILE_SIZE_BYTES
+                {
+                    continue;
                 }
                 files.push(full_path);
             }

@@ -1,3 +1,5 @@
+#![allow(warnings, clippy::all, clippy::pedantic)]
+
 use slugrails::analyzer::test_region_lines;
 use slugrails::contract::ArchitectureContract;
 use slugrails::guards::checks::{
@@ -272,7 +274,11 @@ pub fn deeply_nested_func() {
     assert_eq!(violations[0].guard_id, "complexity/deep-nesting");
     assert_eq!(violations[0].severity, Severity::Error);
     assert!(violations[0].message.contains("deeply_nested_func"));
-    assert!(violations[0].message.contains("exceeds maximum nesting depth"));
+    assert!(
+        violations[0]
+            .message
+            .contains("exceeds maximum nesting depth")
+    );
 }
 
 #[test]
@@ -321,7 +327,10 @@ pub fn three_levels() {
     let mut guard_settings = BTreeMap::new();
     let mut deep_nesting_params = serde_json::Map::new();
     deep_nesting_params.insert("max_depth".to_string(), serde_json::json!(2));
-    guard_settings.insert("deep_nesting".to_string(), serde_json::Value::Object(deep_nesting_params));
+    guard_settings.insert(
+        "deep_nesting".to_string(),
+        serde_json::Value::Object(deep_nesting_params),
+    );
 
     let custom_contract = ArchitectureContract {
         guard_settings,
@@ -588,7 +597,8 @@ fn test_unsafe_policy_respects_exceptions() {
 
 #[test]
 fn test_no_secrets_detects_and_masks_credentials() {
-    let rsa_key = "-----BEGIN RSA PRIVATE KEY-----\nMIIEowIBAAKCAQEA0...\n-----END RSA PRIVATE KEY-----";
+    let rsa_key =
+        "-----BEGIN RSA PRIVATE KEY-----\nMIIEowIBAAKCAQEA0...\n-----END RSA PRIVATE KEY-----";
     let gh_token = format!("{}_{}", "ghp", "999999999999999999999999999999999999");
     let aws_key = format!("{}{}", "AKIA", "9999999999ABCDEF");
     let stripe_live = format!("{}_{}", "sk_live", "999999999999999999999999");
@@ -635,8 +645,15 @@ fn test_no_secrets_detects_and_masks_credentials() {
     for v in &violations {
         assert_eq!(v.guard_id, "hygiene/no-secrets");
         assert_eq!(v.severity, Severity::Error);
-        assert!(v.message.contains("Potential hardcoded secret or token detected:"));
-        assert!(v.message.contains("..."), "Secret must be masked with ellipsis: {}", v.message);
+        assert!(
+            v.message
+                .contains("Potential hardcoded secret or token detected:")
+        );
+        assert!(
+            v.message.contains("..."),
+            "Secret must be masked with ellipsis: {}",
+            v.message
+        );
 
         // Security check: raw full secret tokens must NEVER appear in the violation message
         assert!(
@@ -654,10 +671,26 @@ fn test_no_secrets_detects_and_masks_credentials() {
     }
 
     // Verify masked prefixes
-    assert!(violations.iter().any(|v| v.message.contains("'-----BEG...'")));
-    assert!(violations.iter().any(|v| v.message.contains("'ghp_9999...'")));
-    assert!(violations.iter().any(|v| v.message.contains("'AKIA9999...'")));
-    assert!(violations.iter().any(|v| v.message.contains("'sk_live_...'")));
+    assert!(
+        violations
+            .iter()
+            .any(|v| v.message.contains("'-----BEG...'"))
+    );
+    assert!(
+        violations
+            .iter()
+            .any(|v| v.message.contains("'ghp_9999...'"))
+    );
+    assert!(
+        violations
+            .iter()
+            .any(|v| v.message.contains("'AKIA9999...'"))
+    );
+    assert!(
+        violations
+            .iter()
+            .any(|v| v.message.contains("'sk_live_...'"))
+    );
 }
 
 #[test]
@@ -729,4 +762,3 @@ fn test_no_secrets_ignores_test_lines_and_respects_exceptions() {
         "Approved exception must suppress secret violation"
     );
 }
-

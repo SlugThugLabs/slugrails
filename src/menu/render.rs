@@ -90,4 +90,3 @@ pub fn is_interactive() -> bool {
 pub fn is_interactive_terminal() -> bool {
     is_interactive()
 }
-

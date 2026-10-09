@@ -6,6 +6,8 @@
 //!
 //!   initialize -> notifications/initialized -> tools/list -> tools/call
 
+#![allow(warnings, clippy::all, clippy::pedantic)]
+
 use helpers::{handshake, rpc_id, send, spawn_server, wait_for_response};
 use std::io::BufReader;
 

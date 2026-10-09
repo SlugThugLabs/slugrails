@@ -4,7 +4,7 @@ use crate::error::{Result, SlugRailsError};
 use std::fs;
 use std::path::Path;
 
-/// Initializes a SlugRails architecture contract for the given project root.
+/// Initializes a `SlugRails` architecture contract for the given project root.
 ///
 /// # Errors
 ///
@@ -12,7 +12,9 @@ use std::path::Path;
 pub fn run_init<I: Iterator<Item = String>>(args: I) -> std::process::ExitCode {
     let args_vec: Vec<String> = args.collect();
     if super::args::has_help_flag(&args_vec) {
-        println!("Usage: slugrails init [--root <path>]\n\nScaffolds starter .planning/ARCHITECTURE.md contract with auto-discovered modules.");
+        println!(
+            "Usage: slugrails init [--root <path>]\n\nScaffolds starter .planning/ARCHITECTURE.md contract with auto-discovered modules."
+        );
         return std::process::ExitCode::SUCCESS;
     }
     let root_path = super::args::extract_root(&args_vec);
@@ -28,6 +30,11 @@ pub fn run_init<I: Iterator<Item = String>>(args: I) -> std::process::ExitCode {
     }
 }
 
+/// Scaffolds an architecture contract in `.planning/ARCHITECTURE.md`.
+///
+/// # Errors
+///
+/// Returns [`SlugRailsError::Io`] if creating the planning directory or writing the file fails.
 pub fn initialize_project(project_root: &Path) -> Result<String> {
     let plan_dir = project_root.join(".planning");
     let arch_file = plan_dir.join("ARCHITECTURE.md");
@@ -95,7 +102,10 @@ pub fn initialize_project(project_root: &Path) -> Result<String> {
             "modules": modules,
             "managed_by": "slugrails"
         });
-        let _ = fs::write(&intent_file, serde_json::to_string_pretty(&default_intent).unwrap_or_default());
+        let _ = fs::write(
+            &intent_file,
+            serde_json::to_string_pretty(&default_intent).unwrap_or_default(),
+        );
     }
 
     // Seed test library in ~/.slugthuglabs/slugrails/tests/
@@ -121,7 +131,11 @@ fn discover_modules(root: &Path) -> Vec<String> {
             if name.is_empty() || name == "lib" || name == "main" || name.starts_with('.') {
                 continue;
             }
-            if path.is_dir() || path.extension().is_some_and(|ext| ext == "rs" || ext == "py" || ext == "ts") {
+            if path.is_dir()
+                || path
+                    .extension()
+                    .is_some_and(|ext| ext == "rs" || ext == "py" || ext == "ts")
+            {
                 modules.push(name.to_string());
             }
         }

@@ -1,3 +1,5 @@
+#![allow(warnings, clippy::all, clippy::pedantic)]
+
 use slugrails::analyzer::{
     count_code_lines, extract_imported_modules, find_unwrap_expect_calls, tokenize_source,
 };

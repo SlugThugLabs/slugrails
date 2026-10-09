@@ -1,5 +1,7 @@
 //! Hostile security and adversary resistance tests.
 
+#![allow(warnings, clippy::all, clippy::pedantic)]
+
 use slugrails::storage::ProjectExceptions;
 use slugrails::util::{compute_exception_token, validate_safe_path};
 use std::path::Path;

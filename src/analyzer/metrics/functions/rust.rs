@@ -92,7 +92,12 @@ fn find_open_paren(text: &str, from: usize) -> Option<usize> {
     None
 }
 
-pub(crate) fn find_matching(text: &str, open: usize, open_byte: u8, close_byte: u8) -> Option<usize> {
+pub(crate) fn find_matching(
+    text: &str,
+    open: usize,
+    open_byte: u8,
+    close_byte: u8,
+) -> Option<usize> {
     let bytes = text.as_bytes();
     let mut depth = 0i64;
     let mut index = open;
