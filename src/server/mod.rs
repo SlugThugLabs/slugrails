@@ -11,7 +11,7 @@ pub use types::{
 use crate::library::catalog::GuardCatalog;
 use rmcp::handler::server::ServerHandler;
 use rmcp::handler::server::wrapper::Parameters;
-use rmcp::model::{Implementation, ProtocolVersion, ServerCapabilities, ServerInfo};
+use rmcp::model::{Implementation, ProtocolVersion, ServerCapabilities, ServerConfig};
 use rmcp::{ErrorData, Json, tool, tool_handler, tool_router};
 use std::collections::BTreeMap;
 use std::sync::Arc;
@@ -123,8 +123,8 @@ impl SlugRailsMcpServer {
 #[allow(clippy::unused_async_trait_impl)]
 #[tool_handler(router = self.tool_router)]
 impl ServerHandler for SlugRailsMcpServer {
-    fn get_info(&self) -> ServerInfo {
-        ServerInfo::new(ServerCapabilities::builder().enable_tools().build())
+    fn get_info(&self) -> ServerConfig {
+        ServerConfig::new(ServerCapabilities::builder().enable_tools().build())
             .with_protocol_version(ProtocolVersion::LATEST)
             .with_instructions(INSTRUCTIONS)
             .with_server_info(Implementation::new(

@@ -5,7 +5,7 @@ pub mod catalog;
 
 use crate::error::{CodeGuardsError, Result};
 use crate::library::builtins::get_builtin_guard_tests;
-use crate::library::catalog::GuardCatalog;
+pub use crate::library::catalog::GuardCatalog;
 use crate::types::GuardTestDefinition;
 use crate::util::get_tests_dir;
 use std::fs;

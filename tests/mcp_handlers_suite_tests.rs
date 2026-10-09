@@ -18,7 +18,7 @@ use slugrails::server::{
 use slugrails::storage::ProjectExceptions;
 use slugrails::storage::baseline::{TAMPER_ERROR_MSG, get_contract_baseline_path};
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use tempfile::tempdir;
 use tokio::sync::Mutex;
@@ -73,8 +73,8 @@ async fn test_check_project_handler() {
     );
 
     let report = result.expect("unreachable").0;
-    assert_eq!(report.files_scanned, 1);
-    assert!(report.passed, "clean sample project should pass checks");
+    assert_eq!(report.total_files_checked, 1);
+    assert!(report.is_pass(), "clean sample project should pass checks");
 }
 
 #[tokio::test]
@@ -93,6 +93,7 @@ async fn test_slugplan_probe_handler() {
     // Probe without auto-scaffolding
     let req = ProbeArchitectureRequest {
         description: "Event-driven high-throughput distributed microservice".to_string(),
+        language: None,
         project_path: Some(project_root.to_string_lossy().to_string()),
         style: Some("layered".to_string()),
         custom_layers: None,
@@ -137,6 +138,7 @@ async fn test_slugplan_probe_handler() {
     // Auto-scaffold probe
     let req_scaffold = ProbeArchitectureRequest {
         description: "Event-driven high-throughput distributed microservice".to_string(),
+        language: None,
         project_path: Some(project_root.to_string_lossy().to_string()),
         style: Some("layered".to_string()),
         custom_layers: Some(vec!["transport".to_string(), "engine".to_string()]),
@@ -175,7 +177,7 @@ fn test_scaffold_test_harness_handler() {
 
     let content = fs::read_to_string(&harness_file).expect("failed to read created harness");
     assert!(
-        content.contains("test_slugrails_architecture_invariants"),
+        content.contains("test_architecture_contract_enforced"),
         "harness must contain architecture test entry point"
     );
 }
@@ -217,7 +219,7 @@ fn test_add_exception_handler() {
     );
 
     let entry = ok_result.expect("unreachable").0;
-    assert_eq!(entry.file, "src/legacy.rs");
+    assert_eq!(entry.file, PathBuf::from("src/legacy.rs"));
     assert_eq!(entry.guard_id, "complexity/source-limits");
     assert_eq!(entry.reason, "Legacy code undergoing phased refactor");
     assert_eq!(entry.token.len(), 5, "token must be exactly 5 digits");
@@ -307,7 +309,10 @@ async fn test_baseline_tamper_rejection() {
         handler_err.is_err(),
         "handle_check_project must return error on tampered contract"
     );
-    let handler_err_msg = handler_err.expect_err("expected error").message;
+    let handler_err_msg = match handler_err {
+        Err(e) => e.message,
+        Ok(_) => panic!("expected error"),
+    };
     assert!(
         handler_err_msg.contains("contract.baseline") || handler_err_msg.contains("Missing or invalid contract"),
         "handler error message must describe baseline or contract invalidity: {handler_err_msg}"

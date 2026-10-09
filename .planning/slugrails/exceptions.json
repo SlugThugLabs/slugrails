@@ -1,0 +1,41 @@
+{
+  "project_path": "",
+  "version": "",
+  "exceptions": [
+    {
+      "token": "21483",
+      "file": "src/test.rs",
+      "guard_id": "test-guard",
+      "reason": "reason 0",
+      "granted_at": "2026-10-09T06:37:14.998608843+00:00"
+    },
+    {
+      "token": "46579",
+      "file": "src/test.rs",
+      "guard_id": "test-guard",
+      "reason": "reason 1",
+      "granted_at": "2026-10-09T06:37:14.999081309+00:00"
+    },
+    {
+      "token": "96540",
+      "file": "src/test.rs",
+      "guard_id": "test-guard",
+      "reason": "reason 2",
+      "granted_at": "2026-10-09T06:37:14.999437366+00:00"
+    },
+    {
+      "token": "70206",
+      "file": "src/test.rs",
+      "guard_id": "test-guard",
+      "reason": "reason 3",
+      "granted_at": "2026-10-09T06:37:14.999747777+00:00"
+    },
+    {
+      "token": "13888",
+      "file": "src/test.rs",
+      "guard_id": "test-guard",
+      "reason": "reason 4",
+      "granted_at": "2026-10-09T06:37:15.000065343+00:00"
+    }
+  ]
+}

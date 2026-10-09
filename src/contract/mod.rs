@@ -101,6 +101,11 @@ pub fn validate_contract(
     for enforce_item in &contract.enforce {
         if let Some(entry) = catalog.resolve(enforce_item) {
             ready_guards.push(entry.id.clone());
+        } else if let Some(b) = crate::library::builtins::get_builtin_guard_tests()
+            .into_iter()
+            .find(|b| b.id == *enforce_item || b.name == *enforce_item || b.aliases.contains(enforce_item))
+        {
+            ready_guards.push(b.id);
         } else {
             missing_guards.push(enforce_item.clone());
             errors.push(format!(
@@ -181,11 +186,9 @@ pub fn validate_architecture(
     let mut existing_modules = Vec::new();
     let src_dir = project_root.join("src");
     if src_dir.is_dir() {
-        for module in &contract.modules {
-            let rs_file = src_dir.join(format!("{module}.rs"));
-            let mod_dir = src_dir.join(module);
-            if rs_file.exists() || mod_dir.exists() {
-                existing_modules.push(module.clone());
+        for m in &contract.modules {
+            if src_dir.join(format!("{m}.rs")).exists() || src_dir.join(m).exists() {
+                existing_modules.push(m.clone());
             }
         }
     }

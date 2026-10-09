@@ -21,6 +21,8 @@ fn build_catalog_entry(id: &str) -> GuardCatalogEntry {
         summary: "test guard".to_string(),
         tags: vec![],
         aliases: vec![],
+        engine: String::new(),
+        default_params: BTreeMap::new(),
         file_path: PathBuf::new(),
     }
 }

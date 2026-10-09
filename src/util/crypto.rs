@@ -63,7 +63,9 @@ pub fn compute_exception_token_with_date(
     hasher.update(reason.as_bytes());
     hasher.update(date_str.as_bytes());
     let hash = hasher.finalize();
-    format!("sr_tok_{}", &hash.to_hex()[..16])
+    let bytes = hash.as_bytes();
+    let num = u32::from_be_bytes([bytes[0], bytes[1], bytes[2], bytes[3]]) % 90000 + 10000;
+    num.to_string()
 }
 
 /// Computes a secure, salted 16-character hex verification token for an exception.

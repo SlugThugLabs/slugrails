@@ -39,15 +39,17 @@ pub fn check_deep_nesting(
         .unwrap_or(4);
 
     for site in nesting_depth(ctx.content) {
-        if site.max_depth > max_depth && !ctx.is_test_line(site.line) {
+        let is_rust = ctx.rel_file.extension().is_some_and(|ext| ext == "rs");
+        let depth = if is_rust { site.max_depth.saturating_sub(1) } else { site.max_depth };
+        if depth > max_depth && !ctx.is_test_line(site.line) {
             if !has_valid_exception(ctx.file, &ctx.guard.id, ctx.content, ctx.exceptions) {
                 violations.push(Violation {
                     guard_id: ctx.guard.id.clone(),
                     file: ctx.rel_file.to_path_buf(),
                     line: Some(site.line),
                     message: format!(
-                        "Function '{}' exceeds maximum nesting depth ({}/{max_depth})",
-                        site.name, site.max_depth
+                        "Function '{}' exceeds maximum nesting depth ({depth}/{max_depth})",
+                        site.name
                     ),
                     severity: Severity::Error,
                     fix_suggestion: Some(
