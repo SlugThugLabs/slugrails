@@ -196,11 +196,11 @@ fn mcp_stdio_full_handshake() {
     //    contract — must return a structured error result, not crash.
     let project = tempfile::tempdir().expect("tempdir for project");
     let val_id = rpc_id(&mut next_id);
+    let path_str = project.path().to_string_lossy().replace('\\', "/");
     send(
         &mut child,
         &format!(
-            r#"{{"jsonrpc":"2.0","id":{val_id},"method":"tools/call","params":{{"name":"validate_architecture","arguments":{{"project_path":"{}"}}}}}}"#,
-            project.path().display()
+            r#"{{"jsonrpc":"2.0","id":{val_id},"method":"tools/call","params":{{"name":"validate_architecture","arguments":{{"project_path":"{path_str}"}}}}}}"#
         ),
     );
     let val_resp = wait_for_response(&mut reader, val_id);
