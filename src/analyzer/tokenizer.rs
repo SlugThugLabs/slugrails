@@ -3,17 +3,21 @@
 //! Strips comments, docstrings, and string literals in a single clean pass.
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum LexState {
+pub(crate) enum LexState {
     Normal,
     LineComment,
     BlockComment,
     StringLiteral { escaped: bool },
+    RawString { hashes: usize },
     CharLiteral { escaped: bool },
 }
 
+use super::patterns::{check_raw_closing, scan_char_or_lifetime, scan_raw_hashes};
 use std::borrow::Cow;
+use std::iter::Peekable;
+use std::str::Chars;
 
-/// A line in a source file, split into raw content and code-only content (comments/strings stripped).
+/// A line in a source file, split into raw content and code-only content.
 #[derive(Debug, Clone)]
 pub struct StrippedLine<'a> {
     pub line_number: usize,
@@ -26,144 +30,155 @@ pub struct StrippedLine<'a> {
 #[must_use]
 pub fn tokenize_source(source: &str) -> Vec<StrippedLine<'_>> {
     let mut state = LexState::Normal;
-    let mut lines = Vec::new();
+    source
+        .lines()
+        .enumerate()
+        .map(|(idx, line)| tokenize_single_line(idx, line, &mut state))
+        .collect()
+}
 
-    for (idx, raw_line) in source.lines().enumerate() {
-        if state == LexState::Normal
-            && !raw_line.contains('/')
-            && !raw_line.contains('#')
-            && !raw_line.contains('"')
-            && !raw_line.contains('\'')
-        {
-            let has_code = !raw_line.trim().is_empty();
-            lines.push(StrippedLine {
-                line_number: idx + 1,
-                raw: Cow::Borrowed(raw_line),
-                code_only: Cow::Borrowed(raw_line),
-                has_code_token: has_code,
-            });
-            continue;
-        }
-
-        let mut code_buf = String::with_capacity(raw_line.len());
-        let mut chars = raw_line.chars().peekable();
-        let mut has_code = false;
-
-        while let Some(c) = chars.next() {
-            let next = chars.peek().copied();
-
-            match state {
-                LexState::Normal => {
-                    let is_rust_attr = c == '#' && matches!(next, Some('[' | '!'));
-                    if (c == '/' && next == Some('/')) || (c == '#' && !is_rust_attr) {
-                        state = LexState::LineComment;
-                        break;
-                    } else if is_rust_attr {
-                        has_code = true;
-                        code_buf.push(c);
-                    } else if c == '/' && next == Some('*') {
-                        state = LexState::BlockComment;
-                        chars.next();
-                    } else if c == '"' {
-                        state = LexState::StringLiteral { escaped: false };
-                        has_code = true;
-                    } else if c == '\'' {
-                        state = LexState::CharLiteral { escaped: false };
-                        has_code = true;
-                    } else {
-                        if !c.is_whitespace() {
-                            has_code = true;
-                        }
-                        code_buf.push(c);
-                    }
-                }
-                LexState::LineComment => break,
-                LexState::BlockComment => {
-                    if c == '*' && next == Some('/') {
-                        state = LexState::Normal;
-                        chars.next();
-                    }
-                }
-                LexState::StringLiteral { escaped } => {
-                    if escaped {
-                        state = LexState::StringLiteral { escaped: false };
-                    } else if c == '\\' {
-                        state = LexState::StringLiteral { escaped: true };
-                    } else if c == '"' {
-                        state = LexState::Normal;
-                    }
-                }
-                LexState::CharLiteral { escaped } => {
-                    if escaped {
-                        state = LexState::CharLiteral { escaped: false };
-                    } else if c == '\\' {
-                        state = LexState::CharLiteral { escaped: true };
-                    } else if c == '\'' {
-                        state = LexState::Normal;
-                    }
-                }
-            }
-        }
-
-        if state == LexState::LineComment {
-            state = LexState::Normal;
-        }
-
-        let code_only = if code_buf == raw_line {
-            Cow::Borrowed(raw_line)
-        } else {
-            Cow::Owned(code_buf)
-        };
-
-        lines.push(StrippedLine {
+fn tokenize_single_line<'a>(
+    idx: usize,
+    raw_line: &'a str,
+    state: &mut LexState,
+) -> StrippedLine<'a> {
+    if *state == LexState::Normal
+        && !raw_line.contains('/')
+        && !raw_line.contains('#')
+        && !raw_line.contains('"')
+        && !raw_line.contains('\'')
+    {
+        return StrippedLine {
             line_number: idx + 1,
             raw: Cow::Borrowed(raw_line),
-            code_only,
-            has_code_token: has_code,
-        });
+            code_only: Cow::Borrowed(raw_line),
+            has_code_token: !raw_line.trim().is_empty(),
+        };
     }
 
-    lines
-}
+    let mut code_buf = String::with_capacity(raw_line.len());
+    let mut chars = raw_line.chars().peekable();
+    let mut has_code = false;
+    let mut prev_char: Option<char> = None;
 
-/// Counts non-comment, non-empty code lines in source text.
-#[must_use]
-pub fn count_code_lines(source: &str) -> usize {
-    tokenize_source(source)
-        .into_iter()
-        .filter(|l| l.has_code_token)
-        .count()
-}
-
-/// Checks if a source file contains `unwrap()` or `expect()` calls outside comments and strings.
-#[must_use]
-pub fn find_unwrap_expect_calls(source: &str) -> Vec<(usize, String)> {
-    let mut results = Vec::new();
-    for line in tokenize_source(source) {
-        if line.code_only.contains(".unwrap()") {
-            results.push((line.line_number, "bare .unwrap() call detected".to_string()));
-        } else if line.code_only.contains(".expect(") {
-            results.push((line.line_number, "bare .expect() call detected".to_string()));
+    while let Some(c) = chars.next() {
+        let next = chars.peek().copied();
+        match *state {
+            LexState::Normal => {
+                if handle_normal(
+                    c,
+                    next,
+                    prev_char,
+                    &mut chars,
+                    &mut code_buf,
+                    &mut has_code,
+                    state,
+                ) {
+                    break;
+                }
+            }
+            _ => handle_non_normal(c, next, &mut chars, state),
         }
+        prev_char = Some(c);
     }
-    results
+
+    if matches!(*state, LexState::LineComment | LexState::CharLiteral { .. }) {
+        *state = LexState::Normal;
+    }
+
+    let code_only = if code_buf == raw_line {
+        Cow::Borrowed(raw_line)
+    } else {
+        Cow::Owned(code_buf)
+    };
+
+    StrippedLine {
+        line_number: idx + 1,
+        raw: Cow::Borrowed(raw_line),
+        code_only,
+        has_code_token: has_code,
+    }
 }
 
-/// Checks for debug prints like dbg!, console.log outside comments/strings.
-#[must_use]
-pub fn find_debug_prints(source: &str) -> Vec<(usize, String)> {
-    let mut results = Vec::new();
-    let debug_patterns = ["dbg!", "console.log"];
+fn handle_normal(
+    c: char,
+    next: Option<char>,
+    prev: Option<char>,
+    chars: &mut Peekable<Chars<'_>>,
+    code: &mut String,
+    has_code: &mut bool,
+    state: &mut LexState,
+) -> bool {
+    let is_attr = c == '#' && matches!(next, Some('[' | '!'));
+    if (c == '/' && next == Some('/')) || (c == '#' && !is_attr) {
+        *state = LexState::LineComment;
+        return true;
+    }
+    if is_attr {
+        *has_code = true;
+        code.push(c);
+    } else if c == '/' && next == Some('*') {
+        *state = LexState::BlockComment;
+        chars.next();
+    } else if c == 'r' && next == Some('"') {
+        *state = LexState::RawString { hashes: 0 };
+        chars.next();
+        *has_code = true;
+    } else if c == 'r' && next == Some('#') {
+        scan_raw_hashes(c, chars, code, has_code, state);
+    } else if c == '"' {
+        *state = LexState::StringLiteral { escaped: false };
+        *has_code = true;
+    } else if c == '\'' {
+        scan_char_or_lifetime(c, next, prev, code, has_code, state);
+    } else {
+        if !c.is_whitespace() {
+            *has_code = true;
+        }
+        code.push(c);
+    }
+    false
+}
 
-    for line in tokenize_source(source) {
-        for pat in debug_patterns {
-            if line.code_only.contains(pat) && !line.raw.contains("tracing::") {
-                results.push((line.line_number, format!("debug statement '{pat}' found")));
+fn handle_non_normal(
+    c: char,
+    next: Option<char>,
+    chars: &mut Peekable<Chars<'_>>,
+    state: &mut LexState,
+) {
+    match state {
+        LexState::BlockComment => {
+            if c == '*' && next == Some('/') {
+                *state = LexState::Normal;
+                chars.next();
             }
         }
+        LexState::StringLiteral { escaped } => {
+            if *escaped {
+                *escaped = false;
+            } else if c == '\\' {
+                *escaped = true;
+            } else if c == '"' {
+                *state = LexState::Normal;
+            }
+        }
+        LexState::RawString { hashes } => {
+            if c == '"' && check_raw_closing(chars, *hashes) {
+                *state = LexState::Normal;
+            }
+        }
+        LexState::CharLiteral { escaped } => {
+            if *escaped {
+                *escaped = false;
+            } else if c == '\\' {
+                *escaped = true;
+            } else if c == '\'' {
+                *state = LexState::Normal;
+            }
+        }
+        LexState::Normal | LexState::LineComment => {}
     }
-
-    results
 }
 
 pub use super::imports::extract_imported_modules;
+pub use super::patterns::{count_code_lines, find_debug_prints, find_unwrap_expect_calls};

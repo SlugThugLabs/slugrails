@@ -4,17 +4,17 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
-const HOOK_SCRIPT: &str = r#"#!/usr/bin/env sh
-# SlugRails Pre-Commit Enforcement Gate
+const HOOK_BLOCK: &str = r#"# >>> slugrails pre-commit gate >>>
 if command -v slugrails >/dev/null 2>&1; then
-    exec slugrails check
+    slugrails check || exit 1
 elif command -v slugrails-mcp >/dev/null 2>&1; then
-    exec slugrails-mcp check
+    slugrails-mcp check || exit 1
 else
     echo "Error: slugrails not found in PATH. Architectural rails cannot be verified." >&2
     echo "Please install slugrails or commit with --no-verify if explicitly authorized." >&2
     exit 1
 fi
+# <<< slugrails pre-commit gate <<<
 "#;
 
 /// Entry point for `slugrails hook` subcommand.
@@ -56,18 +56,26 @@ pub fn install_hook(repo_root: &Path) -> ExitCode {
     }
 
     let hook_path = hooks_dir.join("pre-commit");
-    if hook_path.exists()
-        && let Ok(content) = fs::read_to_string(&hook_path)
-        && content.contains("slugrails")
-    {
-        println!(
-            "Pre-commit hook is already installed in {}",
-            hook_path.display()
-        );
-        return ExitCode::SUCCESS;
-    }
+    let content = if hook_path.exists() {
+        match fs::read_to_string(&hook_path) {
+            Ok(c) if c.contains("slugrails") => {
+                println!(
+                    "Pre-commit hook is already installed in {}",
+                    hook_path.display()
+                );
+                return ExitCode::SUCCESS;
+            }
+            Ok(c) => format!("{c}\n\n{HOOK_BLOCK}"),
+            Err(e) => {
+                eprintln!("Error reading existing hook: {e}");
+                return ExitCode::from(1);
+            }
+        }
+    } else {
+        format!("#!/usr/bin/env sh\n\n{HOOK_BLOCK}")
+    };
 
-    if let Err(e) = fs::write(&hook_path, HOOK_SCRIPT) {
+    if let Err(e) = fs::write(&hook_path, content) {
         eprintln!("Error writing hook file: {e}");
         return ExitCode::from(1);
     }
@@ -97,8 +105,14 @@ pub fn uninstall_hook(repo_root: &Path) -> ExitCode {
 
     match fs::read_to_string(&hook_path) {
         Ok(content) if content.contains("slugrails") => {
-            if let Err(e) = fs::remove_file(&hook_path) {
-                eprintln!("Error removing hook: {e}");
+            let cleaned = strip_slugrails_hook(&content);
+            if cleaned.trim().is_empty() || cleaned.trim() == "#!/usr/bin/env sh" {
+                if let Err(e) = fs::remove_file(&hook_path) {
+                    eprintln!("Error removing hook: {e}");
+                    return ExitCode::from(1);
+                }
+            } else if let Err(e) = fs::write(&hook_path, cleaned) {
+                eprintln!("Error updating hook file: {e}");
                 return ExitCode::from(1);
             }
             println!("Successfully removed SlugRails pre-commit hook.");
@@ -111,6 +125,25 @@ pub fn uninstall_hook(repo_root: &Path) -> ExitCode {
             ExitCode::SUCCESS
         }
     }
+}
+
+fn strip_slugrails_hook(content: &str) -> String {
+    let mut out = Vec::new();
+    let mut skipping = false;
+    for line in content.lines() {
+        if line.contains(">>> slugrails pre-commit gate >>>") {
+            skipping = true;
+            continue;
+        }
+        if line.contains("<<< slugrails pre-commit gate <<<") {
+            skipping = false;
+            continue;
+        }
+        if !skipping && !line.contains("slugrails") {
+            out.push(line);
+        }
+    }
+    out.join("\n")
 }
 
 fn resolve_gitdir(git_file: &Path) -> Option<PathBuf> {

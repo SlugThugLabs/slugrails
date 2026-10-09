@@ -28,12 +28,12 @@ pub const IMPLEMENTED_GUARDS: &[&str] = &[
     "languages/rust/no-panic",
     "languages/rust/unsafe-policy",
     "structural/layer-dependencies",
+    "structural/manifest-dependencies",
 ];
 
 /// Known catalog guards not yet implemented in the runner registry.
 pub const UNIMPLEMENTED_GUARDS: &[&str] = &[
     "structural/docs-drift",
-    "structural/manifest-dependencies",
     "hygiene/no-duplicates",
     "languages/rust/tracing-instrument",
     "languages/rust/runtime-leak",

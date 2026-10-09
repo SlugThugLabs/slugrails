@@ -1,9 +1,9 @@
 //! Registry of all available `GuardCheck` implementations.
 
 use super::checks::{
-    DebugPrintsCheck, DeepNestingCheck, FunctionLimitsCheck, LayerDependenciesCheck, NoPanicCheck,
-    NoSecretsCheck, NoStubsCheck, NoUnwrapCheck, SourceLimitsCheck, SwallowedErrorsCheck,
-    UnsafePolicyCheck,
+    DebugPrintsCheck, DeepNestingCheck, FunctionLimitsCheck, LayerDependenciesCheck,
+    ManifestDependenciesCheck, NoPanicCheck, NoSecretsCheck, NoStubsCheck, NoUnwrapCheck,
+    SourceLimitsCheck, SwallowedErrorsCheck, UnsafePolicyCheck,
 };
 use super::traits::GuardCheck;
 use std::collections::HashMap;
@@ -31,6 +31,7 @@ impl GuardRegistry {
             Box::new(SwallowedErrorsCheck),
             Box::new(NoSecretsCheck),
             Box::new(LayerDependenciesCheck),
+            Box::new(ManifestDependenciesCheck),
         ];
 
         for check in all_checks {

@@ -3,7 +3,8 @@
 use slugrails::analyzer::test_region_lines;
 use slugrails::contract::ArchitectureContract;
 use slugrails::guards::checks::{
-    DeepNestingCheck, NoSecretsCheck, SwallowedErrorsCheck, UnsafePolicyCheck,
+    DeepNestingCheck, ManifestDependenciesCheck, NoSecretsCheck, SwallowedErrorsCheck,
+    UnsafePolicyCheck,
 };
 use slugrails::guards::context::FileContext;
 use slugrails::guards::traits::GuardCheck;
@@ -761,4 +762,54 @@ fn test_no_secrets_ignores_test_lines_and_respects_exceptions() {
         check.check(&exc_ctx, &contract).is_empty(),
         "Approved exception must suppress secret violation"
     );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 8. structural/manifest-dependencies tests
+// ─────────────────────────────────────────────────────────────────────────────
+
+#[test]
+fn test_manifest_dependencies_detects_forbidden_dependency() {
+    let dir = tempdir().expect("tempdir");
+    let manifest_file = dir.path().join("Cargo.toml");
+    let manifest_content = r#"
+[package]
+name = "my-crate"
+version = "0.1.0"
+
+[dependencies]
+serde = "1.0"
+actix-web = "4.0"
+"#;
+    fs::write(&manifest_file, manifest_content).unwrap();
+
+    let guard = build_catalog_entry("structural/manifest-dependencies");
+    let exceptions = ProjectExceptions::default();
+    let rel = Path::new("Cargo.toml");
+
+    let ctx = FileContext {
+        file: &manifest_file,
+        rel_file: rel,
+        rel_str: "Cargo.toml",
+        content: manifest_content,
+        is_test: false,
+        test_regions: &[],
+        rule_name: "structural/manifest-dependencies",
+        guard: &guard,
+        exceptions: &exceptions,
+    };
+
+    let check = ManifestDependenciesCheck;
+    let mut contract = ArchitectureContract::default();
+    contract.guard_settings.insert(
+        "structural/manifest-dependencies".to_string(),
+        serde_json::json!({
+            "forbidden": ["actix-web"]
+        }),
+    );
+
+    let violations = check.check(&ctx, &contract);
+    assert_eq!(violations.len(), 1);
+    assert_eq!(violations[0].guard_id, "structural/manifest-dependencies");
+    assert!(violations[0].message.contains("actix-web"));
 }

@@ -3,7 +3,7 @@
 #![forbid(unsafe_code)]
 
 use slugrails::cli::{
-    run_check, run_exception, run_hook, run_init, run_plan, run_scaffold_tests, run_serve,
+    run_check, run_exception, run_fix, run_hook, run_init, run_plan, run_scaffold_tests, run_serve,
     run_validate,
 };
 use std::process::ExitCode;
@@ -21,6 +21,7 @@ async fn main() -> ExitCode {
         "plan" => run_plan(args),
         "scaffold-tests" | "harness" => run_scaffold_tests(args),
         "check" => run_check(args),
+        "fix" => run_fix(args),
         "hook" => run_hook(args),
         "exception" => run_exception(args),
         "validate" => run_validate(args),
@@ -65,6 +66,7 @@ fn print_help() {
            slugrails plan [--root <path>]          Converse/discover terms & auto-scaffold architecture + tests\n\
            slugrails scaffold-tests [--root <path>] Generate tests/slugrails.rs integration test harness\n\
            slugrails check [--all] [--root <path>]  Run rail checks on modified files (or all)\n\
+           slugrails fix [--root <path>]            Remediate auto-fixable violations\n\
            slugrails hook [install|uninstall]      Manage git pre-commit hook\n\
            slugrails validate [--root <path>]      Validate .planning/ARCHITECTURE.md against tests\n\
            slugrails exception add <file> <guard> --reason=\"...\"\n\
@@ -79,8 +81,11 @@ fn init_tracing() {
     let filter = tracing_subscriber::EnvFilter::try_from_default_env()
         .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("warn"));
 
-    let _ = tracing_subscriber::fmt()
+    if let Err(e) = tracing_subscriber::fmt()
         .with_env_filter(filter)
         .with_writer(std::io::stderr)
-        .try_init();
+        .try_init()
+    {
+        eprintln!("Warning: failed to initialize tracing: {e}");
+    }
 }
