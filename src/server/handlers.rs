@@ -50,14 +50,20 @@ pub async fn handle_check_project(
         )
     })?;
 
-    let files = if req.check_all {
-        collect_source_files(&project_root).unwrap_or_default()
-    } else {
-        collect_git_diff_files(&project_root).unwrap_or_default()
-    };
+    let check_all = req.check_all;
+    let root = project_root.clone();
+    let files = tokio::task::spawn_blocking(move || {
+        if check_all {
+            collect_source_files(&root).unwrap_or_default()
+        } else {
+            collect_git_diff_files(&root).unwrap_or_default()
+        }
+    })
+    .await
+    .map_err(|e| ErrorData::internal_error(format!("File collection task failed: {e}"), None))?;
 
     let exceptions = ProjectExceptions::load(&project_root).unwrap_or_default();
-    let cat = catalog.lock().await.clone();
+    let cat = catalog.clone().lock_owned().await;
     let root = project_root.clone();
     let res = tokio::task::spawn_blocking(move || {
         run_guard_checks(&root, &files, &contract, &cat, &exceptions)

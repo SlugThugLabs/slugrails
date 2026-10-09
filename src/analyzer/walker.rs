@@ -136,9 +136,5 @@ pub fn collect_git_diff_files(project_root: &Path) -> Result<Vec<PathBuf>> {
         }
     }
 
-    if files.is_empty() {
-        collect_source_files(project_root)
-    } else {
-        Ok(files)
-    }
+    Ok(files)
 }

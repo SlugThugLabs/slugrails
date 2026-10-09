@@ -110,7 +110,8 @@ pub fn plan_architecture(
          # Intent & Architectural Contract\n\n\
          {intent}\n"
     );
-    fs::write(&arch_path, arch_content)?;
+    fs::write(&arch_path, &arch_content)?;
+    crate::storage::save_contract_baseline(root, &arch_content)?;
 
     let slugplan_dir = crate::util::get_project_plan_dir(root);
     fs::create_dir_all(&slugplan_dir)?;

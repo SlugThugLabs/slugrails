@@ -2,6 +2,7 @@ pub mod discovery;
 pub mod scaffold;
 pub use discovery::{ProjectInspection, inspect_project};
 pub use scaffold::{plan_architecture, scaffold_tests_harness};
+pub use crate::storage::baseline::{save_contract_baseline, verify_contract_baseline};
 
 use crate::error::{CodeGuardsError, ContractError, Result};
 use crate::library::catalog::GuardCatalog;
@@ -93,9 +94,7 @@ pub fn validate_contract(
 
     for module in &contract.modules {
         if !existing_modules.contains(module) {
-            warnings.push(format!(
-                "Declared module '{module}' does not exist on disk under src/"
-            ));
+            warnings.push(format!("Declared module '{module}' does not exist on disk under src/"));
         }
     }
 
@@ -131,8 +130,7 @@ pub fn load_architecture(project_root: &Path) -> Result<ArchitectureContract> {
     if !arch_file.exists() {
         return Err(CodeGuardsError::Contract(ContractError::MissingContract {
             path: arch_file,
-            hint: "Run 'slugrails init' to automatically scaffold one for this project."
-                .to_string(),
+            hint: "Run 'slugrails init' to automatically scaffold one for this project.".to_string(),
         }));
     }
 
@@ -140,6 +138,20 @@ pub fn load_architecture(project_root: &Path) -> Result<ArchitectureContract> {
         path: arch_file,
         source: e,
     })?;
+
+    let baseline_file = project_root.join(".planning").join("slugrails").join("contract.baseline");
+    if baseline_file.exists() {
+        let stored_hash = fs::read_to_string(&baseline_file).map_err(|e| CodeGuardsError::Io {
+            path: baseline_file,
+            source: e,
+        })?;
+        let current_hash = blake3::hash(content.as_bytes()).to_hex().to_string();
+        if stored_hash.trim() != current_hash {
+            return Err(CodeGuardsError::Contract(ContractError::Malformed(
+                "ARCHITECTURE.md hash does not match approved baseline (.planning/slugrails/contract.baseline). Update baseline with authorized token or slugrails plan.",
+            )));
+        }
+    }
 
     let (contract, _) = parse_frontmatter(&content)?;
     Ok(contract)
@@ -156,16 +168,14 @@ pub fn validate_architecture(
 ) -> Result<ValidationResult> {
     let contract = match load_architecture(project_root) {
         Ok(c) => c,
-        Err(e) => {
-            return Ok(ValidationResult {
-                is_valid: false,
-                contract: None,
-                ready_guards: Vec::new(),
-                missing_guards: Vec::new(),
-                errors: vec![format!("Failed to load ARCHITECTURE.md: {e}")],
-                warnings: Vec::new(),
-            });
-        }
+        Err(e) => return Ok(ValidationResult {
+            is_valid: false,
+            contract: None,
+            ready_guards: Vec::new(),
+            missing_guards: Vec::new(),
+            errors: vec![format!("Failed to load ARCHITECTURE.md: {e}")],
+            warnings: Vec::new(),
+        }),
     };
 
     let mut existing_modules = Vec::new();

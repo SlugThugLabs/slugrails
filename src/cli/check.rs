@@ -1,6 +1,6 @@
 //! CLI `check` subcommand handler.
 
-use super::args::{extract_option, extract_root, has_flag};
+use super::args::{extract_option, extract_root, has_flag, validate_known_flags};
 use super::fix::auto_remediate_violations;
 use super::sarif::format_sarif;
 use crate::analyzer::{collect_git_diff_files, collect_source_files};
@@ -34,6 +34,16 @@ pub fn run_check(args: impl Iterator<Item = String>) -> ExitCode {
                --help, -h           Show this help message"
         );
         return ExitCode::SUCCESS;
+    }
+
+    if let Err(err) = validate_known_flags(
+        &args_vec,
+        &[
+            "--all", "-a", "--root", "-r", "--format", "-f", "--help", "-h", "--fix",
+        ],
+    ) {
+        eprintln!("{err}");
+        return ExitCode::from(2);
     }
 
     let root = extract_root(&args_vec);

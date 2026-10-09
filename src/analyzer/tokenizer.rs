@@ -46,13 +46,11 @@ pub fn tokenize_source(source: &str) -> Vec<StrippedLine<'_>> {
         }
 
         let mut code_buf = String::with_capacity(raw_line.len());
-        let chars: Vec<char> = raw_line.chars().collect();
-        let mut i = 0;
+        let mut chars = raw_line.chars().peekable();
         let mut has_code = false;
 
-        while i < chars.len() {
-            let c = chars[i];
-            let next = chars.get(i + 1).copied();
+        while let Some(c) = chars.next() {
+            let next = chars.peek().copied();
 
             match state {
                 LexState::Normal => {
@@ -65,7 +63,7 @@ pub fn tokenize_source(source: &str) -> Vec<StrippedLine<'_>> {
                         code_buf.push(c);
                     } else if c == '/' && next == Some('*') {
                         state = LexState::BlockComment;
-                        i += 2;
+                        chars.next();
                         continue;
                     } else if c == '"' {
                         state = LexState::StringLiteral { escaped: false };
@@ -84,7 +82,7 @@ pub fn tokenize_source(source: &str) -> Vec<StrippedLine<'_>> {
                 LexState::BlockComment => {
                     if c == '*' && next == Some('/') {
                         state = LexState::Normal;
-                        i += 2;
+                        chars.next();
                         continue;
                     }
                 }
@@ -107,17 +105,22 @@ pub fn tokenize_source(source: &str) -> Vec<StrippedLine<'_>> {
                     }
                 }
             }
-            i += 1;
         }
 
         if state == LexState::LineComment {
             state = LexState::Normal;
         }
 
+        let code_only = if code_buf == raw_line {
+            Cow::Borrowed(raw_line)
+        } else {
+            Cow::Owned(code_buf)
+        };
+
         lines.push(StrippedLine {
             line_number: idx + 1,
             raw: Cow::Borrowed(raw_line),
-            code_only: Cow::Owned(code_buf),
+            code_only,
             has_code_token: has_code,
         });
     }

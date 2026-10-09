@@ -127,7 +127,11 @@ fn evaluate_file_guards(
     let Ok(meta) = fs::metadata(file) else {
         return violations;
     };
-    if !meta.is_file() || meta.len() > 2 * 1024 * 1024 {
+    if !meta.is_file() {
+        return violations;
+    }
+    if meta.len() > 2 * 1024 * 1024 {
+        tracing::warn!("Skipping oversized file exceeding 2MB limit: {}", file.display());
         return violations;
     }
 

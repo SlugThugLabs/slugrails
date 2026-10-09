@@ -60,3 +60,23 @@ pub fn extract_option(args: &[String], long: &str, short: Option<&str>) -> Optio
     }
     None
 }
+
+/// Validates that all flag arguments (starting with `-` or `--`) are present in `known`.
+///
+/// # Errors
+///
+/// Returns an error message if an unrecognized flag is encountered.
+pub fn validate_known_flags(args: &[String], known: &[&str]) -> Result<(), String> {
+    for arg in args {
+        if arg.starts_with('-') {
+            let flag = arg.split_once('=').map_or(arg.as_str(), |(k, _)| k);
+            if !known.contains(&arg.as_str()) && !known.contains(&flag) {
+                return Err(format!(
+                    "Unrecognized flag: '{arg}'. Run 'slugrails --help' for usage."
+                ));
+            }
+        }
+    }
+    Ok(())
+}
+

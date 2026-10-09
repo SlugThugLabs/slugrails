@@ -6,9 +6,9 @@ mod steps;
 
 use crate::error::MenuError;
 use crate::style::Style;
-use std::io::{BufRead as _, Write as _};
+use std::io::{BufRead as _, IsTerminal as _, Write as _};
 
-pub use render::render_menu;
+pub use render::{is_interactive, is_interactive_terminal, render_menu};
 pub use steps::{confirm_serve, connect_step, guard_catalog_step, install_step, other_client_step};
 
 /// Reads one menu choice from stdin. Unparseable input maps to `0` so the
@@ -31,6 +31,11 @@ fn read_choice() -> Result<Option<usize>, MenuError> {
 /// Returns a [`MenuError`] if the menu prompt cannot be flushed to stdout or if
 /// reading the user's choice from stdin fails.
 pub fn run_menu() -> Result<bool, MenuError> {
+    if !std::io::stdin().is_terminal() {
+        eprintln!("Interactive menu requires a TTY terminal. Use CLI subcommands in automation.");
+        return Ok(false);
+    }
+
     loop {
         let style = Style::stdout();
         print!("{}", render_menu(style));

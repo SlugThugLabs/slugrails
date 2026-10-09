@@ -1,6 +1,7 @@
 //! ANSI and text rendering for the interactive setup menu.
 
 use crate::style::Style;
+use std::io::IsTerminal as _;
 
 pub const MENU: &str = "\
 ┌─────────────────────────────────────────────┐
@@ -77,3 +78,16 @@ fn section_label(trimmed: &str) -> Option<&str> {
     }
     Some(label)
 }
+
+/// Returns whether standard input is attached to an interactive terminal (TTY).
+#[must_use]
+pub fn is_interactive() -> bool {
+    std::io::stdin().is_terminal()
+}
+
+/// Returns whether standard input is attached to an interactive terminal (TTY).
+#[must_use]
+pub fn is_interactive_terminal() -> bool {
+    is_interactive()
+}
+

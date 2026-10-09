@@ -1,5 +1,11 @@
 //! Project storage manager and user-authorized exception store.
 
+pub mod baseline;
+pub use baseline::{
+    compute_contract_hash, get_contract_baseline_path, save_contract_baseline,
+    verify_contract_baseline,
+};
+
 use crate::error::{CodeGuardsError, Result};
 use crate::types::ExceptionEntry;
 use crate::util::{
@@ -69,9 +75,7 @@ impl ProjectExceptions {
 
         let file_path = storage_dir.join("exceptions.json");
         let tmp_path = storage_dir.join(format!(
-            "exceptions.json.tmp.{}.{}",
-            std::process::id(),
-            Utc::now().timestamp_nanos_opt().unwrap_or(0)
+            "exceptions.json.tmp.{}.{}", std::process::id(), Utc::now().timestamp_nanos_opt().unwrap_or(0)
         ));
 
         let content = serde_json::to_string_pretty(self)?;
@@ -93,10 +97,7 @@ impl ProjectExceptions {
 
     /// Pure in-memory insertion of an authorized exception token without disk I/O.
     pub fn insert_exception(
-        &mut self,
-        file: &Path,
-        guard_id: &str,
-        reason: &str,
+        &mut self, file: &Path, guard_id: &str, reason: &str,
     ) -> ExceptionEntry {
         let token = compute_exception_token(file, guard_id, reason);
         self.exceptions.retain(|e| e.token != token);
@@ -119,10 +120,7 @@ impl ProjectExceptions {
     ///
     /// Returns [`CodeGuardsError::Io`] if the exceptions file cannot be written to disk.
     pub fn add_exception(
-        &mut self,
-        file: &Path,
-        guard_id: &str,
-        reason: &str,
+        &mut self, file: &Path, guard_id: &str, reason: &str,
     ) -> Result<ExceptionEntry> {
         let entry = self.insert_exception(file, guard_id, reason);
         self.save()?;
@@ -158,11 +156,7 @@ impl ProjectExceptions {
     /// Validates whether an exception token is active within `ttl_days`.
     #[must_use]
     pub fn is_exception_valid_with_ttl(
-        &self,
-        file: &Path,
-        guard_id: &str,
-        token: &str,
-        ttl_days: i64,
+        &self, file: &Path, guard_id: &str, token: &str, ttl_days: i64,
     ) -> bool {
         self.exceptions.iter().any(|e| {
             let norm_file = file.to_string_lossy().replace('\\', "/");
@@ -187,8 +181,6 @@ impl ProjectExceptions {
 
 /// Checks if a token is older than `ttl_days` (default 30 days).
 fn is_token_expired(granted_at: &str, ttl_days: i64) -> bool {
-    match DateTime::parse_from_rfc3339(granted_at) {
-        Ok(granted_time) => granted_time + chrono::Duration::days(ttl_days) < Utc::now(),
-        Err(_) => true,
-    }
+    DateTime::parse_from_rfc3339(granted_at)
+        .map_or(true, |t| t + chrono::Duration::days(ttl_days) < Utc::now())
 }
