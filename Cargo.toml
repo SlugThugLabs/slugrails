@@ -1,0 +1,56 @@
+[package]
+name = "slugrails-mcp"
+version = "0.2.0"
+edition = "2024"
+publish = false
+license = "FSL-1.1-Apache-2.0"
+repository = "https://github.com/SlugThugLabs/slugrails-mcp"
+description = "Architectural rail builder and contract scaffolding for software projects and AI coding agents."
+homepage = "https://slugthuglabs.dev"
+keywords = ["guardrails", "mcp", "architecture", "code-governance", "ai-agents"]
+categories = ["development-tools", "command-line-utilities"]
+default-run = "slugrails"
+
+[lints.rust]
+unsafe_code = "forbid"
+
+[lints.clippy]
+# Deny all pedantic lints (300+ additional checks)
+pedantic = { level = "deny", priority = -1 }
+# Additional critical lints for production code
+unwrap_used = "deny"
+expect_used = "deny"
+panic = "deny"
+missing_errors_doc = "warn"
+missing_panics_doc = "warn"
+module_name_repetitions = "allow"  # Allow in test modules
+
+[lib]
+name = "slugrails"
+path = "src/lib.rs"
+
+[[bin]]
+name = "slugrails"
+path = "src/main.rs"
+
+[dependencies]
+blake3 = "1.8.7"
+chrono = { version = "0.4.45", default-features = false, features = ["std", "clock", "serde"] }
+ignore = "0.4.33"
+rayon = "1.12.0"
+regex = "1.13.1"
+rmcp = { version = "3.2.0", default-features = false, features = ["server", "macros", "transport-io"] }
+schemars = { version = "1.2.2", features = ["derive"] }
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.151"
+thiserror = "2.0.20"
+tokio = { version = "1.53.1", features = ["macros", "rt-multi-thread", "io-std", "io-util", "sync", "time", "net"] }
+toml = "1.1.4"
+tracing = "0.1.44"
+tracing-subscriber = { version = "0.3.23", features = ["env-filter", "fmt"] }
+uuid = { version = "1.26.0", features = ["v4"] }
+walkdir = "2.5.0"
+which = "8.0.6"
+
+[dev-dependencies]
+tempfile = "3.27.0"
